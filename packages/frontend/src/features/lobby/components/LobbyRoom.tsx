@@ -16,7 +16,6 @@ import { SeatGrid } from './SeatGrid.js';
 interface LobbyRoomProps {
   lobby: LobbyDetails;
   currentUserId: string;
-  onBack: () => void;
   onLeave: () => void;
   onClose: () => void;
   onKick: (userId: string) => void;
@@ -33,7 +32,6 @@ interface LobbyRoomProps {
 export function LobbyRoom({
   lobby,
   currentUserId,
-  onBack,
   onLeave,
   onClose,
   onKick,
@@ -70,12 +68,6 @@ export function LobbyRoom({
   return (
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            {LOBBY_MESSAGES.room.back}
-          </Button>
-        </div>
-
         <LobbyHeaderCard lobby={lobby} />
 
         <JudgeSlot

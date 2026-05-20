@@ -60,15 +60,6 @@ export function LobbyRoomPage() {
     return () => window.removeEventListener('beforeunload', leaveOnUnload);
   }, [lobbyId, gameId]);
 
-  // SPA navigation back to the list also leaves so ghost members don't pile up.
-  function handleBack() {
-    if (!lobbyId) {
-      navigate(ROUTE_PATH.HOME);
-      return;
-    }
-    leave.mutate(lobbyId, { onSettled: () => navigate(ROUTE_PATH.HOME) });
-  }
-
   function handleLeave() {
     if (!lobbyId) return;
     leave.mutate(lobbyId, {
@@ -137,18 +128,18 @@ export function LobbyRoomPage() {
   if (lobbyQuery.isError) {
     const code = lobbyQuery.error instanceof ApiError ? lobbyQuery.error.body.error : undefined;
     return (
-      <main className="min-h-screen p-6">
+      <div className="p-6">
         <div className="mx-auto max-w-md text-center space-y-4">
           <p className="text-danger">{lobbyErrorMessage(code)}</p>
           <button
             type="button"
-            onClick={handleBack}
+            onClick={() => navigate(ROUTE_PATH.HOME)}
             className="text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg rounded"
           >
             {LOBBY_MESSAGES.room.back}
           </button>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -160,7 +151,6 @@ export function LobbyRoomPage() {
       <LobbyRoom
         lobby={lobby}
         currentUserId={user.id}
-        onBack={handleBack}
         onLeave={handleLeave}
         onClose={handleClose}
         onKick={handleKick}
