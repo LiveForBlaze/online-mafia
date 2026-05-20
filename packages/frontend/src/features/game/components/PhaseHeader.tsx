@@ -12,7 +12,6 @@ interface PhaseHeaderProps {
   viewerRole: Role | null;
   viewerIsJudge: boolean;
   canLeaveGame: boolean;
-  onBack: () => void;
   onLeaveGame: () => void;
 }
 
@@ -21,16 +20,12 @@ export function PhaseHeader({
   viewerRole,
   viewerIsJudge,
   canLeaveGame,
-  onBack,
   onLeaveGame,
 }: PhaseHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onBack} className="text-sm text-muted hover:text-fg">
-          {GAME_MESSAGES.ui.back}
-        </button>
-        {canLeaveGame && (
+        {canLeaveGame ? (
           <button
             type="button"
             onClick={onLeaveGame}
@@ -38,6 +33,8 @@ export function PhaseHeader({
           >
             {GAME_MESSAGES.ui.leaveGame}
           </button>
+        ) : (
+          <span />
         )}
       </div>
 

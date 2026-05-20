@@ -90,7 +90,6 @@ export function GamePage() {
             viewerRole={viewerRole}
             viewerIsJudge={viewerIsJudge}
             canLeaveGame={!!viewer && !viewer.isRemoved}
-            onBack={goHome}
             onLeaveGame={() => setShowLeaveConfirm(true)}
           />
 
