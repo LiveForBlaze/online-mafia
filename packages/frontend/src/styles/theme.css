@@ -11,9 +11,9 @@
 
 @theme {
   /* Brand */
-  --color-accent: oklch(0.45 0.2 22); /* burgundy */
+  --color-accent: oklch(0.36 0.14 20); /* wine red */
   --color-accent-fg: oklch(0.98 0 0);
-  --color-team-red: oklch(0.45 0.2 22);
+  --color-team-red: oklch(0.36 0.14 20);
   --color-team-black: oklch(0.25 0.02 270);
 
   /* Surface — light theme defaults */

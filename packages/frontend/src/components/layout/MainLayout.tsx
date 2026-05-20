@@ -81,9 +81,7 @@ function NavItemLink({ item }: { item: NavItem }) {
       className={({ isActive }) =>
         cn(
           'rounded-md px-3 py-1.5 text-sm transition-colors whitespace-nowrap',
-          isActive
-            ? 'bg-accent/15 text-accent font-medium'
-            : 'text-muted hover:text-fg hover:bg-bg',
+          isActive ? 'bg-bg text-fg font-semibold' : 'text-muted hover:text-fg hover:bg-bg',
         )
       }
     >
