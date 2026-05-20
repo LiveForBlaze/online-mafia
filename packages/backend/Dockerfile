@@ -27,13 +27,17 @@ WORKDIR /app/packages/backend
 RUN pnpm prisma generate
 RUN pnpm run build
 
-# ---- prod-deps: install only production dependencies ----
+# ---- prod-deps: install only production dependencies, then regenerate Prisma client ----
 FROM base AS prod-deps
 WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY packages/shared/package.json   packages/shared/package.json
 COPY packages/backend/package.json  packages/backend/package.json
 RUN pnpm install --frozen-lockfile --prod --filter=@mafia/backend... --filter=@mafia/shared
+# Prisma generates files inside node_modules/.pnpm/@prisma+client@*/... — these
+# must be regenerated against this stage's node_modules so the runner finds them.
+COPY packages/backend/prisma ./packages/backend/prisma
+RUN cd packages/backend && pnpm prisma generate
 
 # ---- runner: minimal final image ----
 FROM node:22-alpine AS runner
