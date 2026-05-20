@@ -1,20 +1,23 @@
 // Table layout has two variants:
 //
-// Desktop (sm+): 12-tile grid in a ring — 10 player seats around the
-// perimeter, judge and info tiles in the centre row.
+// Desktop (sm+): 12-tile ring grid — 10 player seats around the perimeter,
+// judge and info tiles in the centre row.
 //
 //   P9   P10  P1   P2
 //   P8   J    I    P3
 //   P7   P6   P5   P4
 //
-// Mobile (< sm): a 12-cell ring at 360px is unusable. We switch to a stack:
-// InfoTile on top (full width, big phase info), JudgeTile below it, then a
-// 2-col grid of player seats. Container scrolls if it overflows.
+// Mobile (< sm): no scroll, the whole game lives in one viewport. We hide
+// the judge tile entirely and surface the stage info (phase, timer, speaker,
+// check result) as a compact strip via MobileStage (rendered by the parent
+// page). This component renders only the 5×2 grid of player seats.
+// Tapping a tile asks the parent to open MobileSeatZoom.
 
 import type { ReactNode } from 'react';
 
 import type { GameParticipantPublic, GameStateProjected } from '@mafia/shared';
 
+import { MobileSeatTile } from './MobileSeatTile.js';
 import { SeatVideoTile } from './SeatVideoTile.js';
 
 interface PlayerTableProps {
@@ -26,9 +29,11 @@ interface PlayerTableProps {
     participant: GameParticipantPublic,
   ) => { label: string; onClick: () => void; disabled?: boolean } | null;
   judgeControlsFor?: (participant: GameParticipantPublic) => React.ReactNode | null;
+  // Mobile-only: open the fullscreen overlay for this seat.
+  onZoomSeat?: (seat: number) => void;
 }
 
-// Mapping from seat number to its position in the 4-column × 3-row CSS grid.
+// Mapping from seat number to its position in the desktop 4×3 grid.
 const SEAT_POSITION: Record<number, { col: number; row: number }> = {
   1: { col: 3, row: 1 },
   2: { col: 4, row: 1 },
@@ -52,6 +57,7 @@ export function PlayerTable({
   infoTile,
   actionFor,
   judgeControlsFor,
+  onZoomSeat,
 }: PlayerTableProps) {
   const bySeat = new Map<number, GameParticipantPublic>();
   for (const p of state.participants) {
@@ -63,35 +69,32 @@ export function PlayerTable({
     votesAgainst.set(candidate, (votesAgainst.get(candidate) ?? 0) + 1);
   }
 
-  function renderSeat(seat: number) {
-    const participant = bySeat.get(seat);
-    if (!participant) return <EmptySeat seat={seat} />;
-    return (
-      <SeatVideoTile
-        participant={participant}
-        isSelf={participant.userId === viewerUserId}
-        isSpeaker={state.currentSpeakerSeat === seat}
-        isNominated={state.nominationSeats.includes(seat)}
-        voteCountAgainst={votesAgainst.get(seat)}
-        action={actionFor?.(participant) ?? null}
-        judgeControls={judgeControlsFor?.(participant) ?? null}
-      />
-    );
-  }
-
   return (
     <>
       {/* Desktop ring layout */}
       <div className="hidden sm:grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
         {Object.entries(SEAT_POSITION).map(([seatKey, position]) => {
           const seat = Number(seatKey);
+          const participant = bySeat.get(seat);
           return (
             <div
               key={seat}
               style={{ gridColumn: position.col, gridRow: position.row }}
               className="min-h-0"
             >
-              {renderSeat(seat)}
+              {participant ? (
+                <SeatVideoTile
+                  participant={participant}
+                  isSelf={participant.userId === viewerUserId}
+                  isSpeaker={state.currentSpeakerSeat === seat}
+                  isNominated={state.nominationSeats.includes(seat)}
+                  voteCountAgainst={votesAgainst.get(seat)}
+                  action={actionFor?.(participant) ?? null}
+                  judgeControls={judgeControlsFor?.(participant) ?? null}
+                />
+              ) : (
+                <EmptySeat seat={seat} />
+              )}
             </div>
           );
         })}
@@ -111,17 +114,24 @@ export function PlayerTable({
         </div>
       </div>
 
-      {/* Mobile stacked layout */}
-      <div className="sm:hidden flex flex-col gap-3">
-        <div className="min-h-[140px]">{infoTile}</div>
-        <div className="min-h-[88px]">{judgeTile}</div>
-        <div className="grid grid-cols-2 gap-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((seat) => (
-            <div key={seat} className="aspect-[4/3]">
-              {renderSeat(seat)}
-            </div>
-          ))}
-        </div>
+      {/* Mobile 5×2 grid (judge tile + info tile intentionally not rendered) */}
+      <div className="sm:hidden grid grid-cols-5 gap-1.5 w-full">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((seat) => {
+          const participant = bySeat.get(seat);
+          return (
+            <MobileSeatTile
+              key={seat}
+              seat={seat}
+              participant={participant}
+              isSelf={participant?.userId === viewerUserId}
+              isSpeaker={state.currentSpeakerSeat === seat}
+              isNominated={state.nominationSeats.includes(seat)}
+              voteCountAgainst={votesAgainst.get(seat)}
+              action={participant ? (actionFor?.(participant) ?? null) : null}
+              onZoom={() => onZoomSeat?.(seat)}
+            />
+          );
+        })}
       </div>
     </>
   );

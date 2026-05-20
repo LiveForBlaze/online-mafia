@@ -17,6 +17,8 @@ import { InfoTile } from '@/features/game/components/InfoTile.js';
 import { JudgePanel, JudgeSeatControls } from '@/features/game/components/JudgePanel.js';
 import { JudgeTile } from '@/features/game/components/JudgeTile.js';
 import { MediaRoom } from '@/features/game/components/MediaRoom.js';
+import { MobileSeatZoom } from '@/features/game/components/MobileSeatZoom.js';
+import { MobileStage } from '@/features/game/components/MobileStage.js';
 import { PhaseHeader } from '@/features/game/components/PhaseHeader.js';
 import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePanel.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
@@ -38,6 +40,7 @@ export function GamePage() {
   const lastError = useGameStore((s) => s.lastError);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [zoomedSeat, setZoomedSeat] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   // Reset the active-game query so the home page does not bounce us back in.
@@ -94,15 +97,37 @@ export function GamePage() {
   const viewerIsAlive = viewer?.isAlive ?? false;
   const viewerIsJudge = viewer?.isJudge ?? false;
 
+  const actionFor = (participant: (typeof state.participants)[number]) =>
+    actionForSeatInCurrentPhase({
+      state,
+      viewerRole,
+      viewerSeat,
+      viewerUserId: user.id,
+      viewerIsAlive,
+      participantSeat: participant.seat!,
+      participantIsAlive: participant.isAlive,
+      participantUserId: participant.userId,
+    });
+
+  const zoomedParticipant =
+    zoomedSeat !== null
+      ? state.participants.find((p) => !p.isJudge && p.seat === zoomedSeat)
+      : null;
+
+  const votesAgainst = new Map<number, number>();
+  for (const candidate of Object.values(state.votes)) {
+    votesAgainst.set(candidate, (votesAgainst.get(candidate) ?? 0) + 1);
+  }
+
   return (
     <MediaRoom gameId={gameId}>
       {/*
-        Desktop locks the table to the viewport (h-screen) so the ring grid
-        fits without scrolling. Mobile drops that constraint — the stacked
-        list overflows naturally and the page becomes scrollable.
+        Locked to the viewport at every breakpoint — game screen never scrolls.
+        Mobile uses 100dvh so collapsing browser chrome doesn't crop the
+        layout. Desktop falls back to h-screen.
       */}
-      <main className="min-h-screen sm:h-screen sm:flex sm:flex-col bg-bg">
-        <div className="flex-none px-3 sm:px-6 pt-3 pb-2 space-y-2">
+      <main className="h-screen [height:100dvh] flex flex-col bg-bg overflow-hidden">
+        <div className="flex-none px-3 sm:px-6 pt-2 sm:pt-3 pb-2 space-y-2">
           <PhaseHeader
             state={state}
             viewerRole={viewerRole}
@@ -112,11 +137,20 @@ export function GamePage() {
             onOpenLog={() => setShowLog(true)}
           />
 
+          {/* Mobile-only stage strip — replaces the InfoTile + JudgeTile cells. */}
+          <div className="sm:hidden">
+            <MobileStage
+              state={state}
+              viewerRole={viewerRole}
+              viewerSeat={viewerSeat}
+              viewerIsAlive={viewerIsAlive}
+            />
+          </div>
+
           {viewerIsJudge && <JudgePanel state={state} />}
         </div>
 
-        {/* Desktop: ring takes the rest of the viewport. Mobile: natural height. */}
-        <div className="sm:flex-1 sm:min-h-0 px-3 sm:px-6 pb-3">
+        <div className="flex-1 min-h-0 px-3 sm:px-6 pb-3 overflow-hidden">
           <PlayerTable
             state={state}
             viewerUserId={user.id}
@@ -129,23 +163,13 @@ export function GamePage() {
                 viewerIsAlive={viewerIsAlive}
               />
             }
-            actionFor={(participant) =>
-              actionForSeatInCurrentPhase({
-                state,
-                viewerRole,
-                viewerSeat,
-                viewerUserId: user.id,
-                viewerIsAlive,
-                participantSeat: participant.seat!,
-                participantIsAlive: participant.isAlive,
-                participantUserId: participant.userId,
-              })
-            }
+            actionFor={actionFor}
             judgeControlsFor={(participant) =>
               viewerIsJudge && !participant.isJudge ? (
                 <JudgeSeatControls targetUserId={participant.userId} />
               ) : null
             }
+            onZoomSeat={(seat) => setZoomedSeat(seat)}
           />
         </div>
 
@@ -155,6 +179,21 @@ export function GamePage() {
           </p>
         )}
       </main>
+      {zoomedParticipant && (
+        <MobileSeatZoom
+          participant={zoomedParticipant}
+          voteCountAgainst={
+            zoomedParticipant.seat !== null ? votesAgainst.get(zoomedParticipant.seat) : undefined
+          }
+          action={actionFor(zoomedParticipant)}
+          judgeControls={
+            viewerIsJudge && !zoomedParticipant.isJudge ? (
+              <JudgeSeatControls targetUserId={zoomedParticipant.userId} />
+            ) : null
+          }
+          onClose={() => setZoomedSeat(null)}
+        />
+      )}
       <ConfirmDialog
         open={showLeaveConfirm}
         title={GAME_MESSAGES.ui.leaveGameConfirmTitle}
