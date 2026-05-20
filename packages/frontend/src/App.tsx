@@ -7,6 +7,7 @@ import { Navigate, Route, Routes } from 'react-router';
 
 import { useHydrateCurrentUser } from '@/features/auth/hooks/useCurrentUser.js';
 import { LoginPage } from '@/features/auth/pages/LoginPage.js';
+import { ProfilePage } from '@/features/auth/pages/ProfilePage.js';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage.js';
 import { LobbyListPage } from '@/features/lobby/pages/LobbyListPage.js';
 import { LobbyRoomPage } from '@/features/lobby/pages/LobbyRoomPage.js';
@@ -26,6 +27,14 @@ export function App() {
         element={
           <AuthGuard>
             <LobbyListPage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path={ROUTE_PATH.PROFILE}
+        element={
+          <AuthGuard>
+            <ProfilePage />
           </AuthGuard>
         }
       />

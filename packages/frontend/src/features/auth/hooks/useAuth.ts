@@ -6,7 +6,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 
-import type { LoginInput, RegisterInput } from '@mafia/shared';
+import type { LoginInput, RegisterInput, UpdateNicknameInput } from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
@@ -27,6 +27,15 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (input: LoginInput) => authApi.login(input),
+    onSuccess: (data) => setUser(data.user),
+  });
+}
+
+export function useUpdateNickname() {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useMutation({
+    mutationFn: (input: UpdateNicknameInput) => authApi.updateNickname(input),
     onSuccess: (data) => setUser(data.user),
   });
 }

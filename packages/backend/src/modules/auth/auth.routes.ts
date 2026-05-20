@@ -12,7 +12,7 @@
 //   GET  /google/callback   complete Google OAuth flow
 
 import type { FastifyPluginAsync } from 'fastify';
-import { loginInputSchema, registerInputSchema } from '@mafia/shared';
+import { loginInputSchema, registerInputSchema, updateNicknameInputSchema } from '@mafia/shared';
 
 import { env } from '../../config/env.js';
 
@@ -23,6 +23,7 @@ import {
   loginWithPassword,
   registerWithPassword,
   toAuthenticatedUser,
+  updateNickname,
   type AuthErrorCode,
 } from './auth.service.js';
 import {
@@ -124,6 +125,22 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(HTTP_STATUS.UNAUTHORIZED).send({ error: 'invalid_session' });
     }
     return reply.send({ user: toAuthenticatedUser(user) });
+  });
+
+  // ---- Change nickname ----
+  app.patch('/me/nickname', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const parsed = updateNicknameInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply
+        .code(HTTP_STATUS.BAD_REQUEST)
+        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+    }
+
+    const result = await updateNickname(request.user.sub, parsed.data.nickname);
+    if (!result.ok) {
+      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+    }
+    return reply.send({ user: toAuthenticatedUser(result.user) });
   });
 
   // ---- Google OAuth: start ----

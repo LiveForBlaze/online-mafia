@@ -11,8 +11,10 @@
 // (the game page UI — table, votes, judge panel). Losing video must not lock players
 // out of the game itself.
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { LiveKitRoom } from '@livekit/components-react';
+import { LiveKitRoom, RoomContext } from '@livekit/components-react';
+import { Room } from 'livekit-client';
 import '@livekit/components-styles';
 
 import { gameApi } from '@/features/game/api/game.api.js';
@@ -32,24 +34,27 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
     retry: 1,
   });
 
-  // Loading or error: render the game UI without a LiveKit context. A small banner
-  // signals the media-state. Game play (votes, judge controls) keeps working.
+  // A disconnected Room instance used as a fallback context while the token is
+  // loading or unavailable. Keeps LiveKit hooks (useParticipants, etc.) from
+  // throwing "No room provided" — they simply return empty collections instead.
+  const idleRoom = useMemo(() => new Room(), []);
+
   if (tokenQuery.isLoading) {
     return (
-      <>
+      <RoomContext.Provider value={idleRoom}>
         <MediaBanner tone="info">Подключение к голосовой комнате...</MediaBanner>
         {children}
-      </>
+      </RoomContext.Provider>
     );
   }
   if (tokenQuery.isError || !tokenQuery.data) {
     return (
-      <>
+      <RoomContext.Provider value={idleRoom}>
         <MediaBanner tone="danger">
           Не удалось подключиться к голосовой комнате. Игра продолжается без видео.
         </MediaBanner>
         {children}
-      </>
+      </RoomContext.Provider>
     );
   }
 

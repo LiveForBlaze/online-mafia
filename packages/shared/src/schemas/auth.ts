@@ -10,6 +10,12 @@ export const registerInputSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
+// Payload for PATCH /api/v1/auth/me/nickname
+export const updateNicknameInputSchema = z.object({
+  nickname: nicknameSchema,
+});
+export type UpdateNicknameInput = z.infer<typeof updateNicknameInputSchema>;
+
 // Payload for POST /api/v1/auth/login
 export const loginInputSchema = z.object({
   email: emailSchema,

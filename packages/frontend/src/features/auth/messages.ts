@@ -27,6 +27,16 @@ export const AUTH_MESSAGES = {
   google: {
     button: 'Войти через Google',
   },
+  profile: {
+    title: 'Профиль',
+    nicknameLabel: 'Никнейм',
+    nicknameHint: 'От 2 до 24 символов. Так вас увидят другие игроки.',
+    emailLabel: 'Email',
+    save: 'Сохранить',
+    saving: 'Сохраняем...',
+    saved: 'Сохранено',
+    back: 'Назад',
+  },
   errors: {
     invalid_credentials: 'Неверный email или пароль',
     email_taken: 'Этот email уже зарегистрирован',

@@ -6,6 +6,7 @@ export const ROUTE_PATH = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  PROFILE: '/profile',
   LOBBY_ROOM: '/lobby/:id',
   GAME_ROOM: '/game/:id',
 } as const;

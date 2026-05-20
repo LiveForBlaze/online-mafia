@@ -68,6 +68,25 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
   return { ok: true, user };
 }
 
+export async function updateNickname(userId: string, nickname: string): Promise<AuthResult> {
+  const normalized = nickname.trim();
+
+  // Allow setting to the same nickname (no-op from the user's POV) without a 409.
+  const existing = await prisma.user.findUnique({
+    where: { nickname: normalized },
+    select: { id: true },
+  });
+  if (existing && existing.id !== userId) {
+    return { ok: false, error: AUTH_ERROR.NICKNAME_TAKEN };
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { nickname: normalized },
+  });
+  return { ok: true, user: updated };
+}
+
 export async function loginWithPassword(input: LoginInput): Promise<AuthResult> {
   const normalizedEmail = input.email.toLowerCase().trim();
 

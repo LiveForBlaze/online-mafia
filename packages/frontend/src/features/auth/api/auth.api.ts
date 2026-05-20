@@ -1,7 +1,12 @@
 // Auth API client. Wraps the apiClient with auth-specific endpoints
 // and gives each call a typed signature so callers do not deal with raw paths.
 
-import type { AuthSessionResponse, LoginInput, RegisterInput } from '@mafia/shared';
+import type {
+  AuthSessionResponse,
+  LoginInput,
+  RegisterInput,
+  UpdateNicknameInput,
+} from '@mafia/shared';
 
 import { apiClient } from '@/lib/api-client.js';
 
@@ -10,6 +15,7 @@ const AUTH_PATH = {
   LOGIN: '/api/v1/auth/login',
   LOGOUT: '/api/v1/auth/logout',
   ME: '/api/v1/auth/me',
+  UPDATE_NICKNAME: '/api/v1/auth/me/nickname',
   GOOGLE_START: '/api/v1/auth/google',
 } as const;
 
@@ -18,6 +24,8 @@ export const authApi = {
   login: (input: LoginInput) => apiClient.post<AuthSessionResponse>(AUTH_PATH.LOGIN, input),
   logout: () => apiClient.post<void>(AUTH_PATH.LOGOUT),
   getCurrentUser: () => apiClient.get<AuthSessionResponse>(AUTH_PATH.ME),
+  updateNickname: (input: UpdateNicknameInput) =>
+    apiClient.patch<AuthSessionResponse>(AUTH_PATH.UPDATE_NICKNAME, input),
 
   // The Google flow is a navigation, not an AJAX call.
   // The user is sent to the backend, then to Google, then back to the frontend
