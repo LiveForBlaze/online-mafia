@@ -1,0 +1,18 @@
+/*
+ * Global CSS entry. Loads Tailwind v4 and the project theme.
+ *
+ * Tailwind v4 uses a CSS-first config: the `@theme` directive in theme.css
+ * declares design tokens, which Tailwind exposes as utility classes
+ * (e.g. `bg-bg`, `text-fg`, `text-accent`).
+ *
+ * Add any truly global styles (resets, body defaults) below the imports.
+ */
+
+@import 'tailwindcss';
+@import './theme.css';
+
+html,
+body,
+#root {
+  height: 100%;
+}

@@ -1,0 +1,52 @@
+# Local development services for online-mafia.
+# Application code (backend, frontend) runs on the host via pnpm dev — not in containers.
+# This file only provides infrastructure dependencies: PostgreSQL, Redis, LiveKit.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mafia_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mafia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mafia_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-mafia}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-mafia}']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: mafia_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: mafia_livekit
+    restart: unless-stopped
+    command: --dev --bind 0.0.0.0
+    ports:
+      - '7880:7880' # signaling
+      - '7881:7881' # rtc tcp
+      - '7882:7882/udp' # rtc udp
+    environment:
+      LIVEKIT_KEYS: '${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-devsecretdevsecretdevsecretdevsecret}'
+
+volumes:
+  postgres_data:
+  redis_data:

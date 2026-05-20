@@ -1,0 +1,34 @@
+# Caddy reverse proxy in front of the backend and frontend.
+#
+# Caddy handles TLS automatically via Let's Encrypt. Replace the placeholder
+# domain with your actual hostname before deploying.
+#
+# Architecture (per host):
+#   online-mafia.com          → frontend container (nginx serving SPA)
+#   api.online-mafia.com      → backend container (Fastify on 3000)
+#   livekit.online-mafia.com  → livekit-server (with TURN/TLS)
+
+online-mafia.com {
+  encode gzip
+  reverse_proxy frontend:80
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+}
+
+api.online-mafia.com {
+  encode gzip
+  # The backend uses Socket.IO — Caddy upgrades WebSocket frames automatically.
+  reverse_proxy backend:3000
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+}
+
+livekit.online-mafia.com {
+  reverse_proxy livekit:7880
+}

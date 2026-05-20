@@ -1,0 +1,72 @@
+// Server-side game state. Strictly internal — never sent to clients without going
+// through projectFor() in game.engine.ts, which strips fields the viewer must not see.
+
+import { GAME_PHASE, type GamePhase, type Role, type Team } from '@mafia/shared';
+
+export interface GameParticipant {
+  userId: string;
+  nickname: string;
+  avatarUrl: string | null;
+  seat: number | null; // null for judge
+  isJudge: boolean;
+  isBot: boolean;
+  role: Role | null; // null for judge; null for players before distribution
+  isAlive: boolean;
+  isRemoved: boolean;
+  foulsCount: number;
+  hasSpokenThisDay: boolean;
+}
+
+export interface GameState {
+  id: string;
+  lobbyId: string;
+  rulesetSlug: string;
+  status: 'in_progress' | 'finished';
+
+  phase: GamePhase;
+  dayNumber: number;
+
+  // Wall-clock timestamps for the current phase / speaker timer.
+  // Reset on every phase transition and on every "next speaker" press.
+  // Both null when the phase has no timer (lobby, game_over).
+  phaseStartedAt: Date | null;
+  phaseDeadline: Date | null;
+
+  participants: GameParticipant[];
+
+  // Day-time transient state. Cleared on day start.
+  currentSpeakerSeat: number | null;
+  nominationSeats: number[];
+  votes: Map<number, number>; // voter seat → candidate seat
+
+  // Night-time transient state. Cleared at the end of each morning.
+  pendingMafiaTargetSeat: number | null;
+  sheriffCheck: { byUserId: string; targetSeat: number; result: boolean } | null;
+  donCheck: { byUserId: string; targetSeat: number; result: boolean } | null;
+
+  // Set during morning_announcement so clients can show "who died".
+  lastNightVictimSeat: number | null;
+
+  winner: Team | null;
+
+  // Monotonic event sequence (mirrors GameEvent.seq in the database).
+  nextEventSeq: number;
+}
+
+export function isLivePlayer(p: GameParticipant): boolean {
+  return !p.isJudge && p.isAlive && !p.isRemoved;
+}
+
+export function alivePlayers(state: GameState): GameParticipant[] {
+  return state.participants.filter(isLivePlayer);
+}
+
+export function findBySeat(state: GameState, seat: number): GameParticipant | undefined {
+  return state.participants.find((p) => p.seat === seat);
+}
+
+export function findByUserId(state: GameState, userId: string): GameParticipant | undefined {
+  return state.participants.find((p) => p.userId === userId);
+}
+
+export const INITIAL_PHASE: GamePhase = GAME_PHASE.ROLE_DISTRIBUTION;

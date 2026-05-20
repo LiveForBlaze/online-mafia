@@ -1,0 +1,153 @@
+// Prisma schema for online-mafia.
+//
+// Design principles:
+//  - All cross-cutting fields that future modules will need (rating, tournament) are
+//    declared as nullable now to avoid migrations later (see ADR on modular architecture).
+//  - The game state is reconstructable from `GameEvent` rows alone (event sourcing).
+//  - User-facing strings (nicknames, emails) are normalised on write, never on read.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A registered user of the platform.
+// A user can authenticate with a password and/or with linked OAuth providers (Google for now).
+// Test bots are also Users — they have isBot=true, no password, no email login.
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  nickname     String   @unique
+
+  // Nullable to support users who sign up only via OAuth (no password set) and bots.
+  passwordHash String?
+
+  // Linked Google account, if any. We store the Google "sub" claim, which is stable and unique.
+  googleId     String? @unique
+
+  // Bots are auto-controlled users used to fill empty seats during testing.
+  // They never log in or own a cookie — the server acts on their behalf.
+  isBot        Boolean @default(false)
+
+  // True once the user has proven control of the email (Google-verified or
+  // future email-link verification). Account-linking from Google to an
+  // existing password user is refused unless emailVerified is true.
+  emailVerified Boolean @default(false)
+
+  // Incremented on logout to invalidate older JWTs. The session check compares
+  // the token's `v` claim against this value.
+  tokenVersion  Int     @default(0)
+
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Filled in later by the rating module. Nullable so it can be added without migration.
+  eloRating    Int?
+  gamesPlayed  Int      @default(0)
+
+  hostedLobbies   Lobby[]            @relation("LobbyHost")
+  lobbyMembers    LobbyMember[]
+  gamesAsParticipant GameParticipant[]
+  gameEventsActed GameEvent[]        @relation("EventActor")
+}
+
+// A waiting room before a game starts. A lobby may be public or private.
+model Lobby {
+  id           String        @id @default(uuid())
+  name         String
+  isPrivate    Boolean       @default(false)
+  passwordHash String?
+  hostId       String
+  host         User          @relation("LobbyHost", fields: [hostId], references: [id])
+  rulesetSlug  String        @default("classic")
+  status       LobbyStatus   @default(WAITING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  members LobbyMember[]
+  game    Game?
+}
+
+enum LobbyStatus {
+  WAITING
+  IN_GAME
+  CLOSED
+}
+
+// A user who has joined a lobby, with their requested seat (or judge slot).
+//
+// The (lobbyId, seat) uniqueness prevents two members from claiming the same seat.
+// Postgres treats NULL as distinct, so the judge (seat = null) does not conflict with anyone.
+// The application also enforces "at most one judge per lobby" — there is no clean DB-level
+// constraint for that without a partial index, which Prisma cannot model directly.
+model LobbyMember {
+  lobbyId  String
+  lobby    Lobby  @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  seat     Int? // null when this member is the judge
+  isJudge  Boolean @default(false)
+  joinedAt DateTime @default(now())
+
+  @@id([lobbyId, userId])
+  @@unique([lobbyId, seat])
+}
+
+// A single game session. Lifecycle: started -> ... -> ended.
+// Reconstructable from GameEvent rows.
+model Game {
+  id           String   @id @default(uuid())
+  lobbyId      String   @unique
+  lobby        Lobby    @relation(fields: [lobbyId], references: [id])
+  rulesetSlug  String
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  winnerTeam   String? // 'red' or 'black'; nullable while the game is in progress
+
+  // Filled in later by the tournament module. Nullable so it can be added without migration.
+  tournamentId String?
+
+  participants GameParticipant[]
+  events       GameEvent[]
+}
+
+// A player or judge taking part in one specific game.
+// Role is null for the judge and for participants before role distribution.
+model GameParticipant {
+  gameId      String
+  game        Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User   @relation(fields: [userId], references: [id])
+  seat        Int? // null for judge
+  isJudge     Boolean @default(false)
+  role        String? // 'civilian' | 'sheriff' | 'mafia' | 'don', or null until distributed
+  isAlive     Boolean @default(true)
+  isRemoved   Boolean @default(false) // judge removed them from the table
+  foulsCount  Int     @default(0)
+
+  @@id([gameId, userId])
+}
+
+// Append-only event log. A game is fully reproducible by replaying these in order.
+// `payload` is intentionally JSON: each event type has its own schema validated at write time.
+model GameEvent {
+  id        String   @id @default(uuid())
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  seq       Int      // monotonically increasing within a game, starting at 0
+  phase     String   // see GamePhase in @mafia/shared
+  type      String   // event type (e.g. 'role_assigned', 'player_voted')
+  actorId   String?  // user who performed the action; null for system events
+  actor     User?    @relation("EventActor", fields: [actorId], references: [id])
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@unique([gameId, seq])
+  @@index([gameId, createdAt])
+}

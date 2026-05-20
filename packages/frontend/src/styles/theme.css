@@ -1,0 +1,49 @@
+/*
+ * Design tokens for the Online Mafia UI.
+ *
+ * The intent is that no component should ever reference a raw hex colour or pixel size.
+ * Add a token here, then reference it via Tailwind utility classes (`bg-bg`, `text-fg`, etc.)
+ * or directly as `var(--colour-bg)` in custom CSS.
+ *
+ * Light and dark themes share the same token names; only the values differ.
+ * The active theme is selected by the `[data-theme]` attribute on the root element.
+ */
+
+@theme {
+  /* Brand */
+  --color-accent: oklch(0.65 0.21 27); /* mafia red */
+  --color-accent-fg: oklch(0.98 0 0);
+  --color-team-red: oklch(0.65 0.21 27);
+  --color-team-black: oklch(0.25 0.02 270);
+
+  /* Surface — light theme defaults */
+  --color-bg: oklch(0.98 0 0);
+  --color-fg: oklch(0.18 0 0);
+  --color-muted: oklch(0.55 0 0);
+  --color-card: oklch(1 0 0);
+  /* "Deep" card colour for elevated/recessed panels (judge, info). Clearly darker
+     than the regular card in both themes so the central control zone reads as
+     visually distinct from the surrounding video tiles. */
+  --color-card-deep: oklch(0.88 0 0);
+  --color-border: oklch(0.9 0 0);
+
+  /* Status */
+  --color-success: oklch(0.7 0.17 145);
+  --color-warning: oklch(0.78 0.16 75);
+  --color-danger: oklch(0.6 0.22 28);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+}
+
+/* Dark theme overrides. Activated by setting `data-theme="dark"` on <html>. */
+:root[data-theme='dark'] {
+  --color-bg: oklch(0.18 0.01 270);
+  --color-fg: oklch(0.95 0 0);
+  --color-muted: oklch(0.65 0 0);
+  --color-card: oklch(0.22 0.01 270);
+  --color-card-deep: oklch(0.11 0.01 270);
+  --color-border: oklch(0.3 0.01 270);
+}
