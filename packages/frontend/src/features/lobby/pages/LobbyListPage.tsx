@@ -1,8 +1,9 @@
 // Page that shows the public lobby list and lets the user create or join one.
 // All real logic lives in hooks/components; this page is mostly composition.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { LobbySummary } from '@mafia/shared';
 
@@ -10,6 +11,7 @@ import { ApiError } from '@/lib/api-client.js';
 import { Button } from '@/components/ui/Button.js';
 import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
 import { UserChip } from '@/components/ui/UserChip.js';
+import { gameApi } from '@/features/game/api/game.api.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
@@ -24,16 +26,21 @@ import { gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
 
 export function LobbyListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const lobbiesQuery = useLobbies();
   const activeGameQuery = useActiveGame();
   const join = useJoinLobby();
 
-  // If the user has an in-progress game they haven't left, send them back into it.
-  // This covers refresh, accidental "Back" navigation, and reconnect after a drop.
+  // Active game banner: explicit choice between resuming and leaving. We
+  // deliberately do NOT auto-redirect — the user might have dropped on purpose
+  // or want a moment to decide.
   const activeGameId = activeGameQuery.data?.gameId ?? null;
-  useEffect(() => {
-    if (activeGameId) navigate(gameRoomPath(activeGameId));
-  }, [activeGameId, navigate]);
+  const leaveGame = useMutation({
+    mutationFn: (gameId: string) => gameApi.leave(gameId),
+    onSuccess: () => {
+      queryClient.setQueryData(['game', 'active'], { gameId: null });
+    },
+  });
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [privateLobbyId, setPrivateLobbyId] = useState<string | null>(null);
@@ -95,6 +102,32 @@ export function LobbyListPage() {
         >
           {LOBBY_MESSAGES.list.betaNotice}
         </div>
+
+        {activeGameId && (
+          <section className="rounded-lg border border-accent/40 bg-accent/10 p-4 space-y-3">
+            <div>
+              <h2 className="text-base font-semibold text-fg">
+                {LOBBY_MESSAGES.list.resumeGameTitle}
+              </h2>
+              <p className="mt-1 text-sm text-muted">{LOBBY_MESSAGES.list.resumeGameDescription}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => navigate(gameRoomPath(activeGameId))}>
+                {LOBBY_MESSAGES.list.resumeGameButton}
+              </Button>
+              <button
+                type="button"
+                onClick={() => leaveGame.mutate(activeGameId)}
+                disabled={leaveGame.isPending}
+                className="text-sm font-medium text-danger hover:underline disabled:opacity-60"
+              >
+                {leaveGame.isPending
+                  ? LOBBY_MESSAGES.list.resumeGameLeaving
+                  : LOBBY_MESSAGES.list.resumeGameLeaveButton}
+              </button>
+            </div>
+          </section>
+        )}
 
         {inlineError && (
           <p role="alert" className="text-sm text-danger">

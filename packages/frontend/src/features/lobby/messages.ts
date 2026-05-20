@@ -10,6 +10,12 @@ export const LOBBY_MESSAGES = {
       'Это тестовая версия приложения. Возможны баги и поломки — финального продукта это пока не отражает.',
     activeGamesTitle: 'Активные игры',
     openGamesTitle: 'Открытые лобби',
+    resumeGameTitle: 'У вас есть незавершённая игра',
+    resumeGameDescription:
+      'Вы выпали из неё (закрытая вкладка, потеря связи). Решите — вернуться или выйти насовсем.',
+    resumeGameButton: 'Вернуться к игре',
+    resumeGameLeaveButton: 'Покинуть игру',
+    resumeGameLeaving: 'Выходим...',
   },
   card: {
     private: 'Приватное',

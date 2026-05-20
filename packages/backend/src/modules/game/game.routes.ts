@@ -5,7 +5,12 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 
-import { findUserActiveGameId, getProjectedStateFor } from './game.service.js';
+import { broadcastGameState } from './game.broadcast.js';
+import {
+  findUserActiveGameId,
+  getProjectedStateFor,
+  leaveGameAsParticipant,
+} from './game.service.js';
 import { issueLiveKitTokenForGame } from './game.livekit.js';
 import { GAME_ERROR, type GameErrorCode } from './game.errors.js';
 
@@ -44,6 +49,25 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(statusFor(result.error)).send({ error: result.error });
       }
       return reply.send({ game: result.data });
+    },
+  );
+
+  // Self-removal from an active game. HTTP equivalent of the LEAVE_GAME socket
+  // event — used by the home-page 'Покинуть текущую игру' button, where the
+  // returning user has no game socket open yet.
+  app.post<{ Params: { id: string } }>(
+    '/:id/leave',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const result = await leaveGameAsParticipant({
+        gameId: request.params.id,
+        userId: request.user.sub,
+      });
+      if (!result.ok) {
+        return reply.code(statusFor(result.error)).send({ error: result.error });
+      }
+      broadcastGameState(request.params.id);
+      return reply.send({ ok: true });
     },
   );
 
