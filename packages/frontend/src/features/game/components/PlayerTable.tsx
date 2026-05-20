@@ -1,16 +1,15 @@
-// 12-tile grid laid out in a ring: 10 player seats around the perimeter,
-// judge and info tiles in the middle of the centre row.
+// Table layout has two variants:
 //
-// Seat numbers run clockwise starting from the top of the table — seat 1 sits
-// just to the right of centre at the top:
+// Desktop (sm+): 12-tile grid in a ring — 10 player seats around the
+// perimeter, judge and info tiles in the centre row.
 //
 //   P9   P10  P1   P2
 //   P8   J    I    P3
 //   P7   P6   P5   P4
 //
-// Grid is always 4×3 — on smaller screens the cells just shrink uniformly. We
-// considered a stacked mobile fallback but the circular metaphor is the point
-// of the layout, so we keep it intact at every breakpoint.
+// Mobile (< sm): a 12-cell ring at 360px is unusable. We switch to a stack:
+// InfoTile on top (full width, big phase info), JudgeTile below it, then a
+// 2-col grid of player seats. Container scrolls if it overflows.
 
 import type { ReactNode } from 'react';
 
@@ -30,8 +29,6 @@ interface PlayerTableProps {
 }
 
 // Mapping from seat number to its position in the 4-column × 3-row CSS grid.
-// Seat 1 sits at the top, just right of centre; the ring runs clockwise.
-// (col, row) are 1-based as CSS grid expects.
 const SEAT_POSITION: Record<number, { col: number; row: number }> = {
   1: { col: 3, row: 1 },
   2: { col: 4, row: 1 },
@@ -66,52 +63,67 @@ export function PlayerTable({
     votesAgainst.set(candidate, (votesAgainst.get(candidate) ?? 0) + 1);
   }
 
+  function renderSeat(seat: number) {
+    const participant = bySeat.get(seat);
+    if (!participant) return <EmptySeat seat={seat} />;
+    return (
+      <SeatVideoTile
+        participant={participant}
+        isSelf={participant.userId === viewerUserId}
+        isSpeaker={state.currentSpeakerSeat === seat}
+        isNominated={state.nominationSeats.includes(seat)}
+        voteCountAgainst={votesAgainst.get(seat)}
+        action={actionFor?.(participant) ?? null}
+        judgeControls={judgeControlsFor?.(participant) ?? null}
+      />
+    );
+  }
+
   return (
-    // The grid fills the whole area given to it by the page layout. With 4 cols × 3 rows,
-    // every cell ends up the same size; the cell shape follows the available area
-    // (landscape on desktop, near-square otherwise). Video uses object-cover so it
-    // crops naturally to fit each cell.
-    <div className="grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
-      {Object.entries(SEAT_POSITION).map(([seatKey, position]) => {
-        const seat = Number(seatKey);
-        const participant = bySeat.get(seat);
-        return (
-          <div
-            key={seat}
-            style={{ gridColumn: position.col, gridRow: position.row }}
-            className="min-h-0"
-          >
-            {participant ? (
-              <SeatVideoTile
-                participant={participant}
-                isSelf={participant.userId === viewerUserId}
-                isSpeaker={state.currentSpeakerSeat === seat}
-                isNominated={state.nominationSeats.includes(seat)}
-                voteCountAgainst={votesAgainst.get(seat)}
-                action={actionFor?.(participant) ?? null}
-                judgeControls={judgeControlsFor?.(participant) ?? null}
-              />
-            ) : (
-              <EmptySeat seat={seat} />
-            )}
-          </div>
-        );
-      })}
+    <>
+      {/* Desktop ring layout */}
+      <div className="hidden sm:grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
+        {Object.entries(SEAT_POSITION).map(([seatKey, position]) => {
+          const seat = Number(seatKey);
+          return (
+            <div
+              key={seat}
+              style={{ gridColumn: position.col, gridRow: position.row }}
+              className="min-h-0"
+            >
+              {renderSeat(seat)}
+            </div>
+          );
+        })}
 
-      <div
-        style={{ gridColumn: JUDGE_POSITION.col, gridRow: JUDGE_POSITION.row }}
-        className="min-h-0"
-      >
-        {judgeTile}
+        <div
+          style={{ gridColumn: JUDGE_POSITION.col, gridRow: JUDGE_POSITION.row }}
+          className="min-h-0"
+        >
+          {judgeTile}
+        </div>
+
+        <div
+          style={{ gridColumn: INFO_POSITION.col, gridRow: INFO_POSITION.row }}
+          className="min-h-0"
+        >
+          {infoTile}
+        </div>
       </div>
 
-      <div
-        style={{ gridColumn: INFO_POSITION.col, gridRow: INFO_POSITION.row }}
-        className="min-h-0"
-      >
-        {infoTile}
+      {/* Mobile stacked layout */}
+      <div className="sm:hidden flex flex-col gap-3">
+        <div className="min-h-[140px]">{infoTile}</div>
+        <div className="min-h-[88px]">{judgeTile}</div>
+        <div className="grid grid-cols-2 gap-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((seat) => (
+            <div key={seat} className="aspect-[4/3]">
+              {renderSeat(seat)}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

@@ -96,8 +96,13 @@ export function GamePage() {
 
   return (
     <MediaRoom gameId={gameId}>
-      <main className="h-screen flex flex-col bg-bg">
-        <div className="flex-none px-4 sm:px-6 pt-3 pb-2 space-y-2">
+      {/*
+        Desktop locks the table to the viewport (h-screen) so the ring grid
+        fits without scrolling. Mobile drops that constraint — the stacked
+        list overflows naturally and the page becomes scrollable.
+      */}
+      <main className="min-h-screen sm:h-screen sm:flex sm:flex-col bg-bg">
+        <div className="flex-none px-3 sm:px-6 pt-3 pb-2 space-y-2">
           <PhaseHeader
             state={state}
             viewerRole={viewerRole}
@@ -110,8 +115,8 @@ export function GamePage() {
           {viewerIsJudge && <JudgePanel state={state} />}
         </div>
 
-        {/* 12-tile video grid takes all remaining space. */}
-        <div className="flex-1 min-h-0 px-4 sm:px-6 pb-3">
+        {/* Desktop: ring takes the rest of the viewport. Mobile: natural height. */}
+        <div className="sm:flex-1 sm:min-h-0 px-3 sm:px-6 pb-3">
           <PlayerTable
             state={state}
             viewerUserId={user.id}

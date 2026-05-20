@@ -25,13 +25,13 @@ export function PhaseHeader({
   onOpenLog,
 }: PhaseHeaderProps) {
   return (
-    <header className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
+    <header className="flex items-center justify-between gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 min-w-0">
         {canLeaveGame ? (
           <button
             type="button"
             onClick={onLeaveGame}
-            className="text-sm font-medium text-danger hover:underline"
+            className="text-xs sm:text-sm font-medium text-danger hover:underline whitespace-nowrap"
           >
             {GAME_MESSAGES.ui.leaveGame}
           </button>
@@ -43,23 +43,30 @@ export function PhaseHeader({
             type="button"
             onClick={onOpenLog}
             title="Лог партии"
-            className="text-sm text-muted hover:text-fg hover:underline"
+            className="text-xs sm:text-sm text-muted hover:text-fg hover:underline"
           >
             Лог
           </button>
         )}
       </div>
 
-      <div className="text-center">
+      {/* Phase title is duplicated in the big InfoTile card on mobile, so we
+          hide it here and surface only the day-number chip instead. */}
+      <div className="hidden sm:block text-center">
         <p className="text-xs uppercase tracking-wider text-muted">
           {state.dayNumber > 0 && GAME_MESSAGES.ui.day(state.dayNumber)}
         </p>
         <h1 className="text-lg font-semibold text-fg">{GAME_MESSAGES.phase[state.phase]}</h1>
       </div>
+      <p className="sm:hidden text-xs uppercase tracking-wider text-muted whitespace-nowrap">
+        {state.dayNumber > 0 ? GAME_MESSAGES.ui.day(state.dayNumber) : ''}
+      </p>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <ThemeToggle />
-        <FullscreenToggle />
+        <span className="hidden sm:inline-flex">
+          <FullscreenToggle />
+        </span>
         <RoleBadge role={viewerRole} isJudge={viewerIsJudge} />
       </div>
     </header>
