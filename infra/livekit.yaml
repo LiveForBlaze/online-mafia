@@ -31,5 +31,5 @@ room:
     - mime: video/vp8
     - mime: video/h264
     - mime: audio/opus
-  empty_timeout: 30s
-  departure_timeout: 5s
+  empty_timeout: 30
+  departure_timeout: 5
