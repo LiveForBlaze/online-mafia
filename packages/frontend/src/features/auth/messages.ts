@@ -36,6 +36,8 @@ export const AUTH_MESSAGES = {
     saving: 'Сохраняем...',
     saved: 'Сохранено',
     back: 'Назад',
+    logout: 'Выйти из аккаунта',
+    loggingOut: 'Выходим...',
   },
   errors: {
     invalid_credentials: 'Неверный email или пароль',

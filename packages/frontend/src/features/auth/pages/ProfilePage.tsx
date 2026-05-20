@@ -12,7 +12,7 @@ import { FormField } from '@/components/ui/FormField.js';
 import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
 import { ApiError } from '@/lib/api-client.js';
 import { authErrorMessage, AUTH_MESSAGES } from '@/features/auth/messages.js';
-import { useUpdateNickname } from '@/features/auth/hooks/useAuth.js';
+import { useLogout, useUpdateNickname } from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
@@ -20,6 +20,7 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const updateNickname = useUpdateNickname();
+  const logout = useLogout();
 
   // Keep a local draft so the input is controlled while the user types,
   // but reset it whenever the underlying user changes (e.g. after save).
@@ -116,11 +117,19 @@ export function ProfilePage() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted">
-          <Link to={ROUTE_PATH.HOME} className="hover:underline">
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <Link to={ROUTE_PATH.HOME} className="text-sm text-muted hover:underline">
             {AUTH_MESSAGES.profile.back}
           </Link>
-        </p>
+          <button
+            type="button"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            className="text-sm text-danger hover:underline disabled:opacity-60"
+          >
+            {logout.isPending ? AUTH_MESSAGES.profile.loggingOut : AUTH_MESSAGES.profile.logout}
+          </button>
+        </div>
       </div>
     </main>
   );

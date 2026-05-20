@@ -9,8 +9,7 @@ import type { LobbySummary } from '@mafia/shared';
 import { ApiError } from '@/lib/api-client.js';
 import { Button } from '@/components/ui/Button.js';
 import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
-import { useAuthStore } from '@/features/auth/store/auth.store.js';
-import { useLogout } from '@/features/auth/hooks/useAuth.js';
+import { UserChip } from '@/components/ui/UserChip.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
@@ -21,12 +20,10 @@ import {
   useJoinLobby,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
 import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
-import { ROUTE_PATH, gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
+import { gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
 
 export function LobbyListPage() {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const logout = useLogout();
   const lobbiesQuery = useLobbies();
   const activeGameQuery = useActiveGame();
   const join = useJoinLobby();
@@ -80,26 +77,15 @@ export function LobbyListPage() {
     <main className="min-h-screen p-4 sm:p-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-fg">{LOBBY_MESSAGES.list.title}</h1>
-            {user && (
-              <button
-                type="button"
-                onClick={() => navigate(ROUTE_PATH.PROFILE)}
-                className="mt-1 text-sm text-muted hover:text-fg hover:underline"
-              >
-                {user.nickname}
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2 items-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-fg tracking-tight">
+            {LOBBY_MESSAGES.list.title}
+          </h1>
+          <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button onClick={() => setIsCreateOpen(true)}>
               {LOBBY_MESSAGES.list.createButton}
             </Button>
-            <Button variant="ghost" onClick={() => logout.mutate()} disabled={logout.isPending}>
-              Выйти
-            </Button>
+            <UserChip />
           </div>
         </header>
 
