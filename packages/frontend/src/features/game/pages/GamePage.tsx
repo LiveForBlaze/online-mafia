@@ -4,8 +4,12 @@
 // and a 12-tile video grid that fills the rest of the viewport. The grid contains the
 // 10 player seats, the judge tile, and an info tile with current-phase context.
 
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import { CLIENT_EVENT } from '@mafia/shared';
+
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { InfoTile } from '@/features/game/components/InfoTile.js';
 import { JudgePanel, JudgeSeatControls } from '@/features/game/components/JudgePanel.js';
@@ -17,6 +21,7 @@ import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
 import { GAME_MESSAGES, gameErrorMessage } from '@/features/game/messages.js';
+import { emitGameAction } from '@/features/game/socket/game.socket.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 export function GamePage() {
@@ -29,6 +34,14 @@ export function GamePage() {
   const state = useGameStore((s) => s.state);
   const isConnected = useGameStore((s) => s.isConnected);
   const lastError = useGameStore((s) => s.lastError);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  function handleConfirmLeave() {
+    void emitGameAction(CLIENT_EVENT.LEAVE_GAME).finally(() => {
+      setShowLeaveConfirm(false);
+      navigate(ROUTE_PATH.HOME);
+    });
+  }
 
   if (!user || !gameId) return null;
 
@@ -71,7 +84,9 @@ export function GamePage() {
             state={state}
             viewerRole={viewerRole}
             viewerIsJudge={viewerIsJudge}
+            canLeaveGame={!!viewer && !viewer.isRemoved}
             onBack={() => navigate(ROUTE_PATH.HOME)}
+            onLeaveGame={() => setShowLeaveConfirm(true)}
           />
 
           {viewerIsJudge && <JudgePanel state={state} />}
@@ -117,6 +132,15 @@ export function GamePage() {
           </p>
         )}
       </main>
+      <ConfirmDialog
+        open={showLeaveConfirm}
+        title={GAME_MESSAGES.ui.leaveGameConfirmTitle}
+        message={GAME_MESSAGES.ui.leaveGameConfirmMessage}
+        confirmLabel={GAME_MESSAGES.ui.leaveGameConfirm}
+        destructive
+        onConfirm={handleConfirmLeave}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
     </MediaRoom>
   );
 }

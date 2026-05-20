@@ -51,6 +51,10 @@ export const CLIENT_EVENT = {
   JUDGE_ADVANCE_PHASE: 'client:judge_advance_phase',
   JUDGE_ISSUE_FOUL: 'client:judge_issue_foul',
   JUDGE_REMOVE_PLAYER: 'client:judge_remove_player',
+
+  // Self-removal — the player explicitly leaves the game (red button).
+  // Distinct from closing the tab, which is treated as a reconnectable absence.
+  LEAVE_GAME: 'client:leave_game',
 } as const;
 
 export type ClientEventName = (typeof CLIENT_EVENT)[keyof typeof CLIENT_EVENT];

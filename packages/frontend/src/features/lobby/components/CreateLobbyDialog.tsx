@@ -8,14 +8,12 @@ import {
   MEMBER_ROLE,
   type CreateLobbyInput,
   type LobbyDetailsResponse,
-  type MemberRole,
 } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { Checkbox } from '@/components/ui/Checkbox.js';
 import { Dialog } from '@/components/ui/Dialog.js';
 import { FormField } from '@/components/ui/FormField.js';
-import { Label } from '@/components/ui/Label.js';
 import {
   extractLobbyErrorMessage,
   useCreateLobby,
@@ -32,7 +30,6 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
   const [name, setName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState('');
-  const [hostRole, setHostRole] = useState<MemberRole>(MEMBER_ROLE.PLAYER);
 
   const create = useCreateLobby();
 
@@ -42,7 +39,6 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
     setName('');
     setIsPrivate(false);
     setPassword('');
-    setHostRole(MEMBER_ROLE.PLAYER);
     onClose();
   }
 
@@ -52,7 +48,9 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
       name: name.trim(),
       isPrivate,
       password: isPrivate ? password : undefined,
-      hostRole,
+      // Creator always becomes the judge of their lobby — judges are not interchangeable
+      // with players (the slot can't be reassigned after creation).
+      hostRole: MEMBER_ROLE.JUDGE,
     };
     create.mutate(input, {
       onSuccess: (response) => {
@@ -115,25 +113,7 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
           </div>
         )}
 
-        <div>
-          <Label>{LOBBY_MESSAGES.create.role}</Label>
-          <div className="flex gap-4">
-            <RoleRadio
-              value={MEMBER_ROLE.PLAYER}
-              label={LOBBY_MESSAGES.create.rolePlayer}
-              current={hostRole}
-              onSelect={setHostRole}
-              disabled={create.isPending}
-            />
-            <RoleRadio
-              value={MEMBER_ROLE.JUDGE}
-              label={LOBBY_MESSAGES.create.roleJudge}
-              current={hostRole}
-              onSelect={setHostRole}
-              disabled={create.isPending}
-            />
-          </div>
-        </div>
+        <p className="text-xs text-muted">{LOBBY_MESSAGES.create.judgeNotice}</p>
 
         {errorMessage && (
           <p role="alert" className="text-sm text-danger">
@@ -142,30 +122,5 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
         )}
       </form>
     </Dialog>
-  );
-}
-
-interface RoleRadioProps {
-  value: MemberRole;
-  label: string;
-  current: MemberRole;
-  onSelect: (role: MemberRole) => void;
-  disabled?: boolean;
-}
-
-function RoleRadio({ value, label, current, onSelect, disabled }: RoleRadioProps) {
-  return (
-    <label className="flex items-center gap-2 text-sm text-fg cursor-pointer select-none">
-      <input
-        type="radio"
-        name="hostRole"
-        value={value}
-        checked={current === value}
-        onChange={() => onSelect(value)}
-        disabled={disabled}
-        className="text-accent focus:ring-2 focus:ring-accent"
-      />
-      {label}
-    </label>
   );
 }

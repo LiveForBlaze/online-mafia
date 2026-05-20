@@ -18,13 +18,11 @@ interface LobbyRoomProps {
   onKick: (userId: string) => void;
   onStart: () => void;
   onFillBots: () => void;
-  onClaimJudge: () => void;
   isLeavePending?: boolean;
   isClosePending?: boolean;
   isKickPending?: boolean;
   isStartPending?: boolean;
   isFillBotsPending?: boolean;
-  isClaimJudgePending?: boolean;
   errorMessage?: string | null;
 }
 
@@ -37,13 +35,11 @@ export function LobbyRoom({
   onKick,
   onStart,
   onFillBots,
-  onClaimJudge,
   isLeavePending,
   isClosePending,
   isKickPending,
   isStartPending,
   isFillBotsPending,
-  isClaimJudgePending,
   errorMessage,
 }: LobbyRoomProps) {
   const isHost = lobby.hostId === currentUserId;
@@ -132,13 +128,6 @@ export function LobbyRoom({
                 {LOBBY_MESSAGES.room.close}
               </Button>
             </>
-          )}
-          {judgeMissing && (
-            <Button variant="secondary" onClick={onClaimJudge} disabled={isClaimJudgePending}>
-              {isClaimJudgePending
-                ? LOBBY_MESSAGES.room.becomingJudge
-                : LOBBY_MESSAGES.room.becomeJudge}
-            </Button>
           )}
           <Button variant="ghost" onClick={onLeave} disabled={isLeavePending}>
             {isLeavePending ? LOBBY_MESSAGES.room.leaving : LOBBY_MESSAGES.room.leave}

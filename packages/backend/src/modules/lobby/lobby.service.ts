@@ -226,37 +226,19 @@ export async function leaveLobby(
   const isMember = lobby.members.some((m) => m.userId === userId);
   if (!isMember) return fail(LOBBY_ERROR.NOT_MEMBER);
 
-  // If the leaver is the host and others remain, transfer host to the earliest joiner.
-  // If the leaver is the last member, close the lobby entirely.
-  const otherMembers = lobby.members.filter((m) => m.userId !== userId);
-
-  if (otherMembers.length === 0) {
+  // The host IS the judge of the lobby — the role can't be reassigned. When the
+  // host leaves, the entire lobby is closed for everyone. Regular players just
+  // get removed from their seat.
+  if (lobby.hostId === userId) {
     await prisma.lobby.update({
       where: { id: lobbyId },
-      data: { status: 'CLOSED', members: { delete: { lobbyId_userId: { lobbyId, userId } } } },
+      data: { status: 'CLOSED' },
     });
     void broadcastLobbyUpdate(lobbyId);
     return ok({ closed: true });
   }
 
-  if (lobby.hostId === userId) {
-    const nextHost = await prisma.lobbyMember.findFirst({
-      where: { lobbyId, NOT: { userId } },
-      orderBy: { joinedAt: 'asc' },
-      select: { userId: true },
-    });
-
-    await prisma.$transaction([
-      prisma.lobby.update({
-        where: { id: lobbyId },
-        data: nextHost ? { hostId: nextHost.userId } : {},
-      }),
-      prisma.lobbyMember.delete({ where: { lobbyId_userId: { lobbyId, userId } } }),
-    ]);
-  } else {
-    await prisma.lobbyMember.delete({ where: { lobbyId_userId: { lobbyId, userId } } });
-  }
-
+  await prisma.lobbyMember.delete({ where: { lobbyId_userId: { lobbyId, userId } } });
   void broadcastLobbyUpdate(lobbyId);
   return ok({ closed: false });
 }

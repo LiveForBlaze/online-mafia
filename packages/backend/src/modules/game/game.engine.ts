@@ -424,6 +424,18 @@ export function applyJudgeFoul(state: GameState, targetUserId: string): EngineRe
   });
 }
 
+// Judge presses the red "Выйти из игры" — the entire game is ended. The lobby
+// is closed by the service layer afterwards. No winner is assigned because the
+// game was terminated, not played out.
+export function applyJudgeEndGame(state: GameState): EngineResult<GameState> {
+  return ok({
+    ...state,
+    status: 'finished',
+    phase: GAME_PHASE.GAME_OVER,
+    winner: null,
+  });
+}
+
 export function applyJudgeRemove(state: GameState, targetUserId: string): EngineResult<GameState> {
   const target = findByUserId(state, targetUserId);
   if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);

@@ -11,15 +11,35 @@ interface PhaseHeaderProps {
   state: GameStateProjected;
   viewerRole: Role | null;
   viewerIsJudge: boolean;
+  canLeaveGame: boolean;
   onBack: () => void;
+  onLeaveGame: () => void;
 }
 
-export function PhaseHeader({ state, viewerRole, viewerIsJudge, onBack }: PhaseHeaderProps) {
+export function PhaseHeader({
+  state,
+  viewerRole,
+  viewerIsJudge,
+  canLeaveGame,
+  onBack,
+  onLeaveGame,
+}: PhaseHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-3">
-      <button type="button" onClick={onBack} className="text-sm text-muted hover:text-fg">
-        {GAME_MESSAGES.ui.back}
-      </button>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={onBack} className="text-sm text-muted hover:text-fg">
+          {GAME_MESSAGES.ui.back}
+        </button>
+        {canLeaveGame && (
+          <button
+            type="button"
+            onClick={onLeaveGame}
+            className="text-sm font-medium text-danger hover:underline"
+          >
+            {GAME_MESSAGES.ui.leaveGame}
+          </button>
+        )}
+      </div>
 
       <div className="text-center">
         <p className="text-xs uppercase tracking-wider text-muted">

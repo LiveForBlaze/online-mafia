@@ -14,7 +14,6 @@ import { useLobby } from '@/features/lobby/hooks/useLobby.js';
 import { useLobbyConnection } from '@/features/lobby/hooks/useLobbyConnection.js';
 import {
   extractLobbyErrorMessage,
-  useClaimJudge,
   useCloseLobby,
   useFillBots,
   useKickMember,
@@ -41,7 +40,6 @@ export function LobbyRoomPage() {
   const kick = useKickMember();
   const start = useStartGame();
   const fillBots = useFillBots();
-  const claimJudge = useClaimJudge();
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
 
@@ -124,13 +122,6 @@ export function LobbyRoomPage() {
     });
   }
 
-  function handleClaimJudge() {
-    if (!lobbyId) return;
-    claimJudge.mutate(lobbyId, {
-      onError: (error) => setInlineError(extractLobbyErrorMessage(error)),
-    });
-  }
-
   if (!user || !lobbyId) {
     return null;
   }
@@ -175,13 +166,11 @@ export function LobbyRoomPage() {
         onKick={handleKick}
         onStart={handleStart}
         onFillBots={handleFillBots}
-        onClaimJudge={handleClaimJudge}
         isLeavePending={leave.isPending}
         isClosePending={close.isPending}
         isKickPending={kick.isPending}
         isStartPending={start.isPending}
         isFillBotsPending={fillBots.isPending}
-        isClaimJudgePending={claimJudge.isPending}
         errorMessage={inlineError}
       />
       <ConfirmDialog

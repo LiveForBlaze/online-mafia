@@ -71,16 +71,6 @@ export function useStartGame() {
   });
 }
 
-export function useClaimJudge() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (lobbyId: string) => lobbyApi.claimJudge(lobbyId),
-    onSuccess: (_data, lobbyId) => {
-      void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.details(lobbyId) });
-    },
-  });
-}
-
 export function useFillBots() {
   const queryClient = useQueryClient();
   return useMutation({

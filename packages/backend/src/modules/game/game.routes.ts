@@ -5,7 +5,7 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 
-import { getProjectedStateFor } from './game.service.js';
+import { findUserActiveGameId, getProjectedStateFor } from './game.service.js';
 import { issueLiveKitTokenForGame } from './game.livekit.js';
 import { GAME_ERROR, type GameErrorCode } from './game.errors.js';
 
@@ -27,6 +27,14 @@ function statusFor(code: GameErrorCode): number {
 }
 
 export const gameRoutes: FastifyPluginAsync = async (app) => {
+  // Active game for the current user — used by the home page to auto-redirect
+  // a returning player into their in-progress game.
+  // Declared before /:id so the literal segment wins over the param route.
+  app.get('/active', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const gameId = await findUserActiveGameId(request.user.sub);
+    return reply.send({ gameId });
+  });
+
   app.get<{ Params: { id: string } }>(
     '/:id',
     { preHandler: [app.authenticate] },

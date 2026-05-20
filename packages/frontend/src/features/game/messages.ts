@@ -59,6 +59,11 @@ export const GAME_MESSAGES = {
     issueFoul: 'Фол',
     removePlayer: 'Удалить',
     back: '← Назад',
+    leaveGame: 'Выйти из игры',
+    leaveGameConfirmTitle: 'Выйти из игры?',
+    leaveGameConfirmMessage:
+      'Вы будете удалены из игры навсегда. Просто закрыть вкладку безопасно — вы вернётесь в игру при следующем заходе. Жмите «Выйти» только если хотите выйти полностью.',
+    leaveGameConfirm: 'Выйти',
   },
   errors: {
     not_participant: 'Вас нет в этой игре',

@@ -29,6 +29,8 @@ export const LOBBY_MESSAGES = {
     role: 'Ваша роль',
     rolePlayer: 'Игрок',
     roleJudge: 'Судья',
+    judgeNotice:
+      'Вы будете судьёй (ведущим). Передать роль другому нельзя — если вы выйдете, лобби закроется.',
     submit: 'Создать',
     submitting: 'Создаём...',
     cancel: 'Отмена',

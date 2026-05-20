@@ -20,6 +20,7 @@ import {
   applyAdvancePhase,
   applyCastVote,
   applyDonCheck,
+  applyJudgeEndGame,
   applyJudgeFoul,
   applyJudgeRemove,
   applyMafiaTarget,
@@ -188,6 +189,97 @@ export function isParticipant(gameId: string, userId: string): boolean {
   const state = getGame(gameId);
   if (!state) return false;
   return Boolean(findByUserId(state, userId));
+}
+
+// Returns the gameId of the user's currently-running game where they are still
+// considered an active participant (not isRemoved). Used by the client to
+// auto-redirect a returning user back into their in-progress game when they
+// land on the home page after a connection drop or page refresh.
+//
+// Note: dead players (isAlive=false) are still considered "active" here — they
+// should remain in the room to watch the rest of the game. Only an explicit
+// "Выйти из игры" press (which sets isRemoved=true) removes them entirely.
+export async function findUserActiveGameId(userId: string): Promise<string | null> {
+  const candidates = await prisma.game.findMany({
+    where: {
+      endedAt: null,
+      participants: { some: { userId } },
+    },
+    select: { id: true },
+    orderBy: { startedAt: 'desc' },
+  });
+
+  for (const { id } of candidates) {
+    const state = getGame(id);
+    if (!state) continue;
+    if (state.status === 'finished') continue;
+    const participant = findByUserId(state, userId);
+    if (participant && !participant.isRemoved) return id;
+  }
+  return null;
+}
+
+// Triggered when a participant presses the red "Выйти из игры" button.
+//
+// Player: marked as removed (same effect as a judge removing them); other
+// players keep playing.
+// Judge: the entire game is terminated and the parent lobby is closed. The
+// judge slot is irreplaceable — there is no one to continue moderating.
+//
+// Closing the tab or losing the connection does NOT call this — those users
+// can return to the game.
+export async function leaveGameAsParticipant(
+  ctx: ActionContext,
+): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+
+    const me = findByUserId(loaded.data.state, ctx.userId);
+    if (!me) return fail(GAME_ERROR.NOT_PARTICIPANT);
+
+    if (me.isJudge) {
+      const engineResult = applyJudgeEndGame(loaded.data.state);
+      if (!engineResult.ok) return fail(engineResult.error);
+
+      let next = engineResult.data;
+      next = await persistEvent(next, GAME_EVENT_TYPE.GAME_ENDED, ctx.userId, {
+        reason: 'judge_left',
+      });
+      setGame(next);
+      await commit(next);
+      void syncMediaPermissions(next);
+      unregisterGame(next.id);
+
+      // Close the parent lobby so it disappears from any list and recovery skips it.
+      await prisma.lobby.update({
+        where: { id: next.lobbyId },
+        data: { status: 'CLOSED' },
+      });
+      return ok(next);
+    }
+
+    // Player self-remove path.
+    const engineResult = applyJudgeRemove(loaded.data.state, ctx.userId);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.PLAYER_REMOVED, ctx.userId, {
+      targetUserId: ctx.userId,
+      selfRemoved: true,
+    });
+    if (next.status === 'finished') {
+      next = await persistEvent(next, GAME_EVENT_TYPE.GAME_ENDED, null, { winner: next.winner });
+      setGame(next);
+      await commit(next);
+      void syncMediaPermissions(next);
+      unregisterGame(next.id);
+    } else {
+      await commit(next);
+      void syncMediaPermissions(next);
+    }
+    return ok(next);
+  });
 }
 
 // ---- Action helpers ----
