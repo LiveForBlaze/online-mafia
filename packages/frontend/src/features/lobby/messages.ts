@@ -1,5 +1,17 @@
 // User-facing strings for the lobby feature. Centralized to ease later i18n.
 
+// Russian plural form selector. `forms` is [one, few, many]. Local to this file
+// so callers can just write `LOBBY_MESSAGES.list.statsOpen(n)` without thinking
+// about plural rules.
+function pluralRu(n: number, forms: [string, string, string]): string {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return forms[2];
+  if (last > 1 && last < 5) return forms[1];
+  if (last === 1) return forms[0];
+  return forms[2];
+}
+
 export const LOBBY_MESSAGES = {
   list: {
     title: 'Лобби',
@@ -16,14 +28,31 @@ export const LOBBY_MESSAGES = {
     resumeGameButton: 'Вернуться к игре',
     resumeGameLeaveButton: 'Покинуть игру',
     resumeGameLeaving: 'Выходим...',
+    // Hero / branding
+    brandWordmark: 'online-mafia',
+    tagline: 'Спортивная мафия онлайн',
+    // Stats row
+    statsOpen: (n: number) =>
+      `${n} ${pluralRu(n, ['открытое лобби', 'открытых лобби', 'открытых лобби'])}`,
+    statsWaiting: (n: number) =>
+      `${n} ${pluralRu(n, ['игрок ждёт партии', 'игрока ждут партии', 'игроков ждут партии'])}`,
+    statsPrivate: (n: number) => `${n} ${pluralRu(n, ['приватное', 'приватных', 'приватных'])}`,
+    // Empty state
+    emptyTitle: 'Здесь пока тихо',
+    emptyDescription: 'Сейчас нет открытых лобби. Создайте своё — и сядьте за стол первым.',
+    emptyCta: 'Создать лобби',
+    // Footer
+    footer: 'online-mafia · бета-версия · MIT',
   },
   card: {
     private: 'Приватное',
     public: 'Открытое',
     membersOf: (current: number, max: number) => `${current} из ${max} игроков`,
+    membersShort: (current: number, max: number) => `${current}/${max}`,
     join: 'Войти',
     continue: 'Продолжить',
     host: 'Хост',
+    hostPrefix: 'Хост: ',
   },
   create: {
     title: 'Создать лобби',
@@ -54,8 +83,13 @@ export const LOBBY_MESSAGES = {
     leaving: 'Выходим...',
     close: 'Закрыть лобби',
     kick: 'Удалить',
+    kickTitle: 'Удалить игрока',
     judge: 'Судья',
+    judgeUpper: 'СУДЬЯ',
     judgeSlotEmpty: 'Место судьи свободно',
+    judgeNonTransferable: 'Не передаётся',
+    judgePresent: (nickname: string) => `Судья: ✓ ${nickname}`,
+    judgeAbsent: 'Судья: ✗ свободно',
     seatEmpty: 'Свободно',
     seatLabel: (n: number) => `Место ${n}`,
     hostBadge: 'Хост',
@@ -68,6 +102,12 @@ export const LOBBY_MESSAGES = {
     fillingBots: 'Добавляем ботов...',
     becomeJudge: 'Стать судьёй',
     becomingJudge: 'Меняем место...',
+    you: 'вы',
+    share: 'Поделиться',
+    shareCopied: 'Скопировано',
+    createdAgo: (rel: string) => `Создано ${rel}`,
+    seatsProgress: (current: number, total: number) => `Места: ${current} / ${total}`,
+    membersChip: (current: number, max: number) => `${current} / ${max} игроков`,
   },
   errors: {
     lobby_not_found: 'Лобби не найдено',

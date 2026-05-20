@@ -14,8 +14,10 @@ import { UserChip } from '@/components/ui/UserChip.js';
 import { gameApi } from '@/features/game/api/game.api.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
+import { EmptyLobbyState } from '@/features/lobby/components/EmptyLobbyState.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
+import { LobbyStats } from '@/features/lobby/components/LobbyStats.js';
 import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
   extractLobbyErrorMessage,
@@ -84,10 +86,16 @@ export function LobbyListPage() {
     <main className="min-h-screen p-4 sm:p-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-fg tracking-tight">
-            {LOBBY_MESSAGES.list.title}
-          </h1>
-          <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
+              {LOBBY_MESSAGES.list.brandWordmark}
+            </p>
+            <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+              {LOBBY_MESSAGES.list.title}
+            </h1>
+            <p className="mt-0.5 text-sm text-muted">{LOBBY_MESSAGES.list.tagline}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
             <Button onClick={() => setIsCreateOpen(true)}>
               {LOBBY_MESSAGES.list.createButton}
@@ -95,6 +103,8 @@ export function LobbyListPage() {
             <UserChip />
           </div>
         </header>
+
+        <LobbyStats lobbies={lobbies} />
 
         <div
           role="note"
@@ -136,7 +146,7 @@ export function LobbyListPage() {
         )}
 
         {lobbies.length === 0 ? (
-          <p className="text-center text-muted py-10">{LOBBY_MESSAGES.list.empty}</p>
+          <EmptyLobbyState onCreate={() => setIsCreateOpen(true)} />
         ) : (
           <div className="space-y-3">
             {lobbies.map((lobby) => (
@@ -162,6 +172,10 @@ export function LobbyListPage() {
           onClose={() => setPrivateLobbyId(null)}
           onJoined={(lobby) => navigate(lobbyRoomPath(lobby.id))}
         />
+
+        <footer className="pt-4 text-center text-xs text-muted">
+          {LOBBY_MESSAGES.list.footer}
+        </footer>
       </div>
     </main>
   );

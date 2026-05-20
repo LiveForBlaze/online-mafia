@@ -1,9 +1,10 @@
-// Card showing the judge slot above the player grid.
+// Card showing the judge slot above the player grid. Visually prominent because
+// the judge is the lobby host and the slot is irreplaceable.
 
 import type { LobbyMemberPublic } from '@mafia/shared';
 
-import { Button } from '@/components/ui/Button.js';
 import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
+import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 
 interface JudgeSlotProps {
   judge: LobbyMemberPublic | undefined;
@@ -13,38 +14,55 @@ interface JudgeSlotProps {
   isKickPending?: boolean;
 }
 
-export function JudgeSlot({
-  judge,
-  currentUserId,
-  canKick,
-  onKick,
-  isKickPending,
-}: JudgeSlotProps) {
+export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
+  // The judge slot intentionally has no kick affordance: the judge is the lobby
+  // host, the role is non-transferable, and leaving closes the lobby. We accept
+  // canKick / onKick / isKickPending props for callsite symmetry with SeatGrid.
+  const isViewer = judge?.userId === currentUserId;
+
   return (
-    <div className="rounded-md border border-border bg-card p-4 flex items-center justify-between gap-3">
-      <div>
-        <p className="text-xs uppercase tracking-wider text-muted">{LOBBY_MESSAGES.room.judge}</p>
+    <div className="rounded-md border border-border bg-card-deep p-4 flex items-start justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {judge ? (
-          <p className="mt-1 text-sm font-medium text-fg">
-            {judge.nickname}
-            {judge.userId === currentUserId && (
-              <span className="ml-2 text-xs text-muted">(вы)</span>
-            )}
-          </p>
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg text-sm font-semibold"
+            aria-hidden="true"
+          >
+            {extractInitial(judge.nickname)}
+          </span>
         ) : (
-          <p className="mt-1 text-sm text-muted">{LOBBY_MESSAGES.room.judgeSlotEmpty}</p>
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted text-sm"
+            aria-hidden="true"
+          >
+            ?
+          </span>
         )}
+
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-muted">
+            {LOBBY_MESSAGES.room.judgeUpper}
+          </p>
+          {judge ? (
+            <p className="mt-0.5 text-sm font-medium text-fg truncate">
+              {judge.nickname}
+              {isViewer && (
+                <span className="ml-2 text-xs text-muted">({LOBBY_MESSAGES.room.you})</span>
+              )}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-sm text-muted">{LOBBY_MESSAGES.room.judgeSlotEmpty}</p>
+          )}
+          <p className="mt-0.5 text-[11px] text-muted">
+            {LOBBY_MESSAGES.room.judgeNonTransferable}
+          </p>
+        </div>
       </div>
 
-      {judge && canKick && judge.userId !== currentUserId && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onKick(judge.userId)}
-          disabled={isKickPending}
-        >
-          {LOBBY_MESSAGES.room.kick}
-        </Button>
+      {judge && (
+        <span className="shrink-0 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
+          {LOBBY_MESSAGES.room.hostBadge}
+        </span>
       )}
     </div>
   );
