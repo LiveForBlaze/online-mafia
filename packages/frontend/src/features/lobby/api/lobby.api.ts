@@ -14,6 +14,7 @@ const LOBBY_BASE = '/api/v1/lobby';
 
 const path = {
   list: () => LOBBY_BASE,
+  listActive: () => `${LOBBY_BASE}/active`,
   create: () => LOBBY_BASE,
   details: (id: string) => `${LOBBY_BASE}/${id}`,
   join: (id: string) => `${LOBBY_BASE}/${id}/join`,
@@ -26,6 +27,7 @@ const path = {
 
 export const lobbyApi = {
   list: () => apiClient.get<LobbyListResponse>(path.list()),
+  listActive: () => apiClient.get<LobbyListResponse>(path.listActive()),
   create: (input: CreateLobbyInput) => apiClient.post<LobbyDetailsResponse>(path.create(), input),
   details: (id: string) => apiClient.get<LobbyDetailsResponse>(path.details(id)),
   join: (id: string, input: JoinLobbyInput) =>

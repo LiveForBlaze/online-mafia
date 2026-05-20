@@ -14,19 +14,20 @@ import { useLogout } from '@/features/auth/hooks/useAuth.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
-import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
+import { useActiveLobbies, useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
   extractLobbyErrorMessage,
   useJoinLobby,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
 import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
-import { lobbyRoomPath } from '@/routes/paths.js';
+import { gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
 
 export function LobbyListPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const logout = useLogout();
   const lobbiesQuery = useLobbies();
+  const activeLobbiesQuery = useActiveLobbies();
   const join = useJoinLobby();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -66,6 +67,15 @@ export function LobbyListPage() {
   }
 
   const lobbies = lobbiesQuery.data?.lobbies ?? [];
+  const activeLobbies = activeLobbiesQuery.data?.lobbies ?? [];
+
+  function handleActiveClick(lobby: LobbySummary) {
+    if (lobby.gameId) {
+      navigate(gameRoomPath(lobby.gameId));
+    } else {
+      navigate(lobbyRoomPath(lobby.id));
+    }
+  }
 
   return (
     <main className="min-h-screen p-4 sm:p-6">
@@ -99,20 +109,40 @@ export function LobbyListPage() {
           </p>
         )}
 
-        {lobbies.length === 0 ? (
-          <p className="text-center text-muted py-10">{LOBBY_MESSAGES.list.empty}</p>
-        ) : (
-          <div className="space-y-3">
-            {lobbies.map((lobby) => (
-              <LobbyCard
-                key={lobby.id}
-                lobby={lobby}
-                onJoin={() => handleJoinClick(lobby)}
-                isJoining={join.isPending && join.variables?.lobbyId === lobby.id}
-              />
-            ))}
-          </div>
+        {activeLobbies.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              {LOBBY_MESSAGES.list.activeGamesTitle}
+            </h2>
+            <div className="space-y-3">
+              {activeLobbies.map((lobby) => (
+                <LobbyCard key={lobby.id} lobby={lobby} onJoin={() => handleActiveClick(lobby)} />
+              ))}
+            </div>
+          </section>
         )}
+
+        <section className="space-y-2">
+          {activeLobbies.length > 0 && (
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              {LOBBY_MESSAGES.list.openGamesTitle}
+            </h2>
+          )}
+          {lobbies.length === 0 ? (
+            <p className="text-center text-muted py-10">{LOBBY_MESSAGES.list.empty}</p>
+          ) : (
+            <div className="space-y-3">
+              {lobbies.map((lobby) => (
+                <LobbyCard
+                  key={lobby.id}
+                  lobby={lobby}
+                  onJoin={() => handleJoinClick(lobby)}
+                  isJoining={join.isPending && join.variables?.lobbyId === lobby.id}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
         <CreateLobbyDialog
           open={isCreateOpen}

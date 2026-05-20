@@ -8,6 +8,8 @@ export const LOBBY_MESSAGES = {
     refresh: 'Обновить',
     betaNotice:
       'Это тестовая версия приложения. Возможны баги и поломки — финального продукта это пока не отражает.',
+    activeGamesTitle: 'Активные игры',
+    openGamesTitle: 'Открытые лобби',
   },
   card: {
     private: 'Приватное',

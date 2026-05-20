@@ -14,6 +14,7 @@ import {
   kickMember,
   leaveLobby,
   listPublicLobbies,
+  listUserActiveLobbies,
 } from './lobby.service.js';
 import { LOBBY_ERROR, type LobbyErrorCode } from './lobby.errors.js';
 import { fillLobbyWithBots } from './lobby.bots.js';
@@ -82,6 +83,13 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- List public lobbies ----
   app.get('/', { preHandler: [app.authenticate] }, async (request, reply) => {
     const lobbies = await listPublicLobbies(request.user.sub);
+    return reply.send({ lobbies });
+  });
+
+  // ---- List active games (lobbies in IN_GAME state where viewer is a member) ----
+  // Declared before /:id so the literal segment wins over the param route.
+  app.get('/active', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const lobbies = await listUserActiveLobbies(request.user.sub);
     return reply.send({ lobbies });
   });
 

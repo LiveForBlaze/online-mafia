@@ -81,6 +81,26 @@ export async function createLobby(
   return ok(toLobbyDetails(lobby, hostId));
 }
 
+// Lobbies that the viewer is a member of and whose game is in progress.
+// Used to render the "active games" section on the lobby list page so a host
+// who navigates away from an in-progress game can find their way back.
+export async function listUserActiveLobbies(viewerUserId: string): Promise<LobbySummary[]> {
+  const rows = await prisma.lobby.findMany({
+    where: {
+      status: 'IN_GAME',
+      members: { some: { userId: viewerUserId } },
+    },
+    include: {
+      host: { select: { id: true, nickname: true } },
+      game: { select: { id: true } },
+      _count: { select: { members: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return rows.map((row) => toLobbySummary(row, row._count.members, true));
+}
+
 export async function listPublicLobbies(viewerUserId: string): Promise<LobbySummary[]> {
   // Fetch the `members` relation filtered to the viewer's row only — that way we know
   // membership per lobby without loading every member in the result set.
