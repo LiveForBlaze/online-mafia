@@ -123,14 +123,14 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
     return targetSeat !== null && targetSeat === currentSpeakerSeat;
   }
 
-  // Night phases: same team-coordination rules as for video.
-  const viewerIsMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;
-  const targetIsMafiaTeam = targetRole === ROLE.MAFIA || targetRole === ROLE.DON;
-  if (phase === GAME_PHASE.NIGHT_ZERO || phase === GAME_PHASE.NIGHT_MAFIA) {
-    return viewerIsMafiaTeam && targetIsMafiaTeam;
-  }
-
-  // Morning announcement and role distribution — silent for players;
-  // they only hear the judge (handled above).
+  // Night phases: the table is fully silent for players. The mafia sees each
+  // other on video and coordinates by gestures — they do not hear each other.
+  // Sheriff / don checks are silent picks; the judge handles announcements.
+  // (Role distribution and morning announcement also fall through to silent;
+  // players only hear the judge, who's already returned true above.)
+  // The `viewerRole` / `targetRole` / `ROLE` imports are still used by the
+  // video-visibility function above.
+  void viewerRole;
+  void targetRole;
   return false;
 }
