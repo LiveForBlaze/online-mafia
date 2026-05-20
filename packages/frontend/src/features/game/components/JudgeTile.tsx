@@ -20,9 +20,7 @@ interface JudgeTileProps {
 export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
   const judge = state.participants.find((p) => p.isJudge);
   const liveKitParticipants = useParticipants();
-  const lkJudge = judge
-    ? liveKitParticipants.find((p) => p.identity === judge.userId)
-    : undefined;
+  const lkJudge = judge ? liveKitParticipants.find((p) => p.identity === judge.userId) : undefined;
 
   const mayWatch = useShouldShowMedia(judge?.userId ?? '');
 
@@ -40,9 +38,7 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
   const cameraPublication = videoPubsMap
     ? Array.from(videoPubsMap.values()).find((pub) => pub.source === Track.Source.Camera)
     : undefined;
-  const hasLiveCamera = Boolean(
-    mayWatch && cameraPublication?.track && !cameraPublication.isMuted,
-  );
+  const hasLiveCamera = Boolean(mayWatch && cameraPublication?.track && !cameraPublication.isMuted);
   const isSelf = judge.userId === viewerUserId;
 
   return (
@@ -72,9 +68,7 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
         <span className="rounded bg-accent text-accent-fg px-1.5 py-0.5 font-semibold uppercase tracking-wider">
           {GAME_MESSAGES.ui.judge}
         </span>
-        {isSelf && (
-          <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5">вы</span>
-        )}
+        {isSelf && <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5">вы</span>}
       </div>
 
       {/* Bottom strip with nickname */}

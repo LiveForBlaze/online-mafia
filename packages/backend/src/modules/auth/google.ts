@@ -31,9 +31,7 @@ const USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
 export function isGoogleOAuthConfigured(): boolean {
   return Boolean(
-    env.GOOGLE_OAUTH_CLIENT_ID &&
-      env.GOOGLE_OAUTH_CLIENT_SECRET &&
-      env.GOOGLE_OAUTH_REDIRECT_URI,
+    env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_OAUTH_REDIRECT_URI,
   );
 }
 

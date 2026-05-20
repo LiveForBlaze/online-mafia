@@ -21,7 +21,11 @@ import {
 } from './game.engine.js';
 import type { GameParticipant, GameState } from './game.state.js';
 
-function buildParticipant(seat: number | null, role: GameParticipant['role'], extras: Partial<GameParticipant> = {}): GameParticipant {
+function buildParticipant(
+  seat: number | null,
+  role: GameParticipant['role'],
+  extras: Partial<GameParticipant> = {},
+): GameParticipant {
   return {
     userId: `user-${seat ?? 'judge'}`,
     nickname: `Player ${seat ?? 'judge'}`,
@@ -200,7 +204,9 @@ describe('applyDonCheck', () => {
   it('refuses checking a dead player', () => {
     const state = buildState({
       phase: GAME_PHASE.NIGHT_DON,
-      participants: buildState().participants.map((p) => (p.seat === 7 ? { ...p, isAlive: false } : p)),
+      participants: buildState().participants.map((p) =>
+        p.seat === 7 ? { ...p, isAlive: false } : p,
+      ),
     });
     const result = applyDonCheck(state, 'user-10', 7);
     expect(result.ok).toBe(false);

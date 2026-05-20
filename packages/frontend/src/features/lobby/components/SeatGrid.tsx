@@ -15,7 +15,13 @@ interface SeatGridProps {
   isKickPending?: boolean;
 }
 
-export function SeatGrid({ members, currentUserId, canKick, onKick, isKickPending }: SeatGridProps) {
+export function SeatGrid({
+  members,
+  currentUserId,
+  canKick,
+  onKick,
+  isKickPending,
+}: SeatGridProps) {
   const memberBySeat = new Map<number, LobbyMemberPublic>();
   for (const member of members) {
     if (!member.isJudge && member.seat !== null) {
@@ -57,7 +63,14 @@ interface SeatCardProps {
   isKickPending?: boolean;
 }
 
-function SeatCard({ seat, occupant, isCurrentUser, canKick, onKick, isKickPending }: SeatCardProps) {
+function SeatCard({
+  seat,
+  occupant,
+  isCurrentUser,
+  canKick,
+  onKick,
+  isKickPending,
+}: SeatCardProps) {
   return (
     <div
       className={cn(

@@ -25,9 +25,26 @@ export type FillBotsResult = FillBotsSuccess | FillBotsFailure;
 
 // Russian-ish bot names so they read naturally next to real player nicknames.
 const BOT_NAME_POOL = [
-  'Алекс', 'Боря', 'Витя', 'Гена', 'Дима', 'Егор', 'Жора', 'Ваня',
-  'Костя', 'Лёва', 'Миша', 'Назар', 'Олег', 'Паша', 'Рома', 'Стас',
-  'Тимур', 'Федя', 'Юра', 'Ярик',
+  'Алекс',
+  'Боря',
+  'Витя',
+  'Гена',
+  'Дима',
+  'Егор',
+  'Жора',
+  'Ваня',
+  'Костя',
+  'Лёва',
+  'Миша',
+  'Назар',
+  'Олег',
+  'Паша',
+  'Рома',
+  'Стас',
+  'Тимур',
+  'Федя',
+  'Юра',
+  'Ярик',
 ];
 
 function pickBotName(): string {

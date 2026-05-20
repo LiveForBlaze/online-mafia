@@ -12,8 +12,8 @@ interface UseFullscreenResult {
 }
 
 export function useFullscreen(): UseFullscreenResult {
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(
-    () => Boolean(document.fullscreenElement),
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
+    Boolean(document.fullscreenElement),
   );
 
   useEffect(() => {

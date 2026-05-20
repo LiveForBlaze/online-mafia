@@ -8,10 +8,7 @@ import { useEffect } from 'react';
 
 import { SERVER_EVENT, type GameStateProjected } from '@mafia/shared';
 
-import {
-  connectGameSocket,
-  emitGameAction,
-} from '@/features/game/socket/game.socket.js';
+import { connectGameSocket, emitGameAction } from '@/features/game/socket/game.socket.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
 
 const CLIENT_GAME_JOIN = 'client:game_join';

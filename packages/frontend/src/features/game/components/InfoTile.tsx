@@ -4,12 +4,7 @@
 // nominations, vote progress, check results). Personal prompts (your check result)
 // are still surfaced here for the relevant viewer.
 
-import {
-  GAME_PHASE,
-  ROLE,
-  type GameStateProjected,
-  type Role,
-} from '@mafia/shared';
+import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { GAME_MESSAGES } from '@/features/game/messages.js';
@@ -110,8 +105,7 @@ function Body({
     case GAME_PHASE.NIGHT_ZERO:
       return (
         <div className="text-xs text-muted">
-          {(viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) &&
-            'Ваша команда подсвечена'}
+          {(viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) && 'Ваша команда подсвечена'}
         </div>
       );
 
@@ -123,24 +117,22 @@ function Body({
           )}
           {state.nominationSeats.length > 0 && (
             <p className="text-muted">
-              {GAME_MESSAGES.ui.nominations}:{' '}
-              {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+              {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
             </p>
           )}
         </div>
       );
 
     case GAME_PHASE.DAY_VOTE: {
-      const hasVoted = viewerSeat !== null && Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
+      const hasVoted =
+        viewerSeat !== null &&
+        Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
       return (
         <div className="text-xs space-y-1">
           <p className="text-muted">
-            {GAME_MESSAGES.ui.nominations}:{' '}
-            {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+            {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
           </p>
-          {viewerIsAlive && hasVoted && (
-            <p className="text-success">{GAME_MESSAGES.ui.voted}</p>
-          )}
+          {viewerIsAlive && hasVoted && <p className="text-success">{GAME_MESSAGES.ui.voted}</p>}
         </div>
       );
     }
@@ -206,9 +198,7 @@ function NightCheckBody({
 }) {
   return (
     <div className="text-xs space-y-1">
-      <p className="text-muted">
-        {allowed ? prompt : GAME_MESSAGES.ui.waitingForOthers}
-      </p>
+      <p className="text-muted">{allowed ? prompt : GAME_MESSAGES.ui.waitingForOthers}</p>
       {checkResult && (
         <p className={cn('font-medium', checkResult.result ? 'text-danger' : 'text-success')}>
           №{checkResult.targetSeat}:{' '}

@@ -44,7 +44,8 @@ export const AUTH_MESSAGES = {
     password_not_set: 'Этот аккаунт привязан к Google. Войдите через Google.',
     google_oauth_not_configured: 'Вход через Google временно недоступен',
     google_email_not_verified: 'Email в вашем Google-аккаунте не подтверждён',
-    invalid_input: 'Проверьте поля формы: email должен быть валидным, пароль — не короче 8 символов, никнейм — от 2 до 24 символов',
+    invalid_input:
+      'Проверьте поля формы: email должен быть валидным, пароль — не короче 8 символов, никнейм — от 2 до 24 символов',
     unauthenticated: 'Сессия истекла. Войдите снова.',
     network: 'Ошибка соединения. Попробуйте ещё раз.',
     unknown: 'Что-то пошло не так',

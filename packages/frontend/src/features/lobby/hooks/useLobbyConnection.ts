@@ -9,10 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { SERVER_EVENT, type LobbyDetailsResponse } from '@mafia/shared';
 
-import {
-  connectGameSocket,
-  emitGameAction,
-} from '@/features/game/socket/game.socket.js';
+import { connectGameSocket, emitGameAction } from '@/features/game/socket/game.socket.js';
 
 import { LOBBY_QUERY_KEY } from './useLobbies.js';
 

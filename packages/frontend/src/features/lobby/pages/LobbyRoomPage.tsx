@@ -25,10 +25,7 @@ import { ROUTE_PATH, gameRoomPath } from '@/routes/paths.js';
 
 // Identifier for the destructive intent the user is about to confirm. Holding the
 // pending intent in one place lets a single <ConfirmDialog> serve every action.
-type PendingConfirm =
-  | { kind: 'close' }
-  | { kind: 'kick'; userId: string; nickname: string }
-  | null;
+type PendingConfirm = { kind: 'close' } | { kind: 'kick'; userId: string; nickname: string } | null;
 
 export function LobbyRoomPage() {
   const params = useParams<{ id: string }>();

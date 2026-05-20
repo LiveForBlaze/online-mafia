@@ -13,7 +13,13 @@ interface JudgeSlotProps {
   isKickPending?: boolean;
 }
 
-export function JudgeSlot({ judge, currentUserId, canKick, onKick, isKickPending }: JudgeSlotProps) {
+export function JudgeSlot({
+  judge,
+  currentUserId,
+  canKick,
+  onKick,
+  isKickPending,
+}: JudgeSlotProps) {
   return (
     <div className="rounded-md border border-border bg-card p-4 flex items-center justify-between gap-3">
       <div>

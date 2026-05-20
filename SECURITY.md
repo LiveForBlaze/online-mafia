@@ -5,7 +5,7 @@
 If you believe you have found a security issue in online-mafia, please **do not
 open a public GitHub issue**. Instead, email the maintainer with details:
 
-> security@example.com   *(replace with the project maintainer's address)*
+> security@example.com _(replace with the project maintainer's address)_
 
 A maintainer will acknowledge within 72 hours and propose a disclosure
 timeline. We do not pay bug bounties at this stage, but we will credit

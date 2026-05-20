@@ -31,12 +31,7 @@ import {
 } from './game.engine.js';
 import { GAME_ERROR, type GameErrorCode } from './game.errors.js';
 import { getGame, registerGame, setGame, unregisterGame } from './game.registry.js';
-import {
-  INITIAL_PHASE,
-  findByUserId,
-  type GameParticipant,
-  type GameState,
-} from './game.state.js';
+import { INITIAL_PHASE, findByUserId, type GameParticipant, type GameState } from './game.state.js';
 
 // ---- Result ----
 
@@ -365,9 +360,7 @@ export async function judgeAdvancePhase(ctx: ActionContext): Promise<ServiceResu
   });
 }
 
-export async function judgeAdvanceSpeaker(
-  ctx: ActionContext,
-): Promise<ServiceResult<GameState>> {
+export async function judgeAdvanceSpeaker(ctx: ActionContext): Promise<ServiceResult<GameState>> {
   return withLock(ctx.gameId, async () => {
     const loaded = loadGameForUser(ctx);
     if (!loaded.ok) return loaded;

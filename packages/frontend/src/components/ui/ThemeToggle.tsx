@@ -8,13 +8,7 @@ export function ThemeToggle() {
   const nextLabel = theme === 'dark' ? 'Светлая тема' : 'Тёмная тема';
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={toggle}
-      title={nextLabel}
-      aria-label={nextLabel}
-    >
+    <Button variant="ghost" size="sm" onClick={toggle} title={nextLabel} aria-label={nextLabel}>
       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
     </Button>
   );
@@ -22,7 +16,17 @@ export function ThemeToggle() {
 
 function SunIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2" />
       <path d="M12 20v2" />
@@ -38,7 +42,17 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
     </svg>
   );

@@ -17,11 +17,7 @@ interface PhaseHeaderProps {
 export function PhaseHeader({ state, viewerRole, viewerIsJudge, onBack }: PhaseHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-3">
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-sm text-muted hover:text-fg"
-      >
+      <button type="button" onClick={onBack} className="text-sm text-muted hover:text-fg">
         {GAME_MESSAGES.ui.back}
       </button>
 
@@ -47,14 +43,16 @@ function RoleBadge({ role, isJudge }: { role: Role | null; isJudge: boolean }) {
   }
   if (!role) return <span />;
   const isBlack = role === 'mafia' || role === 'don';
-  return (
-    <Badge tone={isBlack ? 'black' : 'red'}>
-      {GAME_MESSAGES.role[role]}
-    </Badge>
-  );
+  return <Badge tone={isBlack ? 'black' : 'red'}>{GAME_MESSAGES.role[role]}</Badge>;
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: 'red' | 'black' | 'neutral' }) {
+function Badge({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: 'red' | 'black' | 'neutral';
+}) {
   return (
     <span
       className={cn(

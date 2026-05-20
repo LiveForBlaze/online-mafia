@@ -75,13 +75,7 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
   );
 }
 
-function MediaBanner({
-  tone,
-  children,
-}: {
-  tone: 'info' | 'danger';
-  children: React.ReactNode;
-}) {
+function MediaBanner({ tone, children }: { tone: 'info' | 'danger'; children: React.ReactNode }) {
   return (
     <div
       role="status"

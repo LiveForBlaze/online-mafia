@@ -47,9 +47,7 @@ export function SeatVideoTile({
   );
 
   const mayWatch = useShouldShowMedia(participant.userId);
-  const hasLiveCamera = Boolean(
-    mayWatch && cameraPublication?.track && !cameraPublication.isMuted,
-  );
+  const hasLiveCamera = Boolean(mayWatch && cameraPublication?.track && !cameraPublication.isMuted);
   const isDead = !participant.isAlive;
 
   return (
@@ -117,12 +115,7 @@ export function SeatVideoTile({
               (with `invisible` when none) so the gradient height matches across tiles
               regardless of whether someone has fouls. */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 space-y-1">
-            <p
-              className={cn(
-                'text-xs text-warning',
-                participant.foulsCount === 0 && 'invisible',
-              )}
-            >
+            <p className={cn('text-xs text-warning', participant.foulsCount === 0 && 'invisible')}>
               Фолы: {participant.foulsCount}
             </p>
             <p className="text-sm font-medium text-white truncate">{participant.nickname}</p>

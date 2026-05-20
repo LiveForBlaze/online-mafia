@@ -4,11 +4,7 @@
 // Routes are thin: validate input, call service, translate Result -> HTTP response.
 
 import type { FastifyPluginAsync } from 'fastify';
-import {
-  createLobbyInputSchema,
-  joinLobbyInputSchema,
-  kickMemberInputSchema,
-} from '@mafia/shared';
+import { createLobbyInputSchema, joinLobbyInputSchema, kickMemberInputSchema } from '@mafia/shared';
 
 import {
   closeLobby,

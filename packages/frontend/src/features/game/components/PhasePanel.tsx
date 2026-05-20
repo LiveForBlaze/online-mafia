@@ -27,7 +27,8 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
           <p className="text-fg">{GAME_MESSAGES.phase[GAME_PHASE.ROLE_DISTRIBUTION]}.</p>
           {viewerRole && (
             <p className="mt-1 text-sm text-muted">
-              {GAME_MESSAGES.ui.yourRole}: <span className="text-fg font-medium">{GAME_MESSAGES.role[viewerRole]}</span>
+              {GAME_MESSAGES.ui.yourRole}:{' '}
+              <span className="text-fg font-medium">{GAME_MESSAGES.role[viewerRole]}</span>
             </p>
           )}
         </PanelShell>
@@ -38,7 +39,9 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
         <PanelShell>
           <p className="text-fg">{GAME_MESSAGES.phase[GAME_PHASE.NIGHT_ZERO]}.</p>
           {(viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) && (
-            <p className="mt-1 text-sm text-muted">{GAME_MESSAGES.ui.yourTeammates} подсвечена в таблице.</p>
+            <p className="mt-1 text-sm text-muted">
+              {GAME_MESSAGES.ui.yourTeammates} подсвечена в таблице.
+            </p>
           )}
         </PanelShell>
       );
@@ -50,7 +53,9 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
             <p className="text-fg">{GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}</p>
           )}
           {viewerIsAlive && viewerSeat === state.currentSpeakerSeat && (
-            <p className="mt-1 text-sm text-muted">Кликните «Выставить» на сиденье оппонента, чтобы номинировать.</p>
+            <p className="mt-1 text-sm text-muted">
+              Кликните «Выставить» на сиденье оппонента, чтобы номинировать.
+            </p>
           )}
           {state.nominationSeats.length > 0 && (
             <p className="mt-2 text-xs text-muted">
@@ -209,7 +214,8 @@ export function actionForSeatInCurrentPhase(args: {
       if (state.nominationSeats.includes(participantSeat)) return null;
       return {
         label: GAME_MESSAGES.ui.nominateButton,
-        onClick: () => emitGameAction(CLIENT_EVENT.NOMINATE_PLAYER, { targetSeat: participantSeat }),
+        onClick: () =>
+          emitGameAction(CLIENT_EVENT.NOMINATE_PLAYER, { targetSeat: participantSeat }),
       };
 
     case GAME_PHASE.DAY_VOTE:

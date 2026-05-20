@@ -65,7 +65,9 @@ export function JoinPrivateLobbyDialog({
             {LOBBY_MESSAGES.joinPrivate.cancel}
           </Button>
           <Button type="submit" form="join-private-form" disabled={join.isPending}>
-            {join.isPending ? LOBBY_MESSAGES.joinPrivate.submitting : LOBBY_MESSAGES.joinPrivate.submit}
+            {join.isPending
+              ? LOBBY_MESSAGES.joinPrivate.submitting
+              : LOBBY_MESSAGES.joinPrivate.submit}
           </Button>
         </>
       }

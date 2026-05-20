@@ -80,11 +80,7 @@ export function LobbyListPage() {
             <Button onClick={() => setIsCreateOpen(true)}>
               {LOBBY_MESSAGES.list.createButton}
             </Button>
-            <Button
-              variant="ghost"
-              onClick={() => logout.mutate()}
-              disabled={logout.isPending}
-            >
+            <Button variant="ghost" onClick={() => logout.mutate()} disabled={logout.isPending}>
               Выйти
             </Button>
           </div>

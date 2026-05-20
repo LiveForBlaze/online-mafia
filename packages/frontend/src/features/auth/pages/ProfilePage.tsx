@@ -11,10 +11,7 @@ import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
 import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
 import { ApiError } from '@/lib/api-client.js';
-import {
-  authErrorMessage,
-  AUTH_MESSAGES,
-} from '@/features/auth/messages.js';
+import { authErrorMessage, AUTH_MESSAGES } from '@/features/auth/messages.js';
 import { useUpdateNickname } from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
@@ -54,9 +51,7 @@ export function ProfilePage() {
     );
   }
 
-  const errorMessage = updateNickname.isError
-    ? extractErrorMessage(updateNickname.error)
-    : null;
+  const errorMessage = updateNickname.isError ? extractErrorMessage(updateNickname.error) : null;
 
   return (
     <main className="min-h-screen p-4 sm:p-6">
@@ -117,9 +112,7 @@ export function ProfilePage() {
             className="w-full"
             disabled={updateNickname.isPending || isUnchanged}
           >
-            {updateNickname.isPending
-              ? AUTH_MESSAGES.profile.saving
-              : AUTH_MESSAGES.profile.save}
+            {updateNickname.isPending ? AUTH_MESSAGES.profile.saving : AUTH_MESSAGES.profile.save}
           </Button>
         </form>
 

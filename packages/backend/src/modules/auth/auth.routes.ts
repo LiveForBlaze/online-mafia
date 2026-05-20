@@ -146,9 +146,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   // ---- Google OAuth: start ----
   app.get('/google', async (_request, reply) => {
     if (!isGoogleOAuthConfigured()) {
-      return reply
-        .code(HTTP_STATUS.NOT_IMPLEMENTED)
-        .send({ error: 'google_oauth_not_configured' });
+      return reply.code(HTTP_STATUS.NOT_IMPLEMENTED).send({ error: 'google_oauth_not_configured' });
     }
 
     const google = createGoogleClient();
@@ -165,9 +163,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   // ---- Google OAuth: callback ----
   app.get('/google/callback', async (request, reply) => {
     if (!isGoogleOAuthConfigured()) {
-      return reply
-        .code(HTTP_STATUS.NOT_IMPLEMENTED)
-        .send({ error: 'google_oauth_not_configured' });
+      return reply.code(HTTP_STATUS.NOT_IMPLEMENTED).send({ error: 'google_oauth_not_configured' });
     }
 
     const query = request.query as { code?: string; state?: string; error?: string };

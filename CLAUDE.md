@@ -33,7 +33,7 @@ All inter-agent state lives in a shared memory namespace (`memory_store` / `memo
 
 - **Parallelize ONLY when work is genuinely independent** (no upstream dependency between siblings).
 - **Spawn dependent agents only after the lead confirms upstream outputs are in memory.** Do NOT tell a downstream agent to "WAIT for SendMessage from X" — it has no mechanism to wait; it will abort.
-- **Every subagent brief MUST include a degraded-mode paragraph** at the top: *"If your expected coordination tools (SendMessage, TaskUpdate, hive-mind_*) are missing, do NOT abort. Read these specific source files directly, write outputs to these specific memory keys, and complete your phase."*
+- **Every subagent brief MUST include a degraded-mode paragraph** at the top: _"If your expected coordination tools (SendMessage, TaskUpdate, hive-mind\__) are missing, do NOT abort. Read these specific source files directly, write outputs to these specific memory keys, and complete your phase."\*
 - **Name agents** — `name: "role"` makes them addressable by the lead even though they cannot address each other.
 - **After spawning**: STOP, tell user what's running, wait for completion notifications. No polling.
 
@@ -42,13 +42,19 @@ All inter-agent state lives in a shared memory namespace (`memory_store` / `memo
 ```javascript
 // Phase 1 — independent parallel work
 Agent({
-  prompt: "Read docs at <paths>. Write inventory JSON to memory key phase1/researcher/inventory in namespace <ns>. Degraded mode: if memory tools missing, return inventory in your final message.",
-  subagent_type: "researcher", name: "researcher", run_in_background: true
-})
+  prompt:
+    'Read docs at <paths>. Write inventory JSON to memory key phase1/researcher/inventory in namespace <ns>. Degraded mode: if memory tools missing, return inventory in your final message.',
+  subagent_type: 'researcher',
+  name: 'researcher',
+  run_in_background: true,
+});
 Agent({
-  prompt: "Walk the source tree. Write capability matrix to memory key phase1/coder/capability-matrix. Degraded mode: ...",
-  subagent_type: "coder", name: "source-reader", run_in_background: true
-})
+  prompt:
+    'Walk the source tree. Write capability matrix to memory key phase1/coder/capability-matrix. Degraded mode: ...',
+  subagent_type: 'coder',
+  name: 'source-reader',
+  run_in_background: true,
+});
 
 // AFTER both Phase 1 agents complete (lead verifies via memory_search), THEN spawn Phase 2.
 // Each Phase 2 agent's brief explicitly lists the Phase 1 memory keys it should read.
@@ -56,11 +62,11 @@ Agent({
 
 ### Patterns
 
-| Pattern | Flow | Use When |
-|---------|------|----------|
-| **Sequential pipeline** | Lead → A → (verify in memory) → B → (verify) → C | Phase dependencies (audit, complex refactor) |
-| **Fan-out** | Lead → A, B, C (parallel) → Lead aggregates from memory | Independent parallel work (research, multi-lens critique) |
-| **Lead-as-bus** | Subagents → Lead → reroute by spawning next | Workaround when supervisor↔workers coordination needed |
+| Pattern                 | Flow                                                    | Use When                                                  |
+| ----------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| **Sequential pipeline** | Lead → A → (verify in memory) → B → (verify) → C        | Phase dependencies (audit, complex refactor)              |
+| **Fan-out**             | Lead → A, B, C (parallel) → Lead aggregates from memory | Independent parallel work (research, multi-lens critique) |
+| **Lead-as-bus**         | Subagents → Lead → reroute by spawning next             | Workaround when supervisor↔workers coordination needed    |
 
 ### Anti-patterns (will silently fail)
 
@@ -75,14 +81,19 @@ Agent({
 
 ```javascript
 // Lead → subagent: redirect or update priority mid-flight
-SendMessage({ to: "developer", summary: "Prioritize auth", message: "Auth is blocking tester, do that first." })
+SendMessage({
+  to: 'developer',
+  summary: 'Prioritize auth',
+  message: 'Auth is blocking tester, do that first.',
+});
 // Lead → subagent: graceful shutdown
-SendMessage({ to: "developer", message: { type: "shutdown_request" } })
+SendMessage({ to: 'developer', message: { type: 'shutdown_request' } });
 ```
 
 ## Swarm & Routing
 
 ### Config
+
 - **Topology**: hierarchical-mesh (anti-drift)
 - **Max Agents**: 15
 - **Memory**: hybrid
@@ -95,35 +106,38 @@ npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --
 
 ### Agent Routing
 
-| Task | Agents | Topology |
-|------|--------|----------|
-| Bug Fix | researcher, coder, tester | hierarchical |
-| Feature | architect, coder, tester, reviewer | hierarchical |
-| Refactor | architect, coder, reviewer | hierarchical |
-| Performance | perf-engineer, coder | hierarchical |
-| Security | security-architect, auditor | hierarchical |
+| Task        | Agents                             | Topology     |
+| ----------- | ---------------------------------- | ------------ |
+| Bug Fix     | researcher, coder, tester          | hierarchical |
+| Feature     | architect, coder, tester, reviewer | hierarchical |
+| Refactor    | architect, coder, reviewer         | hierarchical |
+| Performance | perf-engineer, coder               | hierarchical |
+| Security    | security-architect, auditor        | hierarchical |
 
 ### When to Swarm
+
 - **YES**: 3+ files, new features, cross-module refactoring, API changes, security, performance
 - **NO**: single file edits, 1-2 line fixes, docs updates, config changes, questions
 
 ### 3-Tier Model Routing
 
-| Tier | Handler | Use Cases |
-|------|---------|-----------|
-| 1 | Agent Booster (WASM) | Simple transforms — skip LLM, use Edit directly |
-| 2 | Haiku | Simple tasks, low complexity |
-| 3 | Sonnet/Opus | Architecture, security, complex reasoning |
+| Tier | Handler              | Use Cases                                       |
+| ---- | -------------------- | ----------------------------------------------- |
+| 1    | Agent Booster (WASM) | Simple transforms — skip LLM, use Edit directly |
+| 2    | Haiku                | Simple tasks, low complexity                    |
+| 3    | Sonnet/Opus          | Architecture, security, complex reasoning       |
 
 ## Memory & Learning
 
 ### Before Any Task
+
 ```bash
 npx @claude-flow/cli@latest memory search --query "[task keywords]" --namespace patterns
 npx @claude-flow/cli@latest hooks route --task "[task description]"
 ```
 
 ### After Success
+
 ```bash
 npx @claude-flow/cli@latest memory store --namespace patterns --key "[name]" --value "[what worked]"
 npx @claude-flow/cli@latest hooks post-task --task-id "[id]" --success true --store-results true
@@ -131,25 +145,25 @@ npx @claude-flow/cli@latest hooks post-task --task-id "[id]" --success true --st
 
 ### MCP Tools (use `ToolSearch("keyword")` to discover)
 
-| Category | Key Tools |
-|----------|-----------|
-| **Memory** | `memory_store`, `memory_search`, `memory_search_unified` |
-| **Bridge** | `memory_import_claude`, `memory_bridge_status` |
-| **Swarm** | `swarm_init`, `swarm_status`, `swarm_health` |
-| **Agents** | `agent_spawn`, `agent_list`, `agent_status` |
-| **Hooks** | `hooks_route`, `hooks_post-task`, `hooks_worker-dispatch` |
-| **Security** | `aidefence_scan`, `aidefence_is_safe`, `aidefence_has_pii` |
+| Category      | Key Tools                                                  |
+| ------------- | ---------------------------------------------------------- |
+| **Memory**    | `memory_store`, `memory_search`, `memory_search_unified`   |
+| **Bridge**    | `memory_import_claude`, `memory_bridge_status`             |
+| **Swarm**     | `swarm_init`, `swarm_status`, `swarm_health`               |
+| **Agents**    | `agent_spawn`, `agent_list`, `agent_status`                |
+| **Hooks**     | `hooks_route`, `hooks_post-task`, `hooks_worker-dispatch`  |
+| **Security**  | `aidefence_scan`, `aidefence_is_safe`, `aidefence_has_pii` |
 | **Hive-Mind** | `hive-mind_init`, `hive-mind_consensus`, `hive-mind_spawn` |
 
 ### Background Workers
 
-| Worker | When |
-|--------|------|
-| `audit` | After security changes |
+| Worker     | When                   |
+| ---------- | ---------------------- |
+| `audit`    | After security changes |
 | `optimize` | After performance work |
-| `testgaps` | After adding features |
-| `map` | Every 5+ file changes |
-| `document` | After API changes |
+| `testgaps` | After adding features  |
+| `map`      | Every 5+ file changes  |
+| `document` | After API changes      |
 
 ```bash
 npx @claude-flow/cli@latest hooks worker dispatch --trigger audit

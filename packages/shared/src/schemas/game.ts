@@ -91,11 +91,13 @@ export const gameParticipantPublicSchema = z.object({
 });
 export type GameParticipantPublic = z.infer<typeof gameParticipantPublicSchema>;
 
-export const personalCheckResultSchema = z.object({
-  targetSeat: z.number().int(),
-  // True if the checked player was mafia (sheriff) or sheriff (don).
-  result: z.boolean(),
-}).nullable();
+export const personalCheckResultSchema = z
+  .object({
+    targetSeat: z.number().int(),
+    // True if the checked player was mafia (sheriff) or sheriff (don).
+    result: z.boolean(),
+  })
+  .nullable();
 export type PersonalCheckResult = z.infer<typeof personalCheckResultSchema>;
 
 export const gameStateProjectedSchema = z.object({

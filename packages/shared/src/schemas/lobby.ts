@@ -5,11 +5,7 @@ import { GAME } from '../constants/game.js';
 
 // ---- Inputs ----
 
-const lobbyNameSchema = z
-  .string()
-  .trim()
-  .min(LOBBY.NAME_MIN_LENGTH)
-  .max(LOBBY.NAME_MAX_LENGTH);
+const lobbyNameSchema = z.string().trim().min(LOBBY.NAME_MIN_LENGTH).max(LOBBY.NAME_MAX_LENGTH);
 
 const lobbyPasswordSchema = z
   .string()

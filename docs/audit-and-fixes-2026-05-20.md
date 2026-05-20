@@ -9,6 +9,7 @@
 ## ✅ Что сделано автоматически
 
 ### 🎮 Критические баги игровой логики
+
 - Мафия не может стрелять в свою команду — `applyMafiaTarget` отвергает MAFIA/DON цели
 - Дон/шериф не могут проверять мёртвых и не могут проверять себя
 - Запрет самономинации — больше нет патовых ситуаций («один кандидат = он сам»)
@@ -18,6 +19,7 @@
   в `judgeAdvanceSpeaker` и проигрывается при restart
 
 ### 🔒 Безопасность
+
 - `@fastify/rate-limit` подключён (200 req/min на IP, в перспективе можно
   ужесточить per-route на `/auth/*`)
 - Logger с `redact` для cookies, tokens, passwords (pino redact)
@@ -35,6 +37,7 @@
 - Auth error switch с `never`-exhaustiveness check
 
 ### 🛠 Архитектура / надёжность
+
 - SIGTERM/SIGINT handler в `index.ts` — graceful shutdown с `prisma.$disconnect()`
 - CORS в production указывает на `FRONTEND_URL` (был баг — указывал на backend URL)
 - `/health/ready` endpoint с проверкой Postgres (отдельно от `/health` liveness)
@@ -42,6 +45,7 @@
 - Удалён dead code: `MediaControlBar.tsx`, `SeatTile.tsx`, `PHASE_AFTER_NIGHT`
 
 ### 🎨 UX / a11y
+
 - `Dialog`: focus trap, `aria-labelledby`, restore focus при закрытии
 - `ConfirmDialog` primitive — для kick / close lobby
 - `LobbyRoomPage` loading state теперь показывает «Загрузка лобби...» а не текст ошибки
@@ -49,6 +53,7 @@
   дети рендерятся (игра продолжается без видео)
 
 ### 🏗 Production-инфраструктура
+
 - `packages/backend/Dockerfile` (multi-stage, non-root)
 - `packages/frontend/Dockerfile` + `nginx.conf` (SPA fallback)
 - `docker-compose.prod.yml` (TLS, restart policies, bind 127.0.0.1 для Postgres/Redis)
@@ -61,6 +66,7 @@
 - `CONTRIBUTING.md` (setup, code style, workflow)
 
 ### ✅ Тесты
+
 - `vitest.config.ts` настроен
 - `game.engine.test.ts` — **17 тестов проходят**:
   - role assignment (6/1/2/1 split корректен)
@@ -79,6 +85,7 @@
 ### 🚫 Блокеры перед production деплоем
 
 1. **Сгенерировать настоящие секреты** в `.env`:
+
    ```bash
    openssl rand -base64 48    # → JWT_SECRET
    openssl rand -base64 32    # → LIVEKIT_API_SECRET
@@ -96,10 +103,12 @@
 4. **В `infra/livekit.yaml`** заменить домен и `CHANGE_ME_LIVEKIT_API_SECRET_…`.
 
 5. **Создать первую Prisma миграцию**:
+
    ```bash
    pnpm --filter @mafia/backend prisma migrate dev --name initial
    git add packages/backend/prisma/migrations
    ```
+
    В проде использовать `prisma migrate deploy` (прописано в deploy.md).
 
 6. **Google OAuth Client** (если оставляем кнопку Google):

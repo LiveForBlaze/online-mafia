@@ -56,10 +56,7 @@ export async function issueLiveKitTokenForGame(
   };
 }
 
-async function createAccessToken(
-  gameId: string,
-  participant: GameParticipant,
-): Promise<string> {
+async function createAccessToken(gameId: string, participant: GameParticipant): Promise<string> {
   const at = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
     identity: participant.userId,
     name: participant.nickname,

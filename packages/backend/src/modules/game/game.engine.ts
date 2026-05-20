@@ -17,7 +17,13 @@ import {
   type Team,
 } from '@mafia/shared';
 
-import { alivePlayers, findBySeat, findByUserId, type GameParticipant, type GameState } from './game.state.js';
+import {
+  alivePlayers,
+  findBySeat,
+  findByUserId,
+  type GameParticipant,
+  type GameState,
+} from './game.state.js';
 
 /**
  * Stamp a fresh timer onto the state for the current phase / speaker.
@@ -114,8 +120,8 @@ export function nextSpeakerSeat(state: GameState, startSeat: number): number | n
   if (alive.length === 0) return null;
   // Sort by seat starting at startSeat, wrapping around.
   const sorted = [...alive].sort((a, b) => {
-    const ax = ((a.seat! - startSeat) + 10) % 10;
-    const bx = ((b.seat! - startSeat) + 10) % 10;
+    const ax = (a.seat! - startSeat + 10) % 10;
+    const bx = (b.seat! - startSeat + 10) % 10;
     return ax - bx;
   });
   return sorted[0]?.seat ?? null;
@@ -163,9 +169,7 @@ export function nextPhase(state: GameState): GamePhase {
       return GAME_PHASE.DAY_SPEECH;
     case GAME_PHASE.DAY_SPEECH:
       // Speeches end → vote if there are nominations, else go to night.
-      return state.nominationSeats.length > 0
-        ? GAME_PHASE.DAY_VOTE
-        : GAME_PHASE.NIGHT_MAFIA;
+      return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE : GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.DAY_VOTE:
       // After vote resolution we always proceed to night.
       return GAME_PHASE.NIGHT_MAFIA;
@@ -420,10 +424,7 @@ export function applyJudgeFoul(state: GameState, targetUserId: string): EngineRe
   });
 }
 
-export function applyJudgeRemove(
-  state: GameState,
-  targetUserId: string,
-): EngineResult<GameState> {
+export function applyJudgeRemove(state: GameState, targetUserId: string): EngineResult<GameState> {
   const target = findByUserId(state, targetUserId);
   if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
   const next: GameState = {
@@ -442,9 +443,7 @@ export function applyJudgeRemove(
 function killSeat(state: GameState, seat: number): GameState {
   return {
     ...state,
-    participants: state.participants.map((p) =>
-      p.seat === seat ? { ...p, isAlive: false } : p,
-    ),
+    participants: state.participants.map((p) => (p.seat === seat ? { ...p, isAlive: false } : p)),
   };
 }
 

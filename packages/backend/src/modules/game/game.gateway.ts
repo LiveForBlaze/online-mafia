@@ -81,21 +81,36 @@ export function registerGameGateway(app: FastifyInstance): void {
     });
 
     // Player actions
-    socket.on(CLIENT_EVENT.NOMINATE_PLAYER, withSchema(socket, nominatePayloadSchema, (data) =>
-      nominatePlayer({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
-    ));
-    socket.on(CLIENT_EVENT.CAST_VOTE, withSchema(socket, castVotePayloadSchema, (data) =>
-      castVote({ gameId: getGameIdFromSocket(socket), userId }, data.candidateSeat),
-    ));
-    socket.on(CLIENT_EVENT.MAFIA_TARGET, withSchema(socket, mafiaTargetPayloadSchema, (data) =>
-      chooseMafiaTarget({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
-    ));
-    socket.on(CLIENT_EVENT.DON_CHECK, withSchema(socket, donCheckPayloadSchema, (data) =>
-      checkAsDon({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
-    ));
-    socket.on(CLIENT_EVENT.SHERIFF_CHECK, withSchema(socket, sheriffCheckPayloadSchema, (data) =>
-      checkAsSheriff({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
-    ));
+    socket.on(
+      CLIENT_EVENT.NOMINATE_PLAYER,
+      withSchema(socket, nominatePayloadSchema, (data) =>
+        nominatePlayer({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.CAST_VOTE,
+      withSchema(socket, castVotePayloadSchema, (data) =>
+        castVote({ gameId: getGameIdFromSocket(socket), userId }, data.candidateSeat),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.MAFIA_TARGET,
+      withSchema(socket, mafiaTargetPayloadSchema, (data) =>
+        chooseMafiaTarget({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.DON_CHECK,
+      withSchema(socket, donCheckPayloadSchema, (data) =>
+        checkAsDon({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.SHERIFF_CHECK,
+      withSchema(socket, sheriffCheckPayloadSchema, (data) =>
+        checkAsSheriff({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
+      ),
+    );
 
     // Judge actions
     socket.on(GAME_EVENT_NAME.ADVANCE_PHASE, async (_payload, ack) => {

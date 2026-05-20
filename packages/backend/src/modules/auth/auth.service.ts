@@ -160,7 +160,9 @@ export async function findOrCreateUserFromGoogle(
   const created = await prisma.user.create({
     data: {
       email: normalizedEmail,
-      nickname: await suggestUniqueNickname(profile.name ?? normalizedEmail.split('@')[0] ?? 'user'),
+      nickname: await suggestUniqueNickname(
+        profile.name ?? normalizedEmail.split('@')[0] ?? 'user',
+      ),
       googleId: profile.sub,
       avatarUrl: profile.picture ?? null,
       // Google verified the email for us — no separate verification flow needed.
@@ -176,11 +178,12 @@ export async function findOrCreateUserFromGoogle(
  * Falls back to a random suffix after a few attempts to keep this bounded.
  */
 async function suggestUniqueNickname(seed: string): Promise<string> {
-  const base = seed
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 16) || 'player';
+  const base =
+    seed
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 16) || 'player';
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;

@@ -323,9 +323,7 @@ function pickPlacement(
 }
 
 function isUniqueConstraintViolation(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
-  );
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
 function isSerializationFailure(error: unknown): boolean {

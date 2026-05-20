@@ -26,8 +26,7 @@ const path = {
 
 export const lobbyApi = {
   list: () => apiClient.get<LobbyListResponse>(path.list()),
-  create: (input: CreateLobbyInput) =>
-    apiClient.post<LobbyDetailsResponse>(path.create(), input),
+  create: (input: CreateLobbyInput) => apiClient.post<LobbyDetailsResponse>(path.create(), input),
   details: (id: string) => apiClient.get<LobbyDetailsResponse>(path.details(id)),
   join: (id: string, input: JoinLobbyInput) =>
     apiClient.post<LobbyDetailsResponse>(path.join(id), input),

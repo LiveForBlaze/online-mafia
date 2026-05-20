@@ -12,15 +12,17 @@ import { Track } from 'livekit-client';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
 
 export function MediaAudioRouter() {
-  const audioTracks = useTracks(
-    [{ source: Track.Source.Microphone, withPlaceholder: false }],
-    { onlySubscribed: true },
-  );
+  const audioTracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
+    onlySubscribed: true,
+  });
 
   return (
     <>
       {audioTracks.filter(isTrackReference).map((trackRef) => (
-        <AudibleIfAllowed key={trackRef.participant.identity + ':' + trackRef.source} trackRef={trackRef} />
+        <AudibleIfAllowed
+          key={trackRef.participant.identity + ':' + trackRef.source}
+          trackRef={trackRef}
+        />
       ))}
     </>
   );

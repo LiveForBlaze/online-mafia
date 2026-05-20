@@ -20,7 +20,8 @@ const AUTH_PATH = {
 } as const;
 
 export const authApi = {
-  register: (input: RegisterInput) => apiClient.post<AuthSessionResponse>(AUTH_PATH.REGISTER, input),
+  register: (input: RegisterInput) =>
+    apiClient.post<AuthSessionResponse>(AUTH_PATH.REGISTER, input),
   login: (input: LoginInput) => apiClient.post<AuthSessionResponse>(AUTH_PATH.LOGIN, input),
   logout: () => apiClient.post<void>(AUTH_PATH.LOGOUT),
   getCurrentUser: () => apiClient.get<AuthSessionResponse>(AUTH_PATH.ME),

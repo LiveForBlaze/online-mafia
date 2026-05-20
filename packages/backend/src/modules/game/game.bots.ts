@@ -12,12 +12,7 @@ import { GAME_PHASE, ROLE } from '@mafia/shared';
 
 import { activeGameIds, getGame } from './game.registry.js';
 import { broadcastGameState } from './game.broadcast.js';
-import {
-  castVote,
-  checkAsDon,
-  checkAsSheriff,
-  chooseMafiaTarget,
-} from './game.service.js';
+import { castVote, checkAsDon, checkAsSheriff, chooseMafiaTarget } from './game.service.js';
 import { alivePlayers, type GameParticipant, type GameState } from './game.state.js';
 
 const TICK_INTERVAL_MS = 1500;

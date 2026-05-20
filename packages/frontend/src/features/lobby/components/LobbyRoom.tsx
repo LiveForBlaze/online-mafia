@@ -77,9 +77,7 @@ export function LobbyRoom({
         />
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
-            Места
-          </h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Места</h2>
           <SeatGrid
             members={lobby.members}
             currentUserId={currentUserId}
@@ -91,7 +89,9 @@ export function LobbyRoom({
 
         <section className="rounded-md border border-border bg-card p-4">
           <p className="text-sm text-fg">
-            {allSeatsFilled ? LOBBY_MESSAGES.room.ready : LOBBY_MESSAGES.room.waitingFor(playersNeeded)}
+            {allSeatsFilled
+              ? LOBBY_MESSAGES.room.ready
+              : LOBBY_MESSAGES.room.waitingFor(playersNeeded)}
           </p>
           <p className="mt-1 text-xs text-muted">Игроков на местах: {playerCount} / 10</p>
         </section>
@@ -113,12 +113,10 @@ export function LobbyRoom({
                 {LOBBY_MESSAGES.room.startGame}
               </Button>
               {!allSeatsFilled && (
-                <Button
-                  variant="secondary"
-                  onClick={onFillBots}
-                  disabled={isFillBotsPending}
-                >
-                  {isFillBotsPending ? LOBBY_MESSAGES.room.fillingBots : LOBBY_MESSAGES.room.fillBots}
+                <Button variant="secondary" onClick={onFillBots} disabled={isFillBotsPending}>
+                  {isFillBotsPending
+                    ? LOBBY_MESSAGES.room.fillingBots
+                    : LOBBY_MESSAGES.room.fillBots}
                 </Button>
               )}
               <Button variant="secondary" onClick={onClose} disabled={isClosePending}>
