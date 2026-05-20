@@ -52,21 +52,19 @@ export function PhaseHeader({
 
       {/* Phase title is duplicated in the big InfoTile card on mobile, so we
           hide it here and surface only the day-number chip instead. */}
-      <div className="hidden sm:block text-center">
+      <div className="hidden lg:block text-center">
         <p className="text-xs uppercase tracking-wider text-muted">
           {state.dayNumber > 0 && GAME_MESSAGES.ui.day(state.dayNumber)}
         </p>
         <h1 className="text-lg font-semibold text-fg">{GAME_MESSAGES.phase[state.phase]}</h1>
       </div>
-      <p className="sm:hidden text-xs uppercase tracking-wider text-muted whitespace-nowrap">
+      <p className="lg:hidden text-xs uppercase tracking-wider text-muted whitespace-nowrap">
         {state.dayNumber > 0 ? GAME_MESSAGES.ui.day(state.dayNumber) : ''}
       </p>
 
       <div className="flex items-center gap-1 sm:gap-2">
         <ThemeToggle />
-        <span className="hidden sm:inline-flex">
-          <FullscreenToggle />
-        </span>
+        <FullscreenToggle />
         <RoleBadge role={viewerRole} isJudge={viewerIsJudge} />
       </div>
     </header>

@@ -38,7 +38,7 @@ export function MobileSeatTile({
 }: MobileSeatTileProps) {
   if (!participant) {
     return (
-      <div className="aspect-[4/5] rounded-md border border-dashed border-border bg-bg flex items-center justify-center text-xs text-muted">
+      <div className="rounded-md border border-dashed border-border bg-bg flex items-center justify-center text-xs text-muted min-h-0">
         №{seat}
       </div>
     );
@@ -52,7 +52,7 @@ export function MobileSeatTile({
       onClick={isSelf ? undefined : onZoom}
       disabled={isSelf}
       className={cn(
-        'relative aspect-[4/5] rounded-md overflow-hidden border bg-card text-left',
+        'relative rounded-md overflow-hidden border bg-card text-left w-full h-full min-h-0',
         isSpeaker && !isDead && 'ring-2 ring-accent border-accent',
         isNominated && !isSpeaker && !isDead && 'border-warning',
         (isDead || (!isSpeaker && !isNominated)) && 'border-border',

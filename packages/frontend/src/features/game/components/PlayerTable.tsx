@@ -71,8 +71,9 @@ export function PlayerTable({
 
   return (
     <>
-      {/* Desktop ring layout */}
-      <div className="hidden sm:grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
+      {/* Desktop ring layout — kicks in only at lg+ so landscape phones
+          (which clear sm: at ~800px wide) still get the compact mobile grid. */}
+      <div className="hidden lg:grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
         {Object.entries(SEAT_POSITION).map(([seatKey, position]) => {
           const seat = Number(seatKey);
           const participant = bySeat.get(seat);
@@ -114,8 +115,10 @@ export function PlayerTable({
         </div>
       </div>
 
-      {/* Mobile 5×2 grid (judge tile + info tile intentionally not rendered) */}
-      <div className="sm:hidden grid grid-cols-5 gap-1.5 w-full">
+      {/* Mobile 5×2 grid. Tiles stretch to fill the height the parent gives us
+          so the layout adapts to portrait → landscape rotation. Judge tile
+          and info tile intentionally not rendered — handled by MobileStage. */}
+      <div className="lg:hidden grid grid-cols-5 grid-rows-2 gap-1.5 w-full h-full min-h-0">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((seat) => {
           const participant = bySeat.get(seat);
           return (

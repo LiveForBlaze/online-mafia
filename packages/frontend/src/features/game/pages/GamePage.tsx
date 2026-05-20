@@ -20,6 +20,7 @@ import { MediaRoom } from '@/features/game/components/MediaRoom.js';
 import { MobileSeatZoom } from '@/features/game/components/MobileSeatZoom.js';
 import { MobileStage } from '@/features/game/components/MobileStage.js';
 import { PhaseHeader } from '@/features/game/components/PhaseHeader.js';
+import { RotateDeviceOverlay } from '@/features/game/components/RotateDeviceOverlay.js';
 import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePanel.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
@@ -137,8 +138,9 @@ export function GamePage() {
             onOpenLog={() => setShowLog(true)}
           />
 
-          {/* Mobile-only stage strip — replaces the InfoTile + JudgeTile cells. */}
-          <div className="sm:hidden">
+          {/* Mobile-only stage strip (phone portrait + phone landscape).
+              Disappears at lg+ where the InfoTile inside the ring takes over. */}
+          <div className="lg:hidden">
             <MobileStage
               state={state}
               viewerRole={viewerRole}
@@ -206,6 +208,7 @@ export function GamePage() {
       {viewerIsJudge && (
         <GameLogDialog gameId={gameId} open={showLog} onClose={() => setShowLog(false)} />
       )}
+      <RotateDeviceOverlay />
     </MediaRoom>
   );
 }

@@ -18,8 +18,8 @@ export function JudgePanel({ state }: JudgePanelProps) {
   const phaseLocked = state.status === 'finished';
 
   return (
-    <div className="rounded-md border border-border bg-card p-2 sm:p-3 flex flex-wrap items-center gap-2">
-      <span className="hidden sm:inline text-xs uppercase tracking-wider text-muted mr-2">
+    <div className="rounded-md border border-border bg-card p-2 lg:p-3 flex flex-wrap items-center gap-2">
+      <span className="hidden lg:inline text-xs uppercase tracking-wider text-muted mr-2">
         {GAME_MESSAGES.ui.judgePanel}
       </span>
 
