@@ -21,7 +21,7 @@ import {
   useJoinLobby,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
 import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
-import { gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
+import { ROUTE_PATH, gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
 
 export function LobbyListPage() {
   const navigate = useNavigate();
@@ -82,7 +82,15 @@ export function LobbyListPage() {
         <header className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{LOBBY_MESSAGES.list.title}</h1>
-            {user && <p className="mt-1 text-sm text-muted">{user.nickname}</p>}
+            {user && (
+              <button
+                type="button"
+                onClick={() => navigate(ROUTE_PATH.PROFILE)}
+                className="mt-1 text-sm text-muted hover:text-fg hover:underline"
+              >
+                {user.nickname}
+              </button>
+            )}
           </div>
           <div className="flex gap-2 items-center">
             <ThemeToggle />
