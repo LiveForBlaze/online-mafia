@@ -9,7 +9,7 @@
 import { AudioTrack, useTracks, isTrackReference } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 
-import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { useShouldHearAudio } from '@/features/game/hooks/useShouldShowMedia.js';
 
 export function MediaAudioRouter() {
   const audioTracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
@@ -33,9 +33,10 @@ function AudibleIfAllowed({
 }: {
   trackRef: ReturnType<typeof useTracks>[number] & { publication: NonNullable<unknown> };
 }) {
-  // Hooks must be called unconditionally — we run the visibility check inside the
-  // child component (one per track) so its dependency on game state is cleanly scoped.
-  const mayHear = useShouldShowMedia(trackRef.participant.identity);
+  // Hooks must be called unconditionally — we run the audio rule inside the
+  // child component (one per track) so its dependency on game state is cleanly
+  // scoped to that participant.
+  const mayHear = useShouldHearAudio(trackRef.participant.identity);
   if (!mayHear) return null;
   return <AudioTrack trackRef={trackRef} />;
 }

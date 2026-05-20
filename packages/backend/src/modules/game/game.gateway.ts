@@ -39,6 +39,7 @@ import {
   judgeRemovePlayer,
   leaveGameAsParticipant,
   nominatePlayer,
+  sayOutOfTurn,
   type ServiceResult,
 } from './game.service.js';
 
@@ -144,6 +145,16 @@ export function registerGameGateway(app: FastifyInstance): void {
         judgeRemovePlayer({ gameId: getGameIdFromSocket(socket), userId }, data.targetUserId),
       ),
     );
+
+    socket.on(CLIENT_EVENT.SAY_OUT_OF_TURN, async (_payload, ack) => {
+      const gameId = getGameIdFromSocket(socket);
+      if (!gameId) {
+        ack?.({ ok: false, error: 'not_in_game' });
+        return;
+      }
+      const result = await sayOutOfTurn({ gameId, userId });
+      respondAndBroadcast(gameId, result, ack);
+    });
 
     // The player presses the red "Выйти из игры" button. No payload — they remove
     // themselves. Same effect as the judge removing them.

@@ -3,10 +3,38 @@
 
 import { useLocalParticipant } from '@livekit/components-react';
 
+import { CLIENT_EVENT, DAY_PHASES } from '@mafia/shared';
+
 import { cn } from '@/lib/cn.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
+import { useGameStore } from '@/features/game/store/game.store.js';
+import { emitGameAction } from '@/features/game/socket/game.socket.js';
+import { GAME_MESSAGES } from '@/features/game/messages.js';
 
 export function SelfMediaButtons() {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
+
+  // "Сказать под фол" is visible only when it makes sense: a live non-judge
+  // player during a day phase, not currently holding the floor, and not
+  // already inside an active out-of-turn window themselves.
+  const viewerId = useAuthStore((s) => s.user?.id);
+  const state = useGameStore((s) => s.state);
+  const viewer = viewerId ? state?.participants.find((p) => p.userId === viewerId) : undefined;
+  const inActiveWindow = Boolean(
+    state &&
+    state.outOfTurnSpeaker &&
+    state.outOfTurnSpeaker.userId === viewerId &&
+    state.outOfTurnSpeaker.until > Date.now(),
+  );
+  const showFoulButton =
+    !!state &&
+    !!viewer &&
+    !viewer.isJudge &&
+    viewer.isAlive &&
+    !viewer.isRemoved &&
+    DAY_PHASES.includes(state.phase) &&
+    viewer.seat !== state.currentSpeakerSeat &&
+    !inActiveWindow;
 
   return (
     <div className="flex gap-1">
@@ -24,6 +52,17 @@ export function SelfMediaButtons() {
       >
         {isCameraEnabled ? <CameraOnIcon /> : <CameraOffIcon />}
       </IconButton>
+      {showFoulButton && (
+        <button
+          type="button"
+          onClick={() => emitGameAction(CLIENT_EVENT.SAY_OUT_OF_TURN)}
+          aria-label={GAME_MESSAGES.ui.sayOutOfTurn}
+          title={GAME_MESSAGES.ui.sayOutOfTurnHint}
+          className="inline-flex items-center justify-center h-7 px-2 rounded-full bg-warning/85 hover:bg-warning text-[10px] font-semibold uppercase tracking-wider text-fg shadow"
+        >
+          Фол
+        </button>
+      )}
     </div>
   );
 }

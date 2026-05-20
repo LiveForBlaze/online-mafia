@@ -10,8 +10,6 @@
 // publishing the secret-phase tracks in the first place.
 
 import { RoomServiceClient } from 'livekit-server-sdk';
-import { GAME_PHASE, ROLE } from '@mafia/shared';
-
 import { env } from '../../config/env.js';
 
 import { liveKitRoomNameForGame } from './game.livekit.js';
@@ -34,28 +32,15 @@ function getRoomService(): RoomServiceClient {
   return roomService;
 }
 
-function computeCanPublish(state: GameState, p: GameParticipant): boolean {
-  // The judge always controls and observes the table — never restricted.
-  if (p.isJudge) return true;
-  // Dead players are silent spectators forever.
-  if (!p.isAlive || p.isRemoved) return false;
-
-  switch (state.phase) {
-    // Mafia coordination phases: only the mafia team broadcasts.
-    case GAME_PHASE.NIGHT_ZERO:
-    case GAME_PHASE.NIGHT_MAFIA:
-      return p.role === ROLE.MAFIA || p.role === ROLE.DON;
-
-    // Don and sheriff checks happen privately — no player publishes;
-    // they just pick a seat number and read the judge's announcement.
-    case GAME_PHASE.NIGHT_DON:
-    case GAME_PHASE.NIGHT_SHERIFF:
-      return false;
-
-    // Everything else (lobby, role_distribution, day_*, morning, game_over) is open.
-    default:
-      return true;
-  }
+function computeCanPublish(_state: GameState, p: GameParticipant): boolean {
+  // Hardware (camera + mic) is owned by the player. Game mechanics never
+  // revoke publish — only the visual / audible projection on other clients
+  // changes by phase. The one exception: a player explicitly removed from
+  // the game (judge-kicked or self-leave) loses publishing so they can't
+  // keep talking from a side tab. Active players, dead or alive, keep
+  // publishing; subscription rules decide who hears or sees them.
+  if (p.isRemoved) return false;
+  return true;
 }
 
 /**

@@ -1,10 +1,13 @@
-// Decides whether the viewer is allowed to see a specific participant's video and audio.
+// Decides whether the viewer is allowed to see/hear a specific participant.
 //
-// IMPORTANT — this is client-side enforcement only. A determined player can bypass it
+// Cameras + microphones are owned by the player and never disabled by game
+// mechanics — these functions only control the *projection* on the viewer's
+// side: which remote tracks get rendered.
+//
+// IMPORTANT — client-side enforcement only. A determined player can bypass it
 // from DevTools because the underlying LiveKit subscription is still active.
 // Before going to production we must enforce visibility server-side via LiveKit's
-// RoomServiceClient (updateSubscriptions / setParticipantPermissions) on every phase
-// transition. See ROADMAP.
+// RoomServiceClient (updateSubscriptions / setParticipantPermissions). See ROADMAP.
 
 import {
   DAY_PHASES,
@@ -25,11 +28,19 @@ export interface MediaVisibilityArgs {
   viewerIsAlive: boolean;
 
   targetUserId: string;
+  targetSeat: number | null;
   targetRole: Role | null;
   targetIsJudge: boolean;
   targetIsAlive: boolean;
+
+  // Day-phase: whose minute it is right now.
+  currentSpeakerSeat: number | null;
+  // 5-second "said out of turn" window — that user is audible to everyone for its duration.
+  outOfTurnSpeaker: { userId: string; until: number } | null;
 }
 
+// Video projection: what the viewer SEES.
+// Night = no other live tiles for civilians/sheriff; mafia team sees each other.
 export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
   const {
     phase,
@@ -43,23 +54,12 @@ export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
     targetIsAlive,
   } = args;
 
-  // Dead players don't broadcast — their tile is replaced by a "killed" marker,
-  // no video/audio rendered for anyone, including themselves.
   if (!targetIsAlive) return false;
-
-  // You always see your own preview tile (while alive).
   if (targetUserId === viewerUserId) return true;
-
-  // Judge has full visibility at every moment of the game.
   if (viewerIsJudge) return true;
-
-  // Dead players become spectators — they see and hear everything like the judge.
   if (!viewerIsAlive) return true;
-
-  // Game over — everyone is revealed.
   if (status === 'finished' || phase === GAME_PHASE.GAME_OVER) return true;
 
-  // Daytime, role-distribution and morning announcement: all visible.
   if (
     phase === GAME_PHASE.ROLE_DISTRIBUTION ||
     phase === GAME_PHASE.MORNING_ANNOUNCEMENT ||
@@ -68,9 +68,6 @@ export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
     return true;
   }
 
-  // Night phases:
-  // night_zero and night_mafia — the mafia team (mafia + don) coordinates and sees
-  // each other; civilians and sheriff see no other live tiles.
   const viewerIsMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;
   const targetIsMafiaTeam = targetRole === ROLE.MAFIA || targetRole === ROLE.DON;
 
@@ -78,7 +75,62 @@ export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
     return viewerIsMafiaTeam && targetIsMafiaTeam;
   }
 
-  // Don and sheriff checks happen in private — only the actor sees anything,
-  // and even then they only see their own preview tile (handled above).
+  return false;
+}
+
+// Audio projection: what the viewer HEARS. Tighter than video.
+// During the day the table is silent except for the current speaker's minute.
+// Players can break silence by pressing "Сказать под фол" — they get a foul
+// and a 5-second window during which their audio is audible to everyone.
+export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
+  const {
+    phase,
+    status,
+    viewerUserId,
+    viewerRole,
+    viewerIsJudge,
+    viewerIsAlive,
+    targetUserId,
+    targetSeat,
+    targetRole,
+    targetIsJudge,
+    targetIsAlive,
+    currentSpeakerSeat,
+    outOfTurnSpeaker,
+  } = args;
+
+  // Speak-to-yourself is never useful and produces feedback — drop own audio.
+  if (targetUserId === viewerUserId) return false;
+  if (!targetIsAlive) return false;
+
+  // Judge is always audible (announcements, calls) and can always hear everyone.
+  if (targetIsJudge) return true;
+  if (viewerIsJudge) return true;
+
+  // Active "out of turn" window — that one player is heard by everyone.
+  if (outOfTurnSpeaker && outOfTurnSpeaker.userId === targetUserId) {
+    return true;
+  }
+
+  // Dead spectators hear everything.
+  if (!viewerIsAlive) return true;
+
+  // Game over — open mic.
+  if (status === 'finished' || phase === GAME_PHASE.GAME_OVER) return true;
+
+  // Day phases: only the current speaker's minute is audible.
+  if (DAY_PHASES.includes(phase)) {
+    return targetSeat !== null && targetSeat === currentSpeakerSeat;
+  }
+
+  // Night phases: same team-coordination rules as for video.
+  const viewerIsMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;
+  const targetIsMafiaTeam = targetRole === ROLE.MAFIA || targetRole === ROLE.DON;
+  if (phase === GAME_PHASE.NIGHT_ZERO || phase === GAME_PHASE.NIGHT_MAFIA) {
+    return viewerIsMafiaTeam && targetIsMafiaTeam;
+  }
+
+  // Morning announcement and role distribution — silent for players;
+  // they only hear the judge (handled above).
   return false;
 }

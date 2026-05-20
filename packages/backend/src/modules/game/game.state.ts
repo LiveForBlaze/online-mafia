@@ -47,6 +47,12 @@ export interface GameState {
   // Set during morning_announcement so clients can show "who died".
   lastNightVictimSeat: number | null;
 
+  // "Said out of turn" window. When a non-speaker player presses the foul
+  // button, the server records a foul and opens their audio for 5 seconds
+  // by writing this field. Clients use it to grant audibility to one
+  // specific player for the duration.
+  outOfTurnSpeaker: { userId: string; until: number } | null;
+
   winner: Team | null;
 
   // Monotonic event sequence (mirrors GameEvent.seq in the database).

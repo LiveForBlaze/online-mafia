@@ -115,6 +115,7 @@ function replayState(
     sheriffCheck: null,
     donCheck: null,
     lastNightVictimSeat: null,
+    outOfTurnSpeaker: null,
     winner: null,
     nextEventSeq: 0,
   };

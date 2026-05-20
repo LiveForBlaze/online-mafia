@@ -13,6 +13,7 @@ import { LOBBY, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
 import { withLock } from '../../lib/mutex.js';
+import { broadcastLobbyUpdate } from '../lobby/lobby.broadcast.js';
 import { withFreshDeadline } from './game.engine.js';
 import { syncMediaPermissions } from './game.media-permissions.js';
 
@@ -26,6 +27,7 @@ import {
   applyMafiaTarget,
   applyNextSpeaker,
   applyNominate,
+  applyOutOfTurn,
   applySheriffCheck,
   assignRoles,
   projectFor,
@@ -171,6 +173,7 @@ export async function createGameFromLobby(
     sheriffCheck: null,
     donCheck: null,
     lastNightVictimSeat: null,
+    outOfTurnSpeaker: null,
     winner: null,
     nextEventSeq: 1,
   };
@@ -182,6 +185,12 @@ export async function createGameFromLobby(
   // any who have, and silently no-op for the rest. The next phase-advance will catch
   // anyone who joined late.
   void syncMediaPermissions(state);
+
+  // Push the updated lobby (with the new gameId attached) to every lobby socket
+  // so non-host players are redirected to /game/:id immediately. Without this,
+  // they have to wait for the next polling refetch — felt like a long delay
+  // compared to the host's instant navigation.
+  void broadcastLobbyUpdate(lobby.id);
 
   return ok({ gameId: created.id });
 }
@@ -588,6 +597,27 @@ export async function judgeIssueFoul(
 
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_ISSUED, ctx.userId, { targetUserId });
+    return ok(await commit(next));
+  });
+}
+
+// Player presses "Сказать под фол". Records a self-foul on them and opens a
+// 5-second audibility window — the audio policy on every client treats that
+// user as audible for the duration even when they're not the speaker.
+export async function sayOutOfTurn(ctx: ActionContext): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+
+    const engineResult = applyOutOfTurn(loaded.data.state, ctx.userId);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_ISSUED, ctx.userId, {
+      targetUserId: ctx.userId,
+      selfFoul: true,
+      reason: 'said_out_of_turn',
+    });
     return ok(await commit(next));
   });
 }

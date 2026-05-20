@@ -158,6 +158,7 @@ function Body({
     case GAME_PHASE.NIGHT_DON:
       return (
         <NightCheckBody
+          kind="don"
           allowed={viewerRole === ROLE.DON && viewerIsAlive}
           prompt={GAME_MESSAGES.ui.chooseDonTarget}
           checkResult={state.myCheckResult}
@@ -167,6 +168,7 @@ function Body({
     case GAME_PHASE.NIGHT_SHERIFF:
       return (
         <NightCheckBody
+          kind="sheriff"
           allowed={viewerRole === ROLE.SHERIFF && viewerIsAlive}
           prompt={GAME_MESSAGES.ui.chooseSheriffTarget}
           checkResult={state.myCheckResult}
@@ -188,23 +190,55 @@ function Body({
 }
 
 function NightCheckBody({
+  kind,
   allowed,
   prompt,
   checkResult,
 }: {
+  kind: 'sheriff' | 'don';
   allowed: boolean;
   prompt: string;
   checkResult: GameStateProjected['myCheckResult'];
 }) {
-  return (
-    <div className="text-xs space-y-1">
-      <p className="text-muted">{allowed ? prompt : GAME_MESSAGES.ui.waitingForOthers}</p>
-      {checkResult && (
-        <p className={cn('font-medium', checkResult.result ? 'text-danger' : 'text-success')}>
-          №{checkResult.targetSeat}:{' '}
-          {checkResult.result ? GAME_MESSAGES.ui.checkPositive : GAME_MESSAGES.ui.checkNegative}
+  // Once a check has been made, the result is THE thing the player needs to
+  // read — make it the dominant element of the tile so it's legible from
+  // across the table. The prompt fades to a small caption.
+  if (checkResult) {
+    // Sheriff and don have different semantics:
+    //   sheriff: result=true → target plays for the black team
+    //   don:     result=true → target IS the sheriff (red team)
+    // Colour the label by the team it names — red word in red, black word
+    // in bold white-on-bg — so the meaning reads even when squinted at.
+    let label: string;
+    let labelClass: string;
+    if (kind === 'sheriff') {
+      label = checkResult.result
+        ? GAME_MESSAGES.ui.sheriffCheckBlack
+        : GAME_MESSAGES.ui.sheriffCheckRed;
+      labelClass = checkResult.result ? 'text-fg' : 'text-danger';
+    } else {
+      label = checkResult.result
+        ? GAME_MESSAGES.ui.donCheckSheriff
+        : GAME_MESSAGES.ui.donCheckNotSheriff;
+      labelClass = checkResult.result ? 'text-danger' : 'text-fg';
+    }
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <p className="text-xs uppercase tracking-wider text-muted">№{checkResult.targetSeat}</p>
+        <p
+          className={cn(
+            'text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight',
+            labelClass,
+          )}
+        >
+          {label}
         </p>
-      )}
+      </div>
+    );
+  }
+  return (
+    <div className="text-xs">
+      <p className="text-muted">{allowed ? prompt : GAME_MESSAGES.ui.waitingForOthers}</p>
     </div>
   );
 }

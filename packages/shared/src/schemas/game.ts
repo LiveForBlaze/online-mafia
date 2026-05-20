@@ -132,6 +132,15 @@ export const gameStateProjectedSchema = z.object({
   // Check result for the current viewer (sheriff or don). Null otherwise.
   myCheckResult: personalCheckResultSchema,
 
+  // 5-second audibility window opened by a player who pressed "Сказать под фол".
+  // Clients use this to render that player's audio even outside their normal turn.
+  outOfTurnSpeaker: z
+    .object({
+      userId: z.string().uuid(),
+      until: z.number().int(),
+    })
+    .nullable(),
+
   // Filled in once the game ends.
   winner: teamSchema.nullable(),
 });

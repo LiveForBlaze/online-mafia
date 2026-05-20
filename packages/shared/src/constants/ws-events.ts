@@ -55,6 +55,9 @@ export const CLIENT_EVENT = {
   // Self-removal — the player explicitly leaves the game (red button).
   // Distinct from closing the tab, which is treated as a reconnectable absence.
   LEAVE_GAME: 'client:leave_game',
+
+  // Player accepts a foul on themselves to speak out of turn (5s window).
+  SAY_OUT_OF_TURN: 'client:say_out_of_turn',
 } as const;
 
 export type ClientEventName = (typeof CLIENT_EVENT)[keyof typeof CLIENT_EVENT];

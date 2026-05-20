@@ -446,6 +446,27 @@ export function applyJudgeFoul(state: GameState, targetUserId: string): EngineRe
   });
 }
 
+// Player presses "Сказать под фол" — they accept a foul on themselves and
+// receive a 5-second window during which their microphone is audible to
+// everyone. Cannot stack: pressing again while a window is open just refreshes
+// the foul (no double-fault) but does not extend the window beyond 5s from
+// the latest press (engineering simpler).
+export const OUT_OF_TURN_WINDOW_MS = 5_000;
+
+export function applyOutOfTurn(state: GameState, userId: string): EngineResult<GameState> {
+  const actor = findByUserId(state, userId);
+  if (!actor || actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  if (!actor.isAlive || actor.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
+
+  return ok({
+    ...state,
+    participants: state.participants.map((p) =>
+      p.userId === userId ? { ...p, foulsCount: p.foulsCount + 1 } : p,
+    ),
+    outOfTurnSpeaker: { userId, until: Date.now() + OUT_OF_TURN_WINDOW_MS },
+  });
+}
+
 // Judge presses the red "Выйти из игры" — the entire game is ended. The lobby
 // is closed by the service layer afterwards. No winner is assigned because the
 // game was terminated, not played out.
@@ -540,6 +561,12 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     votes: Object.fromEntries([...state.votes].map(([k, v]) => [String(k), v])),
     pendingMafiaTargetSeat: showMafiaTarget ? state.pendingMafiaTargetSeat : null,
     lastNightVictimSeat: state.lastNightVictimSeat,
+    // Drop the field once it has expired so clients don't have to do timer
+    // bookkeeping just to fall back to the silent default.
+    outOfTurnSpeaker:
+      state.outOfTurnSpeaker && state.outOfTurnSpeaker.until > Date.now()
+        ? state.outOfTurnSpeaker
+        : null,
     myCheckResult: myCheck,
     winner: state.winner,
   };

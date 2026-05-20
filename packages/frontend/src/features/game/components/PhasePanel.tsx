@@ -228,6 +228,9 @@ export function actionForSeatInCurrentPhase(args: {
 
     case GAME_PHASE.NIGHT_MAFIA:
       if (viewerRole !== ROLE.MAFIA && viewerRole !== ROLE.DON) return null;
+      // Once the mafia has chosen a target this night, the button disappears so
+      // there's no ambiguity about whether the click actually registered.
+      if (state.pendingMafiaTargetSeat !== null) return null;
       return {
         label: 'Стрелять',
         onClick: () => emitGameAction(CLIENT_EVENT.MAFIA_TARGET, { targetSeat: participantSeat }),
@@ -235,18 +238,19 @@ export function actionForSeatInCurrentPhase(args: {
 
     case GAME_PHASE.NIGHT_DON:
       if (viewerRole !== ROLE.DON) return null;
+      // Hide the check button once a check has been made this night.
+      if (state.myCheckResult !== null) return null;
       return {
         label: 'Проверить',
         onClick: () => emitGameAction(CLIENT_EVENT.DON_CHECK, { targetSeat: participantSeat }),
-        disabled: state.myCheckResult !== null,
       };
 
     case GAME_PHASE.NIGHT_SHERIFF:
       if (viewerRole !== ROLE.SHERIFF) return null;
+      if (state.myCheckResult !== null) return null;
       return {
         label: 'Проверить',
         onClick: () => emitGameAction(CLIENT_EVENT.SHERIFF_CHECK, { targetSeat: participantSeat }),
-        disabled: state.myCheckResult !== null,
       };
 
     default:
