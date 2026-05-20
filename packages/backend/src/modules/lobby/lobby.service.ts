@@ -23,6 +23,7 @@ import {
 
 import { prisma } from '../../db/prisma.client.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
+import { endActiveGameForLobby, removeUserFromActiveGameForLobby } from '../game/game.service.js';
 
 import { LOBBY_ERROR, type LobbyErrorCode } from './lobby.errors.js';
 import { broadcastLobbyUpdate } from './lobby.broadcast.js';
@@ -230,18 +231,24 @@ export async function leaveLobby(
   if (!isMember) return fail(LOBBY_ERROR.NOT_MEMBER);
 
   // The host IS the judge of the lobby — the role can't be reassigned. When the
-  // host leaves, the entire lobby is closed for everyone. Regular players just
-  // get removed from their seat.
+  // host leaves, the entire lobby is closed for everyone. If a game has already
+  // been started for this lobby, end it too — otherwise the host gets bounced
+  // straight back into the game by the active-game auto-redirect.
   if (lobby.hostId === userId) {
     await prisma.lobby.update({
       where: { id: lobbyId },
       data: { status: 'CLOSED' },
     });
+    await endActiveGameForLobby(lobbyId);
     void broadcastLobbyUpdate(lobbyId);
     return ok({ closed: true });
   }
 
   await prisma.lobbyMember.delete({ where: { lobbyId_userId: { lobbyId, userId } } });
+  // If the game has already started, the user is also a GameParticipant. Mark
+  // them as removed there too so the active-game auto-redirect on the home
+  // page doesn't drag them back into a game they consciously left.
+  await removeUserFromActiveGameForLobby(lobbyId, userId);
   void broadcastLobbyUpdate(lobbyId);
   return ok({ closed: false });
 }

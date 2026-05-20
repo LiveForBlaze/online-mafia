@@ -191,6 +191,72 @@ export function isParticipant(gameId: string, userId: string): boolean {
   return Boolean(findByUserId(state, userId));
 }
 
+// Mark a user as removed in the game attached to the given lobby, if any.
+// Called when a (non-host) player leaves the lobby — without this, the player
+// is still listed as an active participant in the game and the active-game
+// auto-redirect drags them back into the game room.
+export async function removeUserFromActiveGameForLobby(
+  lobbyId: string,
+  userId: string,
+): Promise<void> {
+  const game = await prisma.game.findUnique({
+    where: { lobbyId },
+    select: { id: true, endedAt: true },
+  });
+  if (!game || game.endedAt) return;
+
+  await withLock(game.id, async () => {
+    const state = getGame(game.id);
+    if (!state || state.status === 'finished') return;
+
+    const participant = findByUserId(state, userId);
+    if (!participant || participant.isJudge || participant.isRemoved) return;
+
+    const engineResult = applyJudgeRemove(state, userId);
+    if (!engineResult.ok) return;
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.PLAYER_REMOVED, userId, {
+      targetUserId: userId,
+      selfRemoved: true,
+      reason: 'left_lobby',
+    });
+    if (next.status === 'finished') {
+      next = await persistEvent(next, GAME_EVENT_TYPE.GAME_ENDED, null, { winner: next.winner });
+    }
+    setGame(next);
+    await commit(next);
+    void syncMediaPermissions(next);
+  });
+}
+
+// End the game attached to the given lobby, if one exists and is still running.
+// Called when the host leaves the parent lobby — without this, the game stays
+// open in the registry and the host's home page bounces them right back into
+// it via the active-game query.
+export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
+  const game = await prisma.game.findUnique({
+    where: { lobbyId },
+    select: { id: true, endedAt: true },
+  });
+  if (!game || game.endedAt) return;
+
+  await prisma.game.update({
+    where: { id: game.id },
+    data: { endedAt: new Date() },
+  });
+
+  const state = getGame(game.id);
+  if (state && state.status !== 'finished') {
+    const finished: GameState = {
+      ...state,
+      status: 'finished',
+      winner: null,
+    };
+    setGame(finished);
+  }
+}
+
 // Returns the gameId of the user's currently-running game where they are still
 // considered an active participant (not isRemoved). Used by the client to
 // auto-redirect a returning user back into their in-progress game when they
