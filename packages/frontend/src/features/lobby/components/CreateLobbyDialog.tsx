@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button.js';
 import { Checkbox } from '@/components/ui/Checkbox.js';
 import { Dialog } from '@/components/ui/Dialog.js';
 import { FormField } from '@/components/ui/FormField.js';
+import { PasswordField } from '@/components/ui/PasswordField.js';
 import {
   extractLobbyErrorMessage,
   useCreateLobby,
@@ -99,9 +100,8 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
 
         {isPrivate && (
           <div>
-            <FormField
+            <PasswordField
               label={LOBBY_MESSAGES.create.password}
-              type="password"
               required
               minLength={LOBBY.PASSWORD_MIN_LENGTH}
               maxLength={LOBBY.PASSWORD_MAX_LENGTH}

@@ -7,6 +7,7 @@ import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
+import { PasswordField } from '@/components/ui/PasswordField.js';
 import { extractAuthErrorMessage, useLogin } from '@/features/auth/hooks/useAuth.js';
 import { AUTH_MESSAGES } from '@/features/auth/messages.js';
 
@@ -43,9 +44,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         disabled={login.isPending}
       />
 
-      <FormField
+      <PasswordField
         label={AUTH_MESSAGES.login.passwordLabel}
-        type="password"
         autoComplete="current-password"
         required
         value={password}

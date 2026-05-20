@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
+import { PasswordField } from '@/components/ui/PasswordField.js';
 import { extractAuthErrorMessage, useRegister } from '@/features/auth/hooks/useAuth.js';
 import { AUTH_MESSAGES } from '@/features/auth/messages.js';
 
@@ -59,9 +60,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       </div>
 
       <div>
-        <FormField
+        <PasswordField
           label={AUTH_MESSAGES.register.passwordLabel}
-          type="password"
           autoComplete="new-password"
           required
           minLength={8}

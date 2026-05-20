@@ -8,7 +8,7 @@ import type { LobbyDetailsResponse } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { Dialog } from '@/components/ui/Dialog.js';
-import { FormField } from '@/components/ui/FormField.js';
+import { PasswordField } from '@/components/ui/PasswordField.js';
 import {
   extractLobbyErrorMessage,
   useJoinLobby,
@@ -73,9 +73,8 @@ export function JoinPrivateLobbyDialog({
       }
     >
       <form id="join-private-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField
+        <PasswordField
           label={LOBBY_MESSAGES.joinPrivate.password}
-          type="password"
           autoFocus
           required
           value={password}
