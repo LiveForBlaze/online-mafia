@@ -18,11 +18,13 @@ import {
   extractLobbyErrorMessage,
   useCloseLobby,
   useFillBots,
+  useJoinLobby,
   useKickMember,
   useLeaveLobby,
   usePreassignRole,
   useStartGame,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
+import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LOBBY_MESSAGES, lobbyErrorMessage } from '@/features/lobby/messages.js';
 import { ROUTE_PATH, gameRoomPath } from '@/routes/paths.js';
 
@@ -44,11 +46,38 @@ export function LobbyRoomPage() {
   const start = useStartGame();
   const fillBots = useFillBots();
   const preassign = usePreassignRole();
+  const join = useJoinLobby();
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
+  const [showPrivatePrompt, setShowPrivatePrompt] = useState(false);
+  const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
+
+  const lobbyData = lobbyQuery.data?.lobby;
+  // Auto-join: someone followed a share link and landed here without being a
+  // lobby member. Public lobbies → join immediately. Private → password dialog.
+  // Run once per page mount so an explicit Leave doesn't trigger a re-join loop.
+  useEffect(() => {
+    if (!lobbyId || !lobbyData || autoJoinAttempted) return;
+    if (lobbyData.isViewerMember) return;
+    if (lobbyData.status !== 'waiting') return;
+    setAutoJoinAttempted(true);
+    if (lobbyData.isPrivate) {
+      setShowPrivatePrompt(true);
+      return;
+    }
+    join.mutate(
+      { lobbyId, input: {} },
+      {
+        onError: (error) => setInlineError(extractLobbyErrorMessage(error)),
+      },
+    );
+    // join's identity is stable enough for this effect; we explicitly want it
+    // to run once per gating boundary, not every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyId, lobbyData, autoJoinAttempted]);
 
   // Whenever the lobby becomes attached to a started game, redirect everyone in the room.
-  const gameId = lobbyQuery.data?.lobby.gameId ?? null;
+  const gameId = lobbyData?.gameId ?? null;
   useEffect(() => {
     if (gameId) navigate(gameRoomPath(gameId));
   }, [gameId, navigate]);
@@ -176,6 +205,12 @@ export function LobbyRoomPage() {
         isFillBotsPending={fillBots.isPending}
         isPreassignPending={preassign.isPending}
         errorMessage={inlineError}
+      />
+      <JoinPrivateLobbyDialog
+        open={showPrivatePrompt}
+        lobbyId={lobbyId}
+        onClose={() => setShowPrivatePrompt(false)}
+        onJoined={() => setShowPrivatePrompt(false)}
       />
       <ConfirmDialog
         open={pendingConfirm !== null}
