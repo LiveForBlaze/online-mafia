@@ -86,6 +86,13 @@ export function LobbyListPage() {
           </div>
         </header>
 
+        <div
+          role="note"
+          className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
+        >
+          {LOBBY_MESSAGES.list.betaNotice}
+        </div>
+
         {inlineError && (
           <p role="alert" className="text-sm text-danger">
             {inlineError}
