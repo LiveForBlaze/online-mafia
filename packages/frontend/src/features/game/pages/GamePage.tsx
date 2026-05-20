@@ -4,7 +4,7 @@
 // and a 12-tile video grid that fills the rest of the viewport. The grid contains the
 // 10 player seats, the judge tile, and an info tile with current-phase context.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -51,6 +51,17 @@ export function GamePage() {
       goHome();
     });
   }
+
+  // When the game ends — naturally or because the judge bailed out — everyone
+  // is sent back to the lobby list. A small delay lets the final state flash
+  // briefly so it's not just a screen-snap to home.
+  const gameStatus = state?.status;
+  useEffect(() => {
+    if (gameStatus !== 'finished') return;
+    const timer = window.setTimeout(() => goHome(), 1500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameStatus]);
 
   if (!user || !gameId) return null;
 
