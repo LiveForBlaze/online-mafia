@@ -33,7 +33,7 @@ All inter-agent state lives in a shared memory namespace (`memory_store` / `memo
 
 - **Parallelize ONLY when work is genuinely independent** (no upstream dependency between siblings).
 - **Spawn dependent agents only after the lead confirms upstream outputs are in memory.** Do NOT tell a downstream agent to "WAIT for SendMessage from X" — it has no mechanism to wait; it will abort.
-- **Every subagent brief MUST include a degraded-mode paragraph** at the top: _"If your expected coordination tools (SendMessage, TaskUpdate, hive-mind\__) are missing, do NOT abort. Read these specific source files directly, write outputs to these specific memory keys, and complete your phase."\*
+- **Every subagent brief MUST include a degraded-mode paragraph** at the top: \_"If your expected coordination tools (SendMessage, TaskUpdate, hive-mind\_\_) are missing, do NOT abort. Read these specific source files directly, write outputs to these specific memory keys, and complete your phase."\*
 - **Name agents** — `name: "role"` makes them addressable by the lead even though they cannot address each other.
 - **After spawning**: STOP, tell user what's running, wait for completion notifications. No polling.
 
