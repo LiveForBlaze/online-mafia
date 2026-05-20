@@ -8,6 +8,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { broadcastGameState } from './game.broadcast.js';
 import {
   findUserActiveGameId,
+  getGameLogForHost,
   getProjectedStateFor,
   leaveGameAsParticipant,
 } from './game.service.js';
@@ -68,6 +69,19 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
       }
       broadcastGameState(request.params.id);
       return reply.send({ ok: true });
+    },
+  );
+
+  // Host-only formatted game log for the debrief modal.
+  app.get<{ Params: { id: string } }>(
+    '/:id/log',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const result = await getGameLogForHost(request.params.id, request.user.sub);
+      if (!result.ok) {
+        return reply.code(statusFor(result.error)).send({ error: result.error });
+      }
+      return reply.send(result.data);
     },
   );
 

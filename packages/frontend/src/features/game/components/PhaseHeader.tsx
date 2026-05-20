@@ -13,6 +13,7 @@ interface PhaseHeaderProps {
   viewerIsJudge: boolean;
   canLeaveGame: boolean;
   onLeaveGame: () => void;
+  onOpenLog?: () => void;
 }
 
 export function PhaseHeader({
@@ -21,6 +22,7 @@ export function PhaseHeader({
   viewerIsJudge,
   canLeaveGame,
   onLeaveGame,
+  onOpenLog,
 }: PhaseHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-3">
@@ -35,6 +37,16 @@ export function PhaseHeader({
           </button>
         ) : (
           <span />
+        )}
+        {viewerIsJudge && onOpenLog && (
+          <button
+            type="button"
+            onClick={onOpenLog}
+            title="Лог партии"
+            className="text-sm text-muted hover:text-fg hover:underline"
+          >
+            Лог
+          </button>
         )}
       </div>
 

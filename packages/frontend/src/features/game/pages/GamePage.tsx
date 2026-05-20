@@ -12,6 +12,7 @@ import { CLIENT_EVENT } from '@mafia/shared';
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
+import { GameLogDialog } from '@/features/game/components/GameLogDialog.js';
 import { InfoTile } from '@/features/game/components/InfoTile.js';
 import { JudgePanel, JudgeSeatControls } from '@/features/game/components/JudgePanel.js';
 import { JudgeTile } from '@/features/game/components/JudgeTile.js';
@@ -36,6 +37,7 @@ export function GamePage() {
   const isConnected = useGameStore((s) => s.isConnected);
   const lastError = useGameStore((s) => s.lastError);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showLog, setShowLog] = useState(false);
   const queryClient = useQueryClient();
 
   // Reset the active-game query so the home page does not bounce us back in.
@@ -102,6 +104,7 @@ export function GamePage() {
             viewerIsJudge={viewerIsJudge}
             canLeaveGame={!!viewer && !viewer.isRemoved}
             onLeaveGame={() => setShowLeaveConfirm(true)}
+            onOpenLog={() => setShowLog(true)}
           />
 
           {viewerIsJudge && <JudgePanel state={state} />}
@@ -156,6 +159,9 @@ export function GamePage() {
         onConfirm={handleConfirmLeave}
         onCancel={() => setShowLeaveConfirm(false)}
       />
+      {viewerIsJudge && (
+        <GameLogDialog gameId={gameId} open={showLog} onClose={() => setShowLog(false)} />
+      )}
     </MediaRoom>
   );
 }

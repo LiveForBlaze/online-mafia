@@ -50,16 +50,16 @@ function Header({ state }: { state: GameStateProjected }) {
 
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wider text-muted">
+      <p className="text-xs uppercase tracking-wider text-muted">
         {state.dayNumber > 0 ? GAME_MESSAGES.ui.day(state.dayNumber) : 'Партия'}
       </p>
-      <p className="text-sm font-semibold text-fg leading-tight">
+      <p className="text-base sm:text-lg font-semibold text-fg leading-tight">
         {GAME_MESSAGES.phase[state.phase]}
       </p>
       {hasTimer && (
         <p
           className={cn(
-            'mt-1 text-2xl font-bold tabular-nums leading-none',
+            'mt-2 text-3xl sm:text-4xl font-bold tabular-nums leading-none',
             expired ? 'text-danger' : 'text-fg',
           )}
         >
@@ -83,7 +83,7 @@ function Body({
 }) {
   if (state.status === 'finished') {
     return (
-      <div className="text-xs text-fg">
+      <div className="text-base text-fg">
         {state.winner && GAME_MESSAGES.ui.winner(GAME_MESSAGES.team[state.winner])}
       </div>
     );
@@ -92,11 +92,13 @@ function Body({
   switch (state.phase) {
     case GAME_PHASE.ROLE_DISTRIBUTION:
       return (
-        <div className="text-xs text-muted">
+        <div className="text-sm text-muted">
           {viewerRole && (
             <>
               {GAME_MESSAGES.ui.yourRole}:{' '}
-              <span className="text-fg font-medium">{GAME_MESSAGES.role[viewerRole]}</span>
+              <span className="text-fg text-base font-semibold">
+                {GAME_MESSAGES.role[viewerRole]}
+              </span>
             </>
           )}
         </div>
@@ -104,19 +106,21 @@ function Body({
 
     case GAME_PHASE.NIGHT_ZERO:
       return (
-        <div className="text-xs text-muted">
+        <div className="text-sm text-muted">
           {(viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) && 'Ваша команда подсвечена'}
         </div>
       );
 
     case GAME_PHASE.DAY_SPEECH:
       return (
-        <div className="text-xs space-y-1">
+        <div className="space-y-2">
           {state.currentSpeakerSeat !== null && (
-            <p className="text-fg">{GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}</p>
+            <p className="text-xl sm:text-2xl font-bold text-fg leading-tight">
+              {GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
+            </p>
           )}
           {state.nominationSeats.length > 0 && (
-            <p className="text-muted">
+            <p className="text-sm text-muted">
               {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
             </p>
           )}
@@ -128,11 +132,13 @@ function Body({
         viewerSeat !== null &&
         Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
       return (
-        <div className="text-xs space-y-1">
-          <p className="text-muted">
+        <div className="space-y-2">
+          <p className="text-lg sm:text-xl font-semibold text-fg leading-tight">
             {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
           </p>
-          {viewerIsAlive && hasVoted && <p className="text-success">{GAME_MESSAGES.ui.voted}</p>}
+          {viewerIsAlive && hasVoted && (
+            <p className="text-base text-success">{GAME_MESSAGES.ui.voted}</p>
+          )}
         </div>
       );
     }
@@ -140,14 +146,14 @@ function Body({
     case GAME_PHASE.NIGHT_MAFIA: {
       const isMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;
       return (
-        <div className="text-xs space-y-1">
+        <div className="space-y-2">
           {viewerIsAlive && isMafiaTeam ? (
-            <p className="text-muted">{GAME_MESSAGES.ui.chooseMafiaTarget}</p>
+            <p className="text-sm text-muted">{GAME_MESSAGES.ui.chooseMafiaTarget}</p>
           ) : (
-            <p className="text-muted">{GAME_MESSAGES.ui.waitingForOthers}</p>
+            <p className="text-sm text-muted">{GAME_MESSAGES.ui.waitingForOthers}</p>
           )}
           {state.pendingMafiaTargetSeat !== null && (
-            <p className="text-danger">
+            <p className="text-xl sm:text-2xl font-bold text-danger leading-tight">
               {GAME_MESSAGES.ui.mafiaTarget(state.pendingMafiaTargetSeat)}
             </p>
           )}
@@ -177,7 +183,7 @@ function Body({
 
     case GAME_PHASE.MORNING_ANNOUNCEMENT:
       return (
-        <div className="text-xs text-muted">
+        <div className="text-lg sm:text-xl font-semibold text-fg leading-tight">
           {state.lastNightVictimSeat !== null
             ? GAME_MESSAGES.ui.morningVictim(state.lastNightVictimSeat)
             : GAME_MESSAGES.ui.nobodyDied}
