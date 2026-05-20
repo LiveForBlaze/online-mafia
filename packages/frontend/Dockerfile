@@ -16,6 +16,9 @@ RUN pnpm install --frozen-lockfile
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY packages/frontend ./packages/frontend
+# Shared package's exports field points at ./dist — build it before the frontend
+# bundles its imports of `@mafia/shared`.
+RUN pnpm --filter @mafia/shared build
 # Build-time env: must be baked into the bundle at build time (Vite inlines VITE_*).
 # Override at build with --build-arg VITE_BACKEND_URL=https://api.example.com etc.
 ARG VITE_BACKEND_URL=http://localhost:3000

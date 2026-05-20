@@ -20,6 +20,9 @@ FROM deps AS build
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY packages/backend ./packages/backend
+# Shared must compile to dist/ first — backend imports it as `@mafia/shared`,
+# and the package's exports field points at ./dist at runtime.
+RUN pnpm --filter @mafia/shared build
 WORKDIR /app/packages/backend
 RUN pnpm prisma generate
 RUN pnpm run build
@@ -45,7 +48,7 @@ COPY --from=prod-deps /app/node_modules           ./node_modules
 COPY --from=prod-deps /app/packages/backend/node_modules  ./packages/backend/node_modules
 COPY --from=build     /app/packages/backend/dist  ./packages/backend/dist
 COPY --from=build     /app/packages/backend/prisma ./packages/backend/prisma
-COPY --from=build     /app/packages/shared/src    ./packages/shared/src
+COPY --from=build     /app/packages/shared/dist   ./packages/shared/dist
 COPY --from=build     /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=build     /app/packages/backend/package.json ./packages/backend/package.json
 COPY pnpm-workspace.yaml package.json ./
