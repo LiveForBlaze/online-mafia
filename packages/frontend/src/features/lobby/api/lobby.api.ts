@@ -18,6 +18,7 @@ const path = {
   create: () => LOBBY_BASE,
   details: (id: string) => `${LOBBY_BASE}/${id}`,
   join: (id: string) => `${LOBBY_BASE}/${id}/join`,
+  claimJudge: (id: string) => `${LOBBY_BASE}/${id}/claim-judge`,
   leave: (id: string) => `${LOBBY_BASE}/${id}/leave`,
   close: (id: string) => `${LOBBY_BASE}/${id}`,
   kick: (id: string) => `${LOBBY_BASE}/${id}/kick`,
@@ -32,6 +33,7 @@ export const lobbyApi = {
   details: (id: string) => apiClient.get<LobbyDetailsResponse>(path.details(id)),
   join: (id: string, input: JoinLobbyInput) =>
     apiClient.post<LobbyDetailsResponse>(path.join(id), input),
+  claimJudge: (id: string) => apiClient.post<LobbyDetailsResponse>(path.claimJudge(id)),
   leave: (id: string) => apiClient.post<{ closed: boolean }>(path.leave(id)),
   close: (id: string) => apiClient.delete<{ closed: true }>(path.close(id)),
   kick: (id: string, userId: string) =>

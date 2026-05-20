@@ -18,11 +18,13 @@ interface LobbyRoomProps {
   onKick: (userId: string) => void;
   onStart: () => void;
   onFillBots: () => void;
+  onClaimJudge: () => void;
   isLeavePending?: boolean;
   isClosePending?: boolean;
   isKickPending?: boolean;
   isStartPending?: boolean;
   isFillBotsPending?: boolean;
+  isClaimJudgePending?: boolean;
   errorMessage?: string | null;
 }
 
@@ -35,18 +37,29 @@ export function LobbyRoom({
   onKick,
   onStart,
   onFillBots,
+  onClaimJudge,
   isLeavePending,
   isClosePending,
   isKickPending,
   isStartPending,
   isFillBotsPending,
+  isClaimJudgePending,
   errorMessage,
 }: LobbyRoomProps) {
   const isHost = lobby.hostId === currentUserId;
   const judge = lobby.members.find((m) => m.isJudge);
   const playerCount = lobby.members.filter((m) => !m.isJudge).length;
-  const playersNeeded = lobby.maxMembers - lobby.memberCount;
-  const allSeatsFilled = lobby.memberCount === lobby.maxMembers;
+  // Player seats fill independently from the judge slot. The "ready" condition
+  // requires BOTH: all 10 player seats taken AND a judge present.
+  const allPlayerSeatsFilled = playerCount === lobby.maxMembers - 1;
+  const playersNeeded = lobby.maxMembers - 1 - playerCount;
+  const judgeMissing = !judge;
+  const allSeatsFilled = allPlayerSeatsFilled && !judgeMissing;
+  const statusMessage = allSeatsFilled
+    ? LOBBY_MESSAGES.room.ready
+    : !allPlayerSeatsFilled
+      ? LOBBY_MESSAGES.room.waitingFor(playersNeeded)
+      : LOBBY_MESSAGES.room.needJudge;
 
   return (
     <main className="min-h-screen p-4 sm:p-6">
@@ -88,11 +101,7 @@ export function LobbyRoom({
         </section>
 
         <section className="rounded-md border border-border bg-card p-4">
-          <p className="text-sm text-fg">
-            {allSeatsFilled
-              ? LOBBY_MESSAGES.room.ready
-              : LOBBY_MESSAGES.room.waitingFor(playersNeeded)}
-          </p>
+          <p className="text-sm text-fg">{statusMessage}</p>
           <p className="mt-1 text-xs text-muted">Игроков на местах: {playerCount} / 10</p>
         </section>
 
@@ -108,11 +117,11 @@ export function LobbyRoom({
               <Button
                 onClick={onStart}
                 disabled={!allSeatsFilled || isStartPending}
-                title={!allSeatsFilled ? LOBBY_MESSAGES.room.waitingFor(playersNeeded) : undefined}
+                title={!allSeatsFilled ? statusMessage : undefined}
               >
                 {LOBBY_MESSAGES.room.startGame}
               </Button>
-              {!allSeatsFilled && (
+              {!allPlayerSeatsFilled && (
                 <Button variant="secondary" onClick={onFillBots} disabled={isFillBotsPending}>
                   {isFillBotsPending
                     ? LOBBY_MESSAGES.room.fillingBots
@@ -123,6 +132,13 @@ export function LobbyRoom({
                 {LOBBY_MESSAGES.room.close}
               </Button>
             </>
+          )}
+          {judgeMissing && (
+            <Button variant="secondary" onClick={onClaimJudge} disabled={isClaimJudgePending}>
+              {isClaimJudgePending
+                ? LOBBY_MESSAGES.room.becomingJudge
+                : LOBBY_MESSAGES.room.becomeJudge}
+            </Button>
           )}
           <Button variant="ghost" onClick={onLeave} disabled={isLeavePending}>
             {isLeavePending ? LOBBY_MESSAGES.room.leaving : LOBBY_MESSAGES.room.leave}

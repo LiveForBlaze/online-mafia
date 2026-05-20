@@ -7,6 +7,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { createLobbyInputSchema, joinLobbyInputSchema, kickMemberInputSchema } from '@mafia/shared';
 
 import {
+  claimJudgeSeat,
   closeLobby,
   createLobby,
   getLobbyDetails,
@@ -131,6 +132,19 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
           .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
       }
       const result = await joinLobby(request.params.id, request.user.sub, parsed.data);
+      if (!result.ok) {
+        return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      return reply.send({ lobby: result.data });
+    },
+  );
+
+  // ---- Claim judge seat (any current member, if judge slot is empty) ----
+  app.post<{ Params: { id: string } }>(
+    '/:id/claim-judge',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const result = await claimJudgeSeat(request.params.id, request.user.sub);
       if (!result.ok) {
         return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
       }

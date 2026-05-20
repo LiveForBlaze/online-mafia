@@ -280,6 +280,40 @@ export async function closeLobby(
   return ok({ closed: true });
 }
 
+// Switch the caller from their current seat to the judge slot. Only works when
+// the judge slot is empty. Used by hosts who realized too late that no one
+// claimed the judge role.
+export async function claimJudgeSeat(
+  lobbyId: string,
+  userId: string,
+): Promise<ServiceResult<LobbyDetails>> {
+  const lobby = await prisma.lobby.findUnique({
+    where: { id: lobbyId },
+    select: {
+      id: true,
+      status: true,
+      members: { select: { userId: true, isJudge: true } },
+    },
+  });
+  if (!lobby) return fail(LOBBY_ERROR.NOT_FOUND);
+  if (lobby.status !== 'WAITING') return fail(LOBBY_ERROR.NOT_OPEN);
+
+  const me = lobby.members.find((m) => m.userId === userId);
+  if (!me) return fail(LOBBY_ERROR.NOT_MEMBER);
+  if (me.isJudge) return getLobbyDetails(lobbyId, userId);
+
+  const judgeTaken = lobby.members.some((m) => m.isJudge);
+  if (judgeTaken) return fail(LOBBY_ERROR.JUDGE_SLOT_TAKEN);
+
+  await prisma.lobbyMember.update({
+    where: { lobbyId_userId: { lobbyId, userId } },
+    data: { seat: null, isJudge: true },
+  });
+
+  void broadcastLobbyUpdate(lobbyId);
+  return getLobbyDetails(lobbyId, userId);
+}
+
 export async function kickMember(
   lobbyId: string,
   hostUserId: string,
