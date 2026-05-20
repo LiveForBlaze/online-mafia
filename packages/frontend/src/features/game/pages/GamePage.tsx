@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { CLIENT_EVENT } from '@mafia/shared';
 
@@ -35,11 +36,19 @@ export function GamePage() {
   const isConnected = useGameStore((s) => s.isConnected);
   const lastError = useGameStore((s) => s.lastError);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Reset the active-game query so the home page does not bounce us back in.
+  // Cached data could still hold our gameId for up to the refetch interval.
+  function goHome() {
+    queryClient.setQueryData(['game', 'active'], { gameId: null });
+    navigate(ROUTE_PATH.HOME);
+  }
 
   function handleConfirmLeave() {
     void emitGameAction(CLIENT_EVENT.LEAVE_GAME).finally(() => {
       setShowLeaveConfirm(false);
-      navigate(ROUTE_PATH.HOME);
+      goHome();
     });
   }
 
@@ -50,11 +59,7 @@ export function GamePage() {
       <main className="min-h-screen p-6 flex items-center justify-center">
         <div className="text-center space-y-3">
           <p className="text-danger">{gameErrorMessage(lastError)}</p>
-          <button
-            type="button"
-            onClick={() => navigate(ROUTE_PATH.HOME)}
-            className="text-accent hover:underline text-sm"
-          >
+          <button type="button" onClick={goHome} className="text-accent hover:underline text-sm">
             {GAME_MESSAGES.ui.back}
           </button>
         </div>
@@ -85,7 +90,7 @@ export function GamePage() {
             viewerRole={viewerRole}
             viewerIsJudge={viewerIsJudge}
             canLeaveGame={!!viewer && !viewer.isRemoved}
-            onBack={() => navigate(ROUTE_PATH.HOME)}
+            onBack={goHome}
             onLeaveGame={() => setShowLeaveConfirm(true)}
           />
 

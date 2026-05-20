@@ -104,10 +104,13 @@ export async function listUserActiveLobbies(viewerUserId: string): Promise<Lobby
 export async function listPublicLobbies(viewerUserId: string): Promise<LobbySummary[]> {
   // Fetch the `members` relation filtered to the viewer's row only — that way we know
   // membership per lobby without loading every member in the result set.
+  // host.isBot=false guards against orphaned lobbies created by older code that
+  // transferred hostship to a bot when the original host left.
   const rows = await prisma.lobby.findMany({
     where: {
       isPrivate: false,
       status: 'WAITING',
+      host: { isBot: false },
     },
     include: {
       host: { select: { id: true, nickname: true } },

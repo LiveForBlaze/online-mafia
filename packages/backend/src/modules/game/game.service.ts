@@ -31,7 +31,7 @@ import {
   projectFor,
 } from './game.engine.js';
 import { GAME_ERROR, type GameErrorCode } from './game.errors.js';
-import { getGame, registerGame, setGame, unregisterGame } from './game.registry.js';
+import { getGame, registerGame, setGame } from './game.registry.js';
 import { INITIAL_PHASE, findByUserId, type GameParticipant, type GameState } from './game.state.js';
 
 // ---- Result ----
@@ -249,7 +249,11 @@ export async function leaveGameAsParticipant(
       setGame(next);
       await commit(next);
       void syncMediaPermissions(next);
-      unregisterGame(next.id);
+      // NOTE: we deliberately do NOT unregister from the in-memory registry here.
+      // The status='finished' marker + endedAt in DB are enough to mark the game as
+      // ended. Keeping the state in-memory lets the broadcast after this point still
+      // find the game so connected sockets receive the final GAME_OVER projection.
+      // Without this, frontends get stuck because they never learn the game ended.
 
       // Close the parent lobby so it disappears from any list and recovery skips it.
       await prisma.lobby.update({
@@ -273,7 +277,11 @@ export async function leaveGameAsParticipant(
       setGame(next);
       await commit(next);
       void syncMediaPermissions(next);
-      unregisterGame(next.id);
+      // NOTE: we deliberately do NOT unregister from the in-memory registry here.
+      // The status='finished' marker + endedAt in DB are enough to mark the game as
+      // ended. Keeping the state in-memory lets the broadcast after this point still
+      // find the game so connected sockets receive the final GAME_OVER projection.
+      // Without this, frontends get stuck because they never learn the game ended.
     } else {
       await commit(next);
       void syncMediaPermissions(next);
@@ -443,7 +451,7 @@ export async function judgeAdvancePhase(ctx: ActionContext): Promise<ServiceResu
       setGame(withEvent);
       await commit(withEvent);
       void syncMediaPermissions(withEvent);
-      unregisterGame(withEvent.id);
+      // See note above: keep in registry so the post-finish broadcast can find it.
       return ok(withEvent);
     }
     const committed = await commit(withEvent);
@@ -522,7 +530,11 @@ export async function judgeRemovePlayer(
       setGame(next);
       await commit(next);
       void syncMediaPermissions(next);
-      unregisterGame(next.id);
+      // NOTE: we deliberately do NOT unregister from the in-memory registry here.
+      // The status='finished' marker + endedAt in DB are enough to mark the game as
+      // ended. Keeping the state in-memory lets the broadcast after this point still
+      // find the game so connected sockets receive the final GAME_OVER projection.
+      // Without this, frontends get stuck because they never learn the game ended.
     } else {
       await commit(next);
       void syncMediaPermissions(next);
