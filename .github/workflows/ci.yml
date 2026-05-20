@@ -25,6 +25,10 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # shared must be compiled to dist/ before typecheck and tests can import it.
+      - name: Build shared
+        run: pnpm --filter @mafia/shared build
+
       # Prisma client is generated against schema.prisma — needed before typecheck.
       - name: Prisma generate
         run: pnpm --filter @mafia/backend db:generate
