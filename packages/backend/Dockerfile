@@ -44,8 +44,9 @@ RUN addgroup -S mafia && adduser -S mafia -G mafia
 
 # Copy the built backend, the shared package source (resolved at runtime via workspace),
 # and the production node_modules.
-COPY --from=prod-deps /app/node_modules           ./node_modules
+COPY --from=prod-deps /app/node_modules                   ./node_modules
 COPY --from=prod-deps /app/packages/backend/node_modules  ./packages/backend/node_modules
+COPY --from=prod-deps /app/packages/shared/node_modules   ./packages/shared/node_modules
 COPY --from=build     /app/packages/backend/dist  ./packages/backend/dist
 COPY --from=build     /app/packages/backend/prisma ./packages/backend/prisma
 COPY --from=build     /app/packages/shared/dist   ./packages/shared/dist
