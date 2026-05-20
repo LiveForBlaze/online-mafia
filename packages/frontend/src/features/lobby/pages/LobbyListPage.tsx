@@ -13,6 +13,9 @@ import { gameApi } from '@/features/game/api/game.api.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { EmptyLobbyState } from '@/features/lobby/components/EmptyLobbyState.js';
+import { HomeFeatures } from '@/features/lobby/components/HomeFeatures.js';
+import { HomeFooter } from '@/features/lobby/components/HomeFooter.js';
+import { HomeHero } from '@/features/lobby/components/HomeHero.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
 import { LobbyStats } from '@/features/lobby/components/LobbyStats.js';
@@ -53,8 +56,6 @@ export function LobbyListPage() {
       {
         onSuccess: (response) => navigate(lobbyRoomPath(response.lobby.id)),
         onError: (error) => {
-          // Safety net: if backend says "you're already in this lobby" (state drift),
-          // just navigate them into it instead of showing an error.
           if (error instanceof ApiError && error.body.error === 'already_member') {
             navigate(lobbyRoomPath(lobby.id));
             return;
@@ -66,7 +67,6 @@ export function LobbyListPage() {
   }
 
   function handleJoinClick(lobby: LobbySummary) {
-    // Already a member → no API call needed, just navigate.
     if (lobby.isViewerMember) {
       navigate(lobbyRoomPath(lobby.id));
       return;
@@ -82,21 +82,8 @@ export function LobbyListPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-              {LOBBY_MESSAGES.list.title}
-            </h1>
-            <p className="mt-0.5 text-sm text-muted">{LOBBY_MESSAGES.list.tagline}</p>
-          </div>
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="shrink-0 self-start sm:self-auto"
-          >
-            {LOBBY_MESSAGES.list.createButton}
-          </Button>
-        </header>
+      <div className="mx-auto max-w-5xl space-y-8">
+        <HomeHero onCreateLobby={() => setIsCreateOpen(true)} />
 
         <LobbyStats lobbies={lobbies} />
 
@@ -154,6 +141,10 @@ export function LobbyListPage() {
           </div>
         )}
 
+        <HomeFeatures />
+
+        <HomeFooter />
+
         <CreateLobbyDialog
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
@@ -166,10 +157,6 @@ export function LobbyListPage() {
           onClose={() => setPrivateLobbyId(null)}
           onJoined={(lobby) => navigate(lobbyRoomPath(lobby.id))}
         />
-
-        <footer className="pt-4 text-center text-xs text-muted">
-          {LOBBY_MESSAGES.list.footer}
-        </footer>
       </div>
     </div>
   );
