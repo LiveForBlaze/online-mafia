@@ -41,6 +41,11 @@ export function clearSessionCookie(reply: FastifyReply): void {
 export function setOAuthTempCookie(reply: FastifyReply, name: string, value: string): void {
   reply.setCookie(name, value, {
     ...baseCookieOptions(),
+    // OAuth round-trip lands the user on accounts.google.com and bounces them
+    // back via top-level redirect. SameSite=Strict would drop these cookies on
+    // the return hop (browsers don't send Strict cookies on cross-site nav),
+    // and the callback would fail with oauth_missing_parameters.
+    sameSite: 'lax',
     maxAge: OAUTH_TEMP_COOKIE_TTL_SECONDS,
   });
 }
