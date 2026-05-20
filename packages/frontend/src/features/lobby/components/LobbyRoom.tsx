@@ -3,7 +3,7 @@
 // concerns are owned by the parent page.
 
 import { useState } from 'react';
-import type { LobbyDetails } from '@mafia/shared';
+import type { LobbyDetails, Role } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
@@ -21,11 +21,13 @@ interface LobbyRoomProps {
   onKick: (userId: string) => void;
   onStart: () => void;
   onFillBots: () => void;
+  onPreassignRole?: (userId: string, role: Role | null) => void;
   isLeavePending?: boolean;
   isClosePending?: boolean;
   isKickPending?: boolean;
   isStartPending?: boolean;
   isFillBotsPending?: boolean;
+  isPreassignPending?: boolean;
   errorMessage?: string | null;
 }
 
@@ -37,11 +39,13 @@ export function LobbyRoom({
   onKick,
   onStart,
   onFillBots,
+  onPreassignRole,
   isLeavePending,
   isClosePending,
   isKickPending,
   isStartPending,
   isFillBotsPending,
+  isPreassignPending,
   errorMessage,
 }: LobbyRoomProps) {
   const isHost = lobby.hostId === currentUserId;
@@ -86,6 +90,8 @@ export function LobbyRoom({
             canKick={isHost}
             onKick={onKick}
             isKickPending={isKickPending}
+            onPreassignRole={isHost ? onPreassignRole : undefined}
+            isPreassignPending={isPreassignPending}
           />
         </section>
 

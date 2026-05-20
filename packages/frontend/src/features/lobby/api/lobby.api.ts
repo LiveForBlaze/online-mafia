@@ -6,6 +6,7 @@ import type {
   JoinLobbyInput,
   LobbyDetailsResponse,
   LobbyListResponse,
+  PreassignRoleInput,
 } from '@mafia/shared';
 
 import { apiClient } from '@/lib/api-client.js';
@@ -22,6 +23,7 @@ const path = {
   leave: (id: string) => `${LOBBY_BASE}/${id}/leave`,
   close: (id: string) => `${LOBBY_BASE}/${id}`,
   kick: (id: string) => `${LOBBY_BASE}/${id}/kick`,
+  preassignRole: (id: string) => `${LOBBY_BASE}/${id}/preassign-role`,
   start: (id: string) => `${LOBBY_BASE}/${id}/start`,
   fillBots: (id: string) => `${LOBBY_BASE}/${id}/fill-bots`,
 } as const;
@@ -38,6 +40,8 @@ export const lobbyApi = {
   close: (id: string) => apiClient.delete<{ closed: true }>(path.close(id)),
   kick: (id: string, userId: string) =>
     apiClient.post<LobbyDetailsResponse>(path.kick(id), { userId }),
+  preassignRole: (id: string, input: PreassignRoleInput) =>
+    apiClient.post<LobbyDetailsResponse>(path.preassignRole(id), input),
   start: (id: string) => apiClient.post<{ gameId: string }>(path.start(id)),
   fillBots: (id: string) => apiClient.post<{ added: number }>(path.fillBots(id)),
 };

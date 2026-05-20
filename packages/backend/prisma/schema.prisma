@@ -94,6 +94,9 @@ model LobbyMember {
   seat     Int? // null when this member is the judge
   isJudge  Boolean @default(false)
   joinedAt DateTime @default(now())
+  // Host-only role pre-assignment (dev/test convenience). When set, the engine
+  // honors this role instead of randomizing. Null = randomize as usual.
+  preassignedRole String?
 
   @@id([lobbyId, userId])
   @@unique([lobbyId, seat])

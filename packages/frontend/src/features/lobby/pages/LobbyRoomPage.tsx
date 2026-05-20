@@ -5,6 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import type { Role } from '@mafia/shared';
+
 import { ApiError } from '@/lib/api-client.js';
 import { env } from '@/lib/env.js';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
@@ -18,6 +20,7 @@ import {
   useFillBots,
   useKickMember,
   useLeaveLobby,
+  usePreassignRole,
   useStartGame,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
 import { LOBBY_MESSAGES, lobbyErrorMessage } from '@/features/lobby/messages.js';
@@ -40,6 +43,7 @@ export function LobbyRoomPage() {
   const kick = useKickMember();
   const start = useStartGame();
   const fillBots = useFillBots();
+  const preassign = usePreassignRole();
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
 
@@ -113,6 +117,14 @@ export function LobbyRoomPage() {
     });
   }
 
+  function handlePreassignRole(userId: string, role: Role | null) {
+    if (!lobbyId) return;
+    preassign.mutate(
+      { lobbyId, input: { userId, role } },
+      { onError: (error) => setInlineError(extractLobbyErrorMessage(error)) },
+    );
+  }
+
   if (!user || !lobbyId) {
     return null;
   }
@@ -156,11 +168,13 @@ export function LobbyRoomPage() {
         onKick={handleKick}
         onStart={handleStart}
         onFillBots={handleFillBots}
+        onPreassignRole={handlePreassignRole}
         isLeavePending={leave.isPending}
         isClosePending={close.isPending}
         isKickPending={kick.isPending}
         isStartPending={start.isPending}
         isFillBotsPending={fillBots.isPending}
+        isPreassignPending={preassign.isPending}
         errorMessage={inlineError}
       />
       <ConfirmDialog

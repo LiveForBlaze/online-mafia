@@ -3,7 +3,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { CreateLobbyInput, JoinLobbyInput } from '@mafia/shared';
+import type { CreateLobbyInput, JoinLobbyInput, PreassignRoleInput } from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
 import { lobbyApi } from '@/features/lobby/api/lobby.api.js';
@@ -68,6 +68,17 @@ export function useKickMember() {
 export function useStartGame() {
   return useMutation({
     mutationFn: (lobbyId: string) => lobbyApi.start(lobbyId),
+  });
+}
+
+export function usePreassignRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ lobbyId, input }: { lobbyId: string; input: PreassignRoleInput }) =>
+      lobbyApi.preassignRole(lobbyId, input),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.details(variables.lobbyId) });
+    },
   });
 }
 

@@ -9,7 +9,7 @@
 // authoritative history (event log) and the source of truth on reload.
 
 import { Prisma } from '@prisma/client';
-import { LOBBY, type GameStateProjected } from '@mafia/shared';
+import { LOBBY, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
 import { withLock } from '../../lib/mutex.js';
@@ -103,7 +103,23 @@ export async function createGameFromLobby(
     hasSpokenThisDay: false,
   }));
 
-  const withRoles = assignRoles(initialParticipants);
+  // Host's dev pre-assignments — engine uses these verbatim and randomizes
+  // only the remaining seats. Unknown values are ignored (defensive).
+  const KNOWN_ROLES: ReadonlySet<string> = new Set([
+    ROLE.CIVILIAN,
+    ROLE.SHERIFF,
+    ROLE.MAFIA,
+    ROLE.DON,
+  ]);
+  const preassigned = new Map<string, Role>();
+  for (const m of lobby.members) {
+    if (m.isJudge || !m.preassignedRole) continue;
+    if (KNOWN_ROLES.has(m.preassignedRole)) {
+      preassigned.set(m.user.id, m.preassignedRole as Role);
+    }
+  }
+
+  const withRoles = assignRoles(initialParticipants, preassigned);
 
   // Persist Game + GameParticipants + initial event in one transaction.
   const created = await prisma.$transaction(async (tx) => {

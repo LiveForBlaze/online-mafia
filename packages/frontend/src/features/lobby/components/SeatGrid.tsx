@@ -1,7 +1,7 @@
 // Grid of 10 player seats. Each seat shows either the seated player's nickname or
 // "free". Host gets a small badge; the current viewer gets a faint highlight.
 
-import { GAME, type LobbyMemberPublic } from '@mafia/shared';
+import { GAME, ROLE, type LobbyMemberPublic, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
@@ -13,6 +13,10 @@ interface SeatGridProps {
   canKick: boolean;
   onKick: (userId: string) => void;
   isKickPending?: boolean;
+  // Host-only: pre-assign a role to a member. Pass null in the role to clear.
+  // Undefined disables the picker entirely (non-host viewers).
+  onPreassignRole?: (userId: string, role: Role | null) => void;
+  isPreassignPending?: boolean;
 }
 
 export function SeatGrid({
@@ -21,6 +25,8 @@ export function SeatGrid({
   canKick,
   onKick,
   isKickPending,
+  onPreassignRole,
+  isPreassignPending,
 }: SeatGridProps) {
   const memberBySeat = new Map<number, LobbyMemberPublic>();
   for (const member of members) {
@@ -47,6 +53,8 @@ export function SeatGrid({
             canKick={canKick && occupant !== undefined && occupant.userId !== currentUserId}
             onKick={onKick}
             isKickPending={isKickPending}
+            onPreassignRole={onPreassignRole}
+            isPreassignPending={isPreassignPending}
           />
         );
       })}
@@ -61,7 +69,17 @@ interface SeatCardProps {
   canKick: boolean;
   onKick: (userId: string) => void;
   isKickPending?: boolean;
+  onPreassignRole?: (userId: string, role: Role | null) => void;
+  isPreassignPending?: boolean;
 }
+
+const PREASSIGN_OPTIONS: { value: Role | ''; label: string }[] = [
+  { value: '', label: 'Случайно' },
+  { value: ROLE.CIVILIAN, label: 'Мирный' },
+  { value: ROLE.SHERIFF, label: 'Шериф' },
+  { value: ROLE.MAFIA, label: 'Мафия' },
+  { value: ROLE.DON, label: 'Дон' },
+];
 
 function SeatCard({
   seat,
@@ -70,7 +88,10 @@ function SeatCard({
   canKick,
   onKick,
   isKickPending,
+  onPreassignRole,
+  isPreassignPending,
 }: SeatCardProps) {
+  const showRolePicker = Boolean(occupant && onPreassignRole);
   return (
     <div
       className={cn(
@@ -91,35 +112,61 @@ function SeatCard({
       </div>
 
       {occupant ? (
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
-              isCurrentUser ? 'bg-accent/20 text-accent' : 'bg-card-deep text-muted',
-            )}
-            aria-hidden="true"
-          >
-            {extractInitial(occupant.nickname)}
-          </span>
-          <span className="text-sm font-medium text-fg truncate min-w-0">{occupant.nickname}</span>
-          {canKick && (
-            <button
-              type="button"
-              onClick={() => onKick(occupant.userId)}
-              disabled={isKickPending}
-              title={LOBBY_MESSAGES.room.kickTitle}
-              aria-label={LOBBY_MESSAGES.room.kickTitle}
+        <>
+          <div className="flex items-center gap-2 min-w-0">
+            <span
               className={cn(
-                'ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                'text-muted hover:bg-bg hover:text-danger transition',
-                'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg',
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                isCurrentUser ? 'bg-accent/20 text-accent' : 'bg-card-deep text-muted',
+              )}
+              aria-hidden="true"
+            >
+              {extractInitial(occupant.nickname)}
+            </span>
+            <span className="text-sm font-medium text-fg truncate min-w-0">
+              {occupant.nickname}
+            </span>
+            {canKick && (
+              <button
+                type="button"
+                onClick={() => onKick(occupant.userId)}
+                disabled={isKickPending}
+                title={LOBBY_MESSAGES.room.kickTitle}
+                aria-label={LOBBY_MESSAGES.room.kickTitle}
+                className={cn(
+                  'ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+                  'text-muted hover:bg-bg hover:text-danger transition',
+                  'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg',
+                  'disabled:cursor-not-allowed disabled:opacity-50',
+                )}
+              >
+                <KickIcon />
+              </button>
+            )}
+          </div>
+          {showRolePicker && occupant && onPreassignRole && (
+            <select
+              value={occupant.preassignedRole ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                onPreassignRole(occupant.userId, v === '' ? null : (v as Role));
+              }}
+              disabled={isPreassignPending}
+              title="Назначить роль (dev)"
+              className={cn(
+                'mt-auto w-full rounded-sm border border-border bg-card-deep px-1.5 py-1',
+                'text-[11px] text-muted focus:outline-none focus:ring-2 focus:ring-accent',
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              <KickIcon />
-            </button>
+              {PREASSIGN_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           )}
-        </div>
+        </>
       ) : (
         <div className="flex items-center gap-2 text-muted">
           <span

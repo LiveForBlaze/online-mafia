@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { LOBBY, LOBBY_STATUS, MEMBER_ROLE } from '../constants/lobby.js';
 import { GAME } from '../constants/game.js';
+import { ROLE } from '../constants/roles.js';
 
 // ---- Inputs ----
 
@@ -52,6 +53,14 @@ export const kickMemberInputSchema = z.object({
 });
 export type KickMemberInput = z.infer<typeof kickMemberInputSchema>;
 
+// Payload for POST /api/v1/lobby/:id/preassign-role.
+// `role: null` clears any prior pre-assignment for that user.
+export const preassignRoleInputSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum([ROLE.CIVILIAN, ROLE.SHERIFF, ROLE.MAFIA, ROLE.DON]).nullable(),
+});
+export type PreassignRoleInput = z.infer<typeof preassignRoleInputSchema>;
+
 // ---- Responses ----
 
 export const lobbyMemberPublicSchema = z.object({
@@ -63,6 +72,10 @@ export const lobbyMemberPublicSchema = z.object({
   isHost: z.boolean(),
   // True for auto-controlled test bots. The client renders a small bot badge.
   isBot: z.boolean(),
+  // Host-only dev/test affordance: a role the host has pre-assigned to this
+  // seat. The engine honors it on game start instead of randomizing. Only
+  // populated in responses sent to the host — null for everyone else.
+  preassignedRole: z.enum([ROLE.CIVILIAN, ROLE.SHERIFF, ROLE.MAFIA, ROLE.DON]).nullable(),
 });
 export type LobbyMemberPublic = z.infer<typeof lobbyMemberPublicSchema>;
 

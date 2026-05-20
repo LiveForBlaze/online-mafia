@@ -4,7 +4,12 @@
 // Routes are thin: validate input, call service, translate Result -> HTTP response.
 
 import type { FastifyPluginAsync } from 'fastify';
-import { createLobbyInputSchema, joinLobbyInputSchema, kickMemberInputSchema } from '@mafia/shared';
+import {
+  createLobbyInputSchema,
+  joinLobbyInputSchema,
+  kickMemberInputSchema,
+  preassignRoleInputSchema,
+} from '@mafia/shared';
 
 import {
   claimJudgeSeat,
@@ -16,6 +21,7 @@ import {
   leaveLobby,
   listPublicLobbies,
   listUserActiveLobbies,
+  preassignRole,
 } from './lobby.service.js';
 import { LOBBY_ERROR, type LobbyErrorCode } from './lobby.errors.js';
 import { fillLobbyWithBots } from './lobby.bots.js';
@@ -61,6 +67,7 @@ function lobbyErrorToHttpStatus(code: LobbyErrorCode): number {
     case LOBBY_ERROR.JUDGE_SLOT_TAKEN:
     case LOBBY_ERROR.ALREADY_MEMBER:
     case LOBBY_ERROR.SEAT_CONTENTION:
+    case LOBBY_ERROR.ROLE_CAP_REACHED:
       return HTTP_STATUS.CONFLICT;
   }
 }
@@ -188,6 +195,30 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(startGameErrorToHttpStatus(result.error)).send({ error: result.error });
       }
       return reply.code(HTTP_STATUS.CREATED).send({ gameId: result.data.gameId });
+    },
+  );
+
+  // ---- Pre-assign role to a member (host-only dev affordance) ----
+  app.post<{ Params: { id: string } }>(
+    '/:id/preassign-role',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = preassignRoleInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
+      const result = await preassignRole(
+        request.params.id,
+        request.user.sub,
+        parsed.data.userId,
+        parsed.data.role,
+      );
+      if (!result.ok) {
+        return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      return reply.send({ lobby: result.data });
     },
   );
 

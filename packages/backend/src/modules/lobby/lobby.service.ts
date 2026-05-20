@@ -306,6 +306,55 @@ export async function claimJudgeSeat(
   return getLobbyDetails(lobbyId, userId);
 }
 
+// Host-only dev affordance: pre-assign a specific role to a member's seat.
+// On game start, the engine honors this role instead of randomizing. Passing
+// role=null clears any prior pre-assignment. Server enforces role-count caps
+// (max 1 sheriff / 1 don / 2 mafia) — exceeding them returns a conflict.
+export async function preassignRole(
+  lobbyId: string,
+  hostUserId: string,
+  targetUserId: string,
+  role: 'civilian' | 'sheriff' | 'mafia' | 'don' | null,
+): Promise<ServiceResult<LobbyDetails>> {
+  const lobby = await prisma.lobby.findUnique({
+    where: { id: lobbyId },
+    select: {
+      id: true,
+      status: true,
+      hostId: true,
+      members: { select: { userId: true, isJudge: true, preassignedRole: true } },
+    },
+  });
+  if (!lobby) return fail(LOBBY_ERROR.NOT_FOUND);
+  if (lobby.hostId !== hostUserId) return fail(LOBBY_ERROR.NOT_HOST);
+  if (lobby.status !== 'WAITING') return fail(LOBBY_ERROR.NOT_OPEN);
+
+  const target = lobby.members.find((m) => m.userId === targetUserId);
+  if (!target) return fail(LOBBY_ERROR.TARGET_NOT_FOUND);
+  if (target.isJudge) return fail(LOBBY_ERROR.TARGET_NOT_FOUND);
+
+  if (role !== null) {
+    // Caps: 1 sheriff, 1 don, 2 mafia, the rest civilians (no civilian cap
+    // because they're the fallback).
+    const caps: Record<string, number> = { sheriff: 1, don: 1, mafia: 2 };
+    const cap = caps[role];
+    if (cap !== undefined) {
+      const taken = lobby.members.filter(
+        (m) => !m.isJudge && m.userId !== targetUserId && m.preassignedRole === role,
+      ).length;
+      if (taken >= cap) return fail(LOBBY_ERROR.ROLE_CAP_REACHED);
+    }
+  }
+
+  await prisma.lobbyMember.update({
+    where: { lobbyId_userId: { lobbyId, userId: targetUserId } },
+    data: { preassignedRole: role },
+  });
+
+  void broadcastLobbyUpdate(lobbyId);
+  return getLobbyDetails(lobbyId, hostUserId);
+}
+
 export async function kickMember(
   lobbyId: string,
   hostUserId: string,

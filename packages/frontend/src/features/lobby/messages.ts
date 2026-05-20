@@ -122,6 +122,7 @@ export const LOBBY_MESSAGES = {
     target_not_found: 'Игрок не найден в лобби',
     cannot_kick_host: 'Нельзя выгнать хоста',
     seat_contention: 'Место заняли. Попробуйте ещё раз.',
+    role_cap_reached: 'Слотов для этой роли больше нет (макс. 1 шериф / 1 дон / 2 мафии).',
     invalid_input: 'Проверьте правильность введённых данных',
     unauthenticated: 'Войдите снова',
     unknown: 'Что-то пошло не так',
