@@ -5,19 +5,15 @@
 // Visible to authenticated users only (registered via AuthGuard in App.tsx).
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
-import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
 import { ApiError } from '@/lib/api-client.js';
 import { authErrorMessage, AUTH_MESSAGES } from '@/features/auth/messages.js';
 import { useLogout, useUpdateNickname } from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
-import { ROUTE_PATH } from '@/routes/paths.js';
 
 export function ProfilePage() {
-  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const updateNickname = useUpdateNickname();
   const logout = useLogout();
@@ -55,17 +51,9 @@ export function ProfilePage() {
   const errorMessage = updateNickname.isError ? extractErrorMessage(updateNickname.error) : null;
 
   return (
-    <main className="min-h-screen p-4 sm:p-6">
+    <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-md space-y-6">
-        <header className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-fg">{AUTH_MESSAGES.profile.title}</h1>
-          <div className="flex gap-2 items-center">
-            <ThemeToggle />
-            <Button variant="ghost" onClick={() => navigate(ROUTE_PATH.HOME)}>
-              {AUTH_MESSAGES.profile.back}
-            </Button>
-          </div>
-        </header>
+        <h1 className="text-2xl font-bold text-fg">{AUTH_MESSAGES.profile.title}</h1>
 
         <form
           onSubmit={handleSubmit}
@@ -117,10 +105,7 @@ export function ProfilePage() {
           </Button>
         </form>
 
-        <div className="flex flex-col items-center gap-3 pt-2">
-          <Link to={ROUTE_PATH.HOME} className="text-sm text-muted hover:underline">
-            {AUTH_MESSAGES.profile.back}
-          </Link>
+        <div className="flex justify-center pt-2">
           <button
             type="button"
             onClick={() => logout.mutate()}
@@ -131,7 +116,7 @@ export function ProfilePage() {
           </button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

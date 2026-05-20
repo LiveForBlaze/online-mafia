@@ -7,6 +7,10 @@ export const ROUTE_PATH = {
   LOGIN: '/login',
   REGISTER: '/register',
   PROFILE: '/profile',
+  CLUBS: '/clubs',
+  TOURNAMENTS: '/tournaments',
+  RULES: '/rules',
+  ABOUT: '/about',
   LOBBY_ROOM: '/lobby/:id',
   GAME_ROOM: '/game/:id',
 } as const;

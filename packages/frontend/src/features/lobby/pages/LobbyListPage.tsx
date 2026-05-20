@@ -9,8 +9,6 @@ import type { LobbySummary } from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
 import { Button } from '@/components/ui/Button.js';
-import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
-import { UserChip } from '@/components/ui/UserChip.js';
 import { gameApi } from '@/features/game/api/game.api.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
@@ -83,25 +81,21 @@ export function LobbyListPage() {
   const lobbies = lobbiesQuery.data?.lobbies ?? [];
 
   return (
-    <main className="min-h-screen p-4 sm:p-6">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <header className="flex items-center justify-between gap-3">
+    <div className="p-4 sm:p-6">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              {LOBBY_MESSAGES.list.brandWordmark}
-            </p>
-            <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">
               {LOBBY_MESSAGES.list.title}
             </h1>
             <p className="mt-0.5 text-sm text-muted">{LOBBY_MESSAGES.list.tagline}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <ThemeToggle />
-            <Button onClick={() => setIsCreateOpen(true)}>
-              {LOBBY_MESSAGES.list.createButton}
-            </Button>
-            <UserChip />
-          </div>
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="shrink-0 self-start sm:self-auto"
+          >
+            {LOBBY_MESSAGES.list.createButton}
+          </Button>
         </header>
 
         <LobbyStats lobbies={lobbies} />
@@ -177,6 +171,6 @@ export function LobbyListPage() {
           {LOBBY_MESSAGES.list.footer}
         </footer>
       </div>
-    </main>
+    </div>
   );
 }

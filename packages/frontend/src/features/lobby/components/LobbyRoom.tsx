@@ -68,7 +68,7 @@ export function LobbyRoom({
   );
 
   return (
-    <main className="min-h-screen p-4 sm:p-6 bg-bg">
+    <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={onBack}>
@@ -163,7 +163,7 @@ export function LobbyRoom({
           </Button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
