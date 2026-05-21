@@ -10,8 +10,10 @@ import { GAME_PHASE, ROLE, TEAM } from '@mafia/shared';
 
 import {
   ENGINE_ERROR,
+  applyAdvancePhase,
   applyCastVote,
   applyDonCheck,
+  applyJudgeRemove,
   applyMafiaTarget,
   applyNominate,
   applySheriffCheck,
@@ -69,6 +71,7 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     currentSpeakerSeat: 1,
     nominationSeats: [],
     votes: new Map(),
+    mafiaVotes: new Map(),
     pendingMafiaTargetSeat: null,
     sheriffCheck: null,
     donCheck: null,
@@ -277,5 +280,183 @@ describe('resolveVote', () => {
       ]),
     });
     expect(resolveVote(state)).toBe(null);
+  });
+});
+
+// --- Sprint 2 engine-correctness fixes ---
+
+describe('don/sheriff double-check guard', () => {
+  it('refuses a second don check in the same night', () => {
+    const first = applyDonCheck(buildState({ phase: GAME_PHASE.NIGHT_DON }), 'user-10', 7);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+
+    const second = applyDonCheck(first.data, 'user-10', 1);
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.error).toBe(ENGINE_ERROR.ALREADY_CHECKED);
+  });
+
+  it('refuses a second sheriff check in the same night', () => {
+    const first = applySheriffCheck(buildState({ phase: GAME_PHASE.NIGHT_SHERIFF }), 'user-7', 8);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+
+    const second = applySheriffCheck(first.data, 'user-7', 1);
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.error).toBe(ENGINE_ERROR.ALREADY_CHECKED);
+  });
+});
+
+describe('mafia consensus rule for night kill', () => {
+  // Place the game just before the final night→morning transition. Resolution
+  // happens when applyAdvancePhase is called with phase=NIGHT_SHERIFF.
+  function nightStateWithVotes(votes: Array<[number, number]>): GameState {
+    return buildState({
+      phase: GAME_PHASE.NIGHT_SHERIFF,
+      mafiaVotes: new Map(votes),
+    });
+  }
+
+  it('kills the target when all alive shooters agree', () => {
+    // seats 8, 9 = mafia, 10 = don; all vote seat 1
+    const state = nightStateWithVotes([
+      [8, 1],
+      [9, 1],
+      [10, 1],
+    ]);
+    const next = applyAdvancePhase(state);
+    expect(next.lastNightVictimSeat).toBe(1);
+    const seat1 = next.participants.find((p) => p.seat === 1);
+    expect(seat1?.isAlive).toBe(false);
+  });
+
+  it('misses when shooters disagree (one different target)', () => {
+    const state = nightStateWithVotes([
+      [8, 1],
+      [9, 2],
+      [10, 1],
+    ]);
+    const next = applyAdvancePhase(state);
+    expect(next.lastNightVictimSeat).toBe(null);
+    // Nobody was killed.
+    expect(next.participants.find((p) => p.seat === 1)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 2)?.isAlive).toBe(true);
+  });
+
+  it('misses when not all shooters have voted', () => {
+    // Only mafia at seat 8 voted; seat 9 and the don abstained.
+    const state = nightStateWithVotes([[8, 1]]);
+    const next = applyAdvancePhase(state);
+    expect(next.lastNightVictimSeat).toBe(null);
+    expect(next.participants.find((p) => p.seat === 1)?.isAlive).toBe(true);
+  });
+
+  it('ignores dead shooters when computing consensus', () => {
+    // Don (seat 10) is dead → only seats 8 and 9 must agree.
+    const base = buildState({
+      phase: GAME_PHASE.NIGHT_SHERIFF,
+      participants: buildState().participants.map((p) =>
+        p.seat === 10 ? { ...p, isAlive: false } : p,
+      ),
+      mafiaVotes: new Map([
+        [8, 1],
+        [9, 1],
+      ]),
+    });
+    const next = applyAdvancePhase(base);
+    expect(next.lastNightVictimSeat).toBe(1);
+  });
+});
+
+describe('day rotation', () => {
+  // The engine takes two different paths into DAY_SPEECH:
+  //   NIGHT_ZERO → DAY_SPEECH (no dayNumber bump — first day only)
+  //   MORNING_ANNOUNCEMENT → DAY_SPEECH (bumps dayNumber by 1)
+  // Both end up calling dayStartSeat, so we exercise the rotation on both.
+
+  it('first day (via night_zero) starts at seat 1', () => {
+    // The buggy formula returned seat 0 (invalid) on the first day and
+    // accidentally found seat 1 via the search loop; this test pins the
+    // corrected behavior so that any future change shows up immediately.
+    const state = applyAdvancePhase(buildState({ phase: GAME_PHASE.NIGHT_ZERO, dayNumber: 0 }));
+    expect(state.phase).toBe(GAME_PHASE.DAY_SPEECH);
+    expect(state.currentSpeakerSeat).toBe(1);
+  });
+
+  it('second day (via morning) starts at seat 2', () => {
+    // Morning bumps dayNumber 0 → 1; dayStartSeat with 1 yields seat 2.
+    // Bug repro: previously this also returned seat 1.
+    const state = applyAdvancePhase(
+      buildState({ phase: GAME_PHASE.MORNING_ANNOUNCEMENT, dayNumber: 0 }),
+    );
+    expect(state.phase).toBe(GAME_PHASE.DAY_SPEECH);
+    expect(state.currentSpeakerSeat).toBe(2);
+  });
+
+  it('wraps every 10 days', () => {
+    // Morning at dayNumber=9 → bumps to 10 → (10 % 10) + 1 = 1.
+    const state = applyAdvancePhase(
+      buildState({ phase: GAME_PHASE.MORNING_ANNOUNCEMENT, dayNumber: 9 }),
+    );
+    expect(state.currentSpeakerSeat).toBe(1);
+  });
+});
+
+describe('applyJudgeRemove cleanup', () => {
+  it('purges removed player from nominations and their own cast vote', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 5],
+        [2, 5],
+        [3, 5], // seat 3 (about to be removed) votes for seat 5
+      ]),
+    });
+    const result = applyJudgeRemove(state, 'user-3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // Removed player's seat must vanish from nominations …
+    expect(result.data.nominationSeats).not.toContain(3);
+    // … and their cast vote (key on voterSeat) must be gone …
+    expect(result.data.votes.has(3)).toBe(false);
+    // … but unrelated voters' choices stay intact.
+    expect(result.data.votes.get(1)).toBe(5);
+    expect(result.data.votes.get(2)).toBe(5);
+  });
+
+  it('drops votes targeted at the removed player', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 3], // votes against seat 3 (about to be removed)
+        [2, 5],
+      ]),
+    });
+    const result = applyJudgeRemove(state, 'user-3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.votes.has(1)).toBe(false);
+    expect(result.data.votes.get(2)).toBe(5);
+  });
+
+  it('drops mafia votes by or against the removed player', () => {
+    const state = buildState({
+      phase: GAME_PHASE.NIGHT_MAFIA,
+      mafiaVotes: new Map([
+        [8, 1], // mafia at 8 votes seat 1
+        [9, 3], // mafia at 9 votes seat 3 (the one being removed)
+        [10, 1], // don votes seat 1
+      ]),
+    });
+    const result = applyJudgeRemove(state, 'user-3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Seat 9's vote targeted seat 3 → drop it. Other shooter votes stay.
+    expect(result.data.mafiaVotes.has(9)).toBe(false);
+    expect(result.data.mafiaVotes.get(8)).toBe(1);
+    expect(result.data.mafiaVotes.get(10)).toBe(1);
   });
 });

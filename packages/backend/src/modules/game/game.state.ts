@@ -44,6 +44,14 @@ export interface GameState {
   votes: Map<number, number>; // voter seat → candidate seat
 
   // Night-time transient state. Cleared at the end of each morning.
+  //
+  // mafiaVotes holds one entry per shooter (mafia + don) — voterSeat → targetSeat.
+  // Resolution at the end of night requires all alive black players to have voted
+  // AND voted for the same target; otherwise nobody dies (the "miss" rule of
+  // sport mafia). pendingMafiaTargetSeat mirrors the most recent write for
+  // backward-compatible projection — the UI shows it during the night so the
+  // mafia team has a hint of where the discussion is converging.
+  mafiaVotes: Map<number, number>;
   pendingMafiaTargetSeat: number | null;
   sheriffCheck: { byUserId: string; targetSeat: number; result: boolean } | null;
   donCheck: { byUserId: string; targetSeat: number; result: boolean } | null;

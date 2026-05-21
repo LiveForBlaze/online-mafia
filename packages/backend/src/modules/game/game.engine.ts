@@ -53,6 +53,7 @@ export const ENGINE_ERROR = {
   NOT_AUTHORIZED_ROLE: 'not_authorized_role',
   ALREADY_NOMINATED: 'already_nominated',
   ALREADY_VOTED: 'already_voted',
+  ALREADY_CHECKED: 'already_checked',
   GAME_OVER: 'game_over',
   CANNOT_TARGET_SELF: 'cannot_target_self',
   NO_NOMINATIONS_TO_VOTE: 'no_nominations_to_vote',
@@ -276,7 +277,35 @@ export function applyMafiaTarget(
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
 
-  return ok({ ...state, pendingMafiaTargetSeat: targetSeat });
+  // Record this shooter's individual vote. Consensus across all alive black
+  // players is computed at resolution time in applyAdvancePhase — if any of
+  // them voted for a different seat (or didn't vote at all), nobody dies.
+  const newVotes = new Map(state.mafiaVotes);
+  newVotes.set(actor.seat!, targetSeat);
+  return ok({
+    ...state,
+    mafiaVotes: newVotes,
+    // Last-write mirror so the existing UI keeps highlighting the most recent
+    // selection. Once we expose mafiaVotes to the client, this becomes derived
+    // and can be dropped from the projection.
+    pendingMafiaTargetSeat: targetSeat,
+  });
+}
+
+// Resolve the night's kill: if every alive shooter (mafia + don) voted AND
+// they all picked the same seat, that seat dies. Otherwise it's a miss —
+// no one dies. Returns null on miss / no consensus.
+function resolveMafiaConsensus(state: GameState): number | null {
+  const shooters = alivePlayers(state).filter((p) => p.role === ROLE.MAFIA || p.role === ROLE.DON);
+  if (shooters.length === 0) return null;
+  let agreed: number | null = null;
+  for (const shooter of shooters) {
+    const vote = state.mafiaVotes.get(shooter.seat!);
+    if (vote === undefined) return null;
+    if (agreed === null) agreed = vote;
+    else if (vote !== agreed) return null;
+  }
+  return agreed;
 }
 
 export function applyDonCheck(
@@ -290,6 +319,10 @@ export function applyDonCheck(
   if (!actor || actor.role !== ROLE.DON || !actor.isAlive) {
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
+  // One check per night. Don't let the don rescan and overwrite their first
+  // result — that would let them sample multiple targets and the audit log
+  // would only remember the final one.
+  if (state.donCheck !== null) return fail(ENGINE_ERROR.ALREADY_CHECKED);
 
   const target = findBySeat(state, targetSeat);
   if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
@@ -313,6 +346,8 @@ export function applySheriffCheck(
   if (!actor || actor.role !== ROLE.SHERIFF || !actor.isAlive) {
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
+  // One check per night — same reasoning as don.
+  if (state.sheriffCheck !== null) return fail(ENGINE_ERROR.ALREADY_CHECKED);
 
   const target = findBySeat(state, targetSeat);
   if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
@@ -353,9 +388,10 @@ export function applyAdvancePhase(state: GameState): GameState {
   }
 
   if (state.phase === GAME_PHASE.NIGHT_SHERIFF) {
-    // Tomorrow's morning: apply the mafia kill (if any) and bump the day counter.
-    if (next.pendingMafiaTargetSeat !== null) {
-      const victimSeat = next.pendingMafiaTargetSeat;
+    // Tomorrow's morning: resolve the mafia kill (requires consensus across all
+    // alive shooters — see resolveMafiaConsensus) and bump the day counter.
+    const victimSeat = resolveMafiaConsensus(next);
+    if (victimSeat !== null) {
       next = killSeat(next, victimSeat);
       next = { ...next, lastNightVictimSeat: victimSeat };
     } else {
@@ -368,6 +404,7 @@ export function applyAdvancePhase(state: GameState): GameState {
     next = {
       ...next,
       dayNumber: next.dayNumber + 1,
+      mafiaVotes: new Map(),
       pendingMafiaTargetSeat: null,
       lastNightVictimSeat: null,
       sheriffCheck: null,
@@ -410,12 +447,25 @@ export function applyAdvancePhase(state: GameState): GameState {
   return withFreshDeadline({ ...next, phase }, phase);
 }
 
-// Each new day starts one seat later than the previous one — day 1 begins
-// at seat 1, day 2 at seat 2, …, day 10 at seat 10, day 11 at seat 1.
-// If that nominal seat is dead/removed, walk clockwise to the next alive
-// seat. Returns null if nobody is left.
+// Each new day starts one seat later than the previous one.
+//
+// dayNumber is 0-indexed internally: the first DAY_SPEECH runs with
+// dayNumber=0 (the morning that follows night 0 hasn't incremented anything
+// yet), the second with dayNumber=1, etc. So `dayNumber % 10 + 1` gives:
+//   first day  (dayNumber=0)  → seat 1
+//   second day (dayNumber=1)  → seat 2
+//   …
+//   eleventh   (dayNumber=10) → seat 1 again
+//
+// The previous formula was `(dayNumber - 1) % 10 + 1`, which produced seat 0
+// on the first day (invalid) and then accidentally landed on seat 1 via the
+// search loop below — but it also returned seat 1 on the second day,
+// breaking the rotation rule. Confirmed by the multi-domain engine audit.
+//
+// If the nominal starting seat is dead/removed, walk clockwise to the next
+// alive seat. Returns null if nobody is left.
 function dayStartSeat(state: GameState): number | null {
-  const nominal = ((state.dayNumber - 1) % 10) + 1;
+  const nominal = (state.dayNumber % 10) + 1;
   const alive = alivePlayers(state);
   if (alive.length === 0) return null;
   for (let offset = 0; offset < 10; offset += 1) {
@@ -524,11 +574,42 @@ export function applyJudgeEndGame(state: GameState): EngineResult<GameState> {
 export function applyJudgeRemove(state: GameState, targetUserId: string): EngineResult<GameState> {
   const target = findByUserId(state, targetUserId);
   if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
+  const removedSeat = target.seat;
+
+  // Purge the removed player's footprint from in-flight day / night state so
+  // we don't end up with a phantom: dead player still listed as a vote
+  // candidate, votes for/by them counted, mafia vote sitting on a seat that
+  // no longer exists in the alive set. Without this cleanup, the engine
+  // audit found that vote tallies and mafia consensus would silently
+  // include data from someone who isn't in the game anymore.
+  const newNominations = state.nominationSeats.filter((s) => s !== removedSeat);
+  const newVotes = new Map(state.votes);
+  if (removedSeat !== null) {
+    newVotes.delete(removedSeat);
+    for (const [voterSeat, candidateSeat] of newVotes) {
+      if (candidateSeat === removedSeat) newVotes.delete(voterSeat);
+    }
+  }
+  const newMafiaVotes = new Map(state.mafiaVotes);
+  if (removedSeat !== null) {
+    newMafiaVotes.delete(removedSeat);
+    for (const [voterSeat, victimSeat] of newMafiaVotes) {
+      if (victimSeat === removedSeat) newMafiaVotes.delete(voterSeat);
+    }
+  }
+
   const next: GameState = {
     ...state,
     participants: state.participants.map((p) =>
       p.userId === targetUserId ? { ...p, isRemoved: true, isAlive: false } : p,
     ),
+    nominationSeats: newNominations,
+    votes: newVotes,
+    mafiaVotes: newMafiaVotes,
+    // If the removed player was the current speaker, surrender the floor;
+    // the judge will advance to the next speaker manually.
+    currentSpeakerSeat: state.currentSpeakerSeat === removedSeat ? null : state.currentSpeakerSeat,
+    farewellSeat: state.farewellSeat === removedSeat ? null : state.farewellSeat,
   };
   const winner = checkWinner(next);
   if (winner !== null) {
