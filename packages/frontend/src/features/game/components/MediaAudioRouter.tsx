@@ -1,10 +1,19 @@
 // Replaces <RoomAudioRenderer> with selective audio rendering.
 //
-// Instead of mixing every remote audio track into a single output (which would let a
-// civilian hear the mafia at night), we render an <AudioTrack> only for participants
-// the viewer is allowed to hear, using the same visibility rules as for video.
+// Instead of mixing every remote audio track into a single output (which would
+// let a civilian hear the mafia at night), we render one <AudioTrack> per
+// subscribed mic and silence it via volume when the viewer is not allowed to
+// hear that participant.
 //
-// NOTE: client-side enforcement only. See media-visibility.ts for the security caveat.
+// We deliberately keep every <AudioTrack> mounted for the full lifetime of the
+// subscription rather than unmounting it when audibility flips. Unmounting was
+// causing audible dropouts: when the rule flipped false → true (phase change,
+// speaker advance, etc.), the AudioTrack would re-mount, re-attach to the
+// HTMLMediaElement, and miss in-flight audio. Now the element stays attached
+// continuously; we just toggle its volume.
+//
+// NOTE: client-side enforcement only. See media-visibility.ts for the security
+// caveat.
 
 import { AudioTrack, useTracks, isTrackReference } from '@livekit/components-react';
 import { Track } from 'livekit-client';
@@ -33,10 +42,8 @@ function AudibleIfAllowed({
 }: {
   trackRef: ReturnType<typeof useTracks>[number] & { publication: NonNullable<unknown> };
 }) {
-  // Hooks must be called unconditionally — we run the audio rule inside the
-  // child component (one per track) so its dependency on game state is cleanly
-  // scoped to that participant.
   const mayHear = useShouldHearAudio(trackRef.participant.identity);
-  if (!mayHear) return null;
-  return <AudioTrack trackRef={trackRef} />;
+  // Always render — control audibility via volume so the underlying media
+  // element keeps its attachment across audibility flips.
+  return <AudioTrack trackRef={trackRef} volume={mayHear ? 1 : 0} />;
 }

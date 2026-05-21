@@ -6,7 +6,6 @@ import { TEAM, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { FullscreenToggle } from '@/features/game/components/FullscreenToggle.js';
-import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 
 interface PhaseHeaderProps {
   state: GameStateProjected;
@@ -65,10 +64,6 @@ export function PhaseHeader({
       </p>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Judge has no seat, so SelfMediaButtons live in the header instead
-            of inside a tile. Same controls (mic, camera, foul-by-self),
-            though "Сказать под фол" hides itself for the judge anyway. */}
-        {viewerIsJudge && <SelfMediaButtons />}
         <FullscreenToggle />
         <RoleBadge role={viewerRole} isJudge={viewerIsJudge} />
       </div>

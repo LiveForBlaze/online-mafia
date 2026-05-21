@@ -74,7 +74,17 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'not_participant' });
         return;
       }
-      await socket.join(gameRoomName(parsed.data.gameId));
+      // The client keeps a single socket alive across pages (lobby ↔ game), so a
+      // player jumping between games could otherwise stay subscribed to the old
+      // room and receive its broadcasts after switching. Leave every other game
+      // room first.
+      const targetRoom = gameRoomName(parsed.data.gameId);
+      for (const room of socket.rooms) {
+        if (room.startsWith('game:') && room !== targetRoom) {
+          await socket.leave(room);
+        }
+      }
+      await socket.join(targetRoom);
       const state = getGame(parsed.data.gameId);
       if (state) {
         socket.emit(SERVER_EVENT.GAME_STATE_DELTA, projectFor(state, userId));

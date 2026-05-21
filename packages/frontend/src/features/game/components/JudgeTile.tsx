@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import type { GameStateProjected } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
+import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
 import { userProfilePath } from '@/routes/paths.js';
 
@@ -77,6 +78,14 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
           </span>
         )}
       </div>
+
+      {/* Mic / camera controls — same placement as on a player's seat tile so
+          the judge doesn't have to hunt for them in the page header. */}
+      {isSelf && (
+        <div className="absolute top-1 left-1/2 -translate-x-1/2">
+          <SelfMediaButtons />
+        </div>
+      )}
 
       {/* Bottom strip with nickname */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
