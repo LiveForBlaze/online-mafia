@@ -25,6 +25,7 @@ import { RotateDeviceOverlay } from '@/features/game/components/RotateDeviceOver
 import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePanel.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
+import { useVoteHotkey } from '@/features/game/hooks/useVoteHotkey.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
@@ -82,6 +83,12 @@ export function GamePage() {
     const timer = window.setTimeout(() => goHome(), 1500);
     return () => window.clearTimeout(timer);
   }, [gameStatus, goHome]);
+
+  // Spacebar = "ЗА" during the sequential vote. Mounted unconditionally
+  // (state may still be null while we wait for the first delta); the hook
+  // no-ops when state isn't ready or the viewer isn't eligible to vote.
+  const viewerForHotkey = state?.participants.find((p) => p.userId === user?.id);
+  useVoteHotkey(state, viewerForHotkey?.seat ?? null, viewerForHotkey?.isAlive ?? false);
 
   if (!user || !gameId) return null;
 

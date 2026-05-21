@@ -326,7 +326,8 @@
       "voteRoundPrompt": "Кто за № {{seat}}? ({{current}}/{{total}})",
       "voteRoundPromptShort": "Раунд {{current}}/{{total}}",
       "voteRoundTally": "Голосов «За»: {{count}}",
-      "voteClosed": "Голосование завершено"
+      "voteClosed": "Голосование завершено",
+      "voteSpaceHint": "Подсказка: пробел = «ЗА»"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

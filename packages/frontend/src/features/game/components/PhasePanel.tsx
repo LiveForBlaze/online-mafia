@@ -109,6 +109,13 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
           {viewerIsAlive && hasVoted(state, viewerSeat) && (
             <p className="mt-1 text-sm text-success">{t('game.ui.voted')}</p>
           )}
+          {viewerIsAlive &&
+            !hasVoted(state, viewerSeat) &&
+            !votingClosed &&
+            currentCandidate !== undefined &&
+            viewerSeat !== currentCandidate && (
+              <p className="mt-1 text-xs text-muted">{t('game.ui.voteSpaceHint')}</p>
+            )}
         </PanelShell>
       );
     }

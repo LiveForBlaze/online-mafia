@@ -320,7 +320,8 @@
       "voteRoundPrompt": "Vote against №{{seat}}? ({{current}}/{{total}})",
       "voteRoundPromptShort": "Round {{current}}/{{total}}",
       "voteRoundTally": "Yes: {{count}}",
-      "voteClosed": "Voting closed"
+      "voteClosed": "Voting closed",
+      "voteSpaceHint": "Tip: Space = FOR"
     },
     "errors": {
       "not_participant": "You're not in this game",
