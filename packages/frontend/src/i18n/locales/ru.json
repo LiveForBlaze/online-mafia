@@ -119,7 +119,12 @@
       "emptyTitle": "Здесь пока тихо",
       "emptyDescription": "Сейчас нет открытых лобби. Создайте своё — и сядьте за стол первым.",
       "emptyCta": "Создать лобби",
-      "footer": "online-mafia · бета-версия · MIT"
+      "footer": "online-mafia · бета-версия · MIT",
+      "searchPlaceholder": "Поиск лобби по названию",
+      "noMatches": "Ничего не нашлось",
+      "filter_all": "Все",
+      "filter_public": "Открытые",
+      "filter_private": "Приватные"
     },
     "card": {
       "private": "Приватное",

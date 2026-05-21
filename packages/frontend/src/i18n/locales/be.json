@@ -119,7 +119,12 @@
       "emptyTitle": "Тут пакуль ціха",
       "emptyDescription": "Зараз няма адкрытых лобі. Стварыце сваё — і сядайце за стол першым.",
       "emptyCta": "Стварыць лобі",
-      "footer": "online-mafia · бэта-версія · MIT"
+      "footer": "online-mafia · бэта-версія · MIT",
+      "searchPlaceholder": "Пошук лобі па назве",
+      "noMatches": "Нічога не знойдзена",
+      "filter_all": "Усе",
+      "filter_public": "Адкрытыя",
+      "filter_private": "Прыватныя"
     },
     "card": {
       "private": "Прыватнае",

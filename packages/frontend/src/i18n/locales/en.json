@@ -113,7 +113,12 @@
       "emptyTitle": "It's quiet in here",
       "emptyDescription": "No open lobbies right now. Create one and take the first seat at the table.",
       "emptyCta": "Create lobby",
-      "footer": "online-mafia · beta · MIT"
+      "footer": "online-mafia · beta · MIT",
+      "searchPlaceholder": "Search lobbies by name",
+      "noMatches": "No matches",
+      "filter_all": "All",
+      "filter_public": "Open",
+      "filter_private": "Private"
     },
     "card": {
       "private": "Private",

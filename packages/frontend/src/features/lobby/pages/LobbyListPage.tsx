@@ -12,6 +12,8 @@ import { ApiError } from '@/lib/api-client.js';
 import { Button } from '@/components/ui/Button.js';
 import { gameApi } from '@/features/game/api/game.api.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
+import { Input } from '@/components/ui/Input.js';
+import { cn } from '@/lib/cn.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { EmptyLobbyState } from '@/features/lobby/components/EmptyLobbyState.js';
 import { HomeFeatures } from '@/features/lobby/components/HomeFeatures.js';
@@ -19,7 +21,6 @@ import { HomeFooter } from '@/features/lobby/components/HomeFooter.js';
 import { HomeHero } from '@/features/lobby/components/HomeHero.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
-import { LobbyStats } from '@/features/lobby/components/LobbyStats.js';
 import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
   useExtractLobbyErrorMessage,
@@ -50,6 +51,9 @@ export function LobbyListPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [privateLobbyId, setPrivateLobbyId] = useState<string | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  // 'all' shows every lobby, 'public' only open ones, 'private' only password-locked ones.
+  const [privacyFilter, setPrivacyFilter] = useState<'all' | 'public' | 'private'>('all');
 
   function handleJoinPublic(lobby: LobbySummary) {
     setInlineError(null);
@@ -80,14 +84,20 @@ export function LobbyListPage() {
     }
   }
 
-  const lobbies = lobbiesQuery.data?.lobbies ?? [];
+  const allLobbies = lobbiesQuery.data?.lobbies ?? [];
+  const searchTrim = search.trim().toLowerCase();
+  const lobbies = allLobbies.filter((lobby) => {
+    if (privacyFilter === 'public' && lobby.isPrivate) return false;
+    if (privacyFilter === 'private' && !lobby.isPrivate) return false;
+    if (searchTrim && !lobby.name.toLowerCase().includes(searchTrim)) return false;
+    return true;
+  });
+  const hasAnyLobbies = allLobbies.length > 0;
 
   return (
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-6xl space-y-8">
         <HomeHero onCreateLobby={() => setIsCreateOpen(true)} />
-
-        <LobbyStats lobbies={lobbies} />
 
         <div
           role="note"
@@ -126,8 +136,43 @@ export function LobbyListPage() {
           </p>
         )}
 
+        {/* Search + privacy filter. Only rendered when at least one lobby
+            exists — an empty board doesn't need filtering. */}
+        {hasAnyLobbies && (
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <Input
+              type="search"
+              placeholder={t('lobby.list.searchPlaceholder')}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="flex-1"
+            />
+            <div className="inline-flex rounded-md border border-border bg-card overflow-hidden shrink-0">
+              {(['all', 'public', 'private'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPrivacyFilter(value)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs sm:text-sm whitespace-nowrap transition',
+                    privacyFilter === value
+                      ? 'bg-bg text-fg font-semibold'
+                      : 'text-muted hover:text-fg hover:bg-bg',
+                  )}
+                >
+                  {t(`lobby.list.filter_${value}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {lobbies.length === 0 ? (
-          <EmptyLobbyState onCreate={() => setIsCreateOpen(true)} />
+          hasAnyLobbies ? (
+            <p className="text-center text-sm text-muted py-8">{t('lobby.list.noMatches')}</p>
+          ) : (
+            <EmptyLobbyState onCreate={() => setIsCreateOpen(true)} />
+          )
         ) : (
           <div className="space-y-3">
             {lobbies.map((lobby) => (
