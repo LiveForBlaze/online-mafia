@@ -40,7 +40,7 @@ export function MainLayout() {
 function TopNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/70">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-14 items-center justify-between gap-3">
           <NavLink
             to={ROUTE_PATH.HOME}

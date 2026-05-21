@@ -82,7 +82,7 @@ export function LobbyListPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mx-auto max-w-5xl space-y-8">
+      <div className="mx-auto max-w-6xl space-y-8">
         <HomeHero onCreateLobby={() => setIsCreateOpen(true)} />
 
         <LobbyStats lobbies={lobbies} />

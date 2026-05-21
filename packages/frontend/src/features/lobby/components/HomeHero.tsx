@@ -13,7 +13,7 @@ interface HomeHeroProps {
 export function HomeHero({ onCreateLobby }: HomeHeroProps) {
   const navigate = useNavigate();
   return (
-    <section className="relative grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-center py-6 sm:py-10">
+    <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center py-6 sm:py-10">
       <div className="space-y-5">
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[0.95] tracking-tight uppercase">
           <span className="block text-fg">Мафия</span>
@@ -41,16 +41,18 @@ export function HomeHero({ onCreateLobby }: HomeHeroProps) {
 }
 
 // The splash sits in /public so it's served straight by the static file server
-// — no Vite import needed. A soft mask fades the edges into the page bg so
-// the hard rectangular crop doesn't read.
+// — no Vite import needed. A vertical mask fades the top + bottom of the
+// image into the page bg so the rectangular crop doesn't read.
 function SplashImage() {
   return (
     <div
-      className="relative w-[420px] max-w-full aspect-[16/9] bg-no-repeat bg-center bg-cover"
+      className="relative w-full aspect-[16/10] bg-no-repeat bg-center bg-cover"
       style={{
         backgroundImage: 'url(/splash-hero.png)',
-        maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 92%)',
-        WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 92%)',
+        maskImage:
+          'linear-gradient(to bottom, transparent 0%, black 18%, black 78%, transparent 100%)',
+        WebkitMaskImage:
+          'linear-gradient(to bottom, transparent 0%, black 18%, black 78%, transparent 100%)',
       }}
       aria-hidden="true"
     />
