@@ -208,6 +208,12 @@
       "unauthenticated": "Sign in again",
       "unknown": "Something went wrong",
       "lobby_name_rejected": "This lobby name didn't pass moderation. Please pick another."
+    },
+    "chat": {
+      "title": "Lobby chat",
+      "placeholder": "Type a message...",
+      "send": "Send",
+      "empty": "No messages yet. Say hi!"
     }
   },
   "game": {

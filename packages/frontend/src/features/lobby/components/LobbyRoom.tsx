@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 
 import { JudgeSlot } from './JudgeSlot.js';
+import { LobbyChat } from './LobbyChat.js';
 import { SeatGrid } from './SeatGrid.js';
 
 interface LobbyRoomProps {
@@ -124,6 +125,8 @@ export function LobbyRoom({
               : t('lobby.room.judgeAbsent')}
           </p>
         </section>
+
+        <LobbyChat lobbyId={lobby.id} viewerUserId={currentUserId} className="h-80" />
 
         {errorMessage && (
           <p role="alert" className="text-sm text-danger">

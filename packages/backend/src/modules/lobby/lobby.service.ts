@@ -28,6 +28,7 @@ import { endActiveGameForLobby, removeUserFromActiveGameForLobby } from '../game
 
 import { LOBBY_ERROR, type LobbyErrorCode } from './lobby.errors.js';
 import { broadcastLobbyUpdate } from './lobby.broadcast.js';
+import { clearLobbyChat } from './lobby.chat.js';
 import { toLobbyDetails, toLobbySummary } from './lobby.mappers.js';
 
 // ---- Result types ----
@@ -284,6 +285,9 @@ export async function closeLobby(
     where: { id: lobbyId },
     data: { status: 'CLOSED' },
   });
+  // Chat is an in-memory pre-game buffer; once the lobby closes there's no
+  // one left to read it and no reason to keep the messages around.
+  clearLobbyChat(lobbyId);
   void broadcastLobbyUpdate(lobbyId);
   return ok({ closed: true });
 }

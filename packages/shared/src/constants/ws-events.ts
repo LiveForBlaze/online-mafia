@@ -11,6 +11,10 @@ export const SERVER_EVENT = {
   LOBBY_UPDATED: 'server:lobby_updated',
   LOBBY_PLAYER_JOINED: 'server:lobby_player_joined',
   LOBBY_PLAYER_LEFT: 'server:lobby_player_left',
+  // New chat message broadcast to everyone in the lobby room. Payload:
+  // { lobbyId, message: LobbyChatMessage }. Stored only in memory on the
+  // server (no DB) — lobby chat is a pre-game niceness, not a record.
+  LOBBY_CHAT_MESSAGE: 'server:lobby_chat_message',
 
   // Game lifecycle
   GAME_STARTED: 'server:game_started',
@@ -39,6 +43,7 @@ export const CLIENT_EVENT = {
   LOBBY_JOIN: 'client:lobby_join',
   LOBBY_LEAVE: 'client:lobby_leave',
   LOBBY_START_GAME: 'client:lobby_start_game',
+  LOBBY_CHAT_SEND: 'client:lobby_chat_send',
 
   // Game actions by players
   CAST_VOTE: 'client:cast_vote',

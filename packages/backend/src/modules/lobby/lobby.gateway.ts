@@ -5,11 +5,13 @@
 // (called from the service layer after each successful mutation).
 
 import type { FastifyInstance } from 'fastify';
+import { SERVER_EVENT, lobbyChatSendPayloadSchema } from '@mafia/shared';
 import { z } from 'zod';
 
 import { prisma } from '../../db/prisma.client.js';
 
 import { attachIO, lobbyRoomName } from './lobby.broadcast.js';
+import { appendLobbyChatMessage, getLobbyChatHistory } from './lobby.chat.js';
 
 const lobbyJoinPayloadSchema = z.object({
   lobbyId: z.string().uuid(),
@@ -17,6 +19,7 @@ const lobbyJoinPayloadSchema = z.object({
 
 const CLIENT_LOBBY_JOIN = 'client:lobby_join';
 const CLIENT_LOBBY_LEAVE = 'client:lobby_leave';
+const CLIENT_LOBBY_CHAT_SEND = 'client:lobby_chat_send';
 
 export function registerLobbyGateway(app: FastifyInstance): void {
   attachIO(app.io);
@@ -44,6 +47,51 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         return;
       }
       await socket.join(lobbyRoomName(parsed.data.lobbyId));
+      // Replay the current chat buffer to the joiner so they don't land on
+      // an empty pane. New broadcasts arrive over the live channel below.
+      const history = getLobbyChatHistory(parsed.data.lobbyId);
+      for (const message of history) {
+        socket.emit(SERVER_EVENT.LOBBY_CHAT_MESSAGE, { message });
+      }
+      ack?.({ ok: true });
+    });
+
+    socket.on(CLIENT_LOBBY_CHAT_SEND, async (payload, ack) => {
+      const parsed = lobbyChatSendPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
+        ack?.({ ok: false, error: 'invalid_payload' });
+        return;
+      }
+      const userId = socket.data.user?.sub;
+      if (!userId) {
+        ack?.({ ok: false, error: 'unauthenticated' });
+        return;
+      }
+      // Only lobby members can speak. We re-check on every send rather than
+      // trusting the room join — kicked players might still be in the socket
+      // room until cleanup completes.
+      const member = await prisma.lobbyMember.findUnique({
+        where: { lobbyId_userId: { lobbyId: parsed.data.lobbyId, userId } },
+        include: {
+          user: { select: { nickname: true, publicCode: true } },
+        },
+      });
+      if (!member) {
+        ack?.({ ok: false, error: 'not_member' });
+        return;
+      }
+      const message = appendLobbyChatMessage(
+        parsed.data.lobbyId,
+        {
+          userId,
+          nickname: member.user.nickname,
+          publicCode: member.user.publicCode ?? undefined,
+        },
+        parsed.data.text,
+      );
+      app.io.to(lobbyRoomName(parsed.data.lobbyId)).emit(SERVER_EVENT.LOBBY_CHAT_MESSAGE, {
+        message,
+      });
       ack?.({ ok: true });
     });
 

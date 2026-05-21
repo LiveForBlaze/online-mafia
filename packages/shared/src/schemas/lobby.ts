@@ -82,6 +82,38 @@ export const lobbyMemberPublicSchema = z.object({
 });
 export type LobbyMemberPublic = z.infer<typeof lobbyMemberPublicSchema>;
 
+// ---- Chat ----
+
+// Hard cap on a single chat message. Generous enough for a normal sentence;
+// tight enough that no one is going to paste a wall of text into pre-game.
+export const LOBBY_CHAT_MAX_LENGTH = 500;
+
+// Server → client: a chat message that was just broadcast to the lobby room.
+export const lobbyChatMessageSchema = z.object({
+  id: z.string(),
+  lobbyId: z.string().uuid(),
+  fromUserId: z.string().uuid(),
+  fromNickname: z.string(),
+  fromPublicCode: z.string().optional(),
+  text: z.string().min(1).max(LOBBY_CHAT_MAX_LENGTH),
+  // ISO datetime for ordering / display.
+  sentAt: z.string().datetime(),
+});
+export type LobbyChatMessage = z.infer<typeof lobbyChatMessageSchema>;
+
+// Client → server: send a new chat message into the lobby room.
+export const lobbyChatSendPayloadSchema = z.object({
+  lobbyId: z.string().uuid(),
+  text: z.string().trim().min(1).max(LOBBY_CHAT_MAX_LENGTH),
+});
+export type LobbyChatSendPayload = z.infer<typeof lobbyChatSendPayloadSchema>;
+
+// Wrapper used when the server pushes the message back to subscribers.
+export const lobbyChatBroadcastSchema = z.object({
+  message: lobbyChatMessageSchema,
+});
+export type LobbyChatBroadcast = z.infer<typeof lobbyChatBroadcastSchema>;
+
 export const lobbyStatusSchema = z.enum([
   LOBBY_STATUS.WAITING,
   LOBBY_STATUS.IN_GAME,
