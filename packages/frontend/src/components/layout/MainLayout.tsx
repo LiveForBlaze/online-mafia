@@ -9,7 +9,6 @@
 import { NavLink, Outlet } from 'react-router';
 
 import { cn } from '@/lib/cn.js';
-import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
 import { UserChip } from '@/components/ui/UserChip.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
@@ -57,7 +56,6 @@ function TopNav() {
           </nav>
 
           <div className="flex items-center gap-2 shrink-0">
-            <ThemeToggle />
             <UserChip />
           </div>
         </div>

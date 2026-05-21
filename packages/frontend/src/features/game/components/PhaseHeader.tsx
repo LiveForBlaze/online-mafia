@@ -3,7 +3,6 @@
 import { TEAM, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
-import { ThemeToggle } from '@/components/ui/ThemeToggle.js';
 import { FullscreenToggle } from '@/features/game/components/FullscreenToggle.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { GAME_MESSAGES } from '@/features/game/messages.js';
@@ -68,7 +67,6 @@ export function PhaseHeader({
             of inside a tile. Same controls (mic, camera, foul-by-self),
             though "Сказать под фол" hides itself for the judge anyway. */}
         {viewerIsJudge && <SelfMediaButtons />}
-        <ThemeToggle />
         <FullscreenToggle />
         <RoleBadge role={viewerRole} isJudge={viewerIsJudge} />
       </div>
