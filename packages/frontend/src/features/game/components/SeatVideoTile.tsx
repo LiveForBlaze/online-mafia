@@ -8,7 +8,7 @@ import { Track, type TrackPublication } from 'livekit-client';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
-import type { GameParticipantPublic } from '@mafia/shared';
+import { FOUL_MUTE_THRESHOLD, type GameParticipantPublic } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
@@ -116,11 +116,31 @@ export function SeatVideoTile({
             </div>
           )}
 
+          {/* Muted players (3+ fouls) get a prominent corner badge so the judge
+              can scan the table and immediately see who's lost their right to
+              speak. The badge stacks on top of the role label in the top-right. */}
+          {participant.foulsCount >= FOUL_MUTE_THRESHOLD && (
+            <div className="absolute top-1 right-1 mt-6">
+              <span className="rounded bg-danger text-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow">
+                {t('game.ui.muted')}
+              </span>
+            </div>
+          )}
+
           {/* Bottom strip: fouls → nickname → action. The fouls line is always rendered
               (with `invisible` when none) so the gradient height matches across tiles
-              regardless of whether someone has fouls. */}
+              regardless of whether someone has fouls. Once they hit the mute
+              threshold the count flips from yellow warning to red danger. */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 space-y-1">
-            <p className={cn('text-xs text-warning', participant.foulsCount === 0 && 'invisible')}>
+            <p
+              className={cn(
+                'text-xs',
+                participant.foulsCount === 0 && 'invisible',
+                participant.foulsCount >= FOUL_MUTE_THRESHOLD
+                  ? 'text-danger font-semibold'
+                  : 'text-warning',
+              )}
+            >
               {t('game.ui.foulsCount', { count: participant.foulsCount })}
             </p>
             {participant.publicCode ? (

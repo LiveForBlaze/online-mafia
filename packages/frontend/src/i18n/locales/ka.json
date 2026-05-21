@@ -230,7 +230,8 @@
       "night_don": "Ночь — проверка дона",
       "night_sheriff": "Ночь — проверка шерифа",
       "morning_announcement": "Утро — итоги ночи",
-      "game_over": "Игра окончена"
+      "game_over": "Игра окончена",
+      "day_lift_vote": "ყველას მოწევა?"
     },
     "role": {
       "civilian": "Мирный",
@@ -311,7 +312,16 @@
       "lhTitle": "საუკეთესო სვლა",
       "lhHint": "აირჩიეთ 3-მდე მოთამაშე, რომელსაც მაფიად მიიჩნევთ",
       "lhSubmit": "გაგზავნა",
-      "lhSubmitted": "საუკეთესო სვლა გაგზავნილია"
+      "lhSubmitted": "საუკეთესო სვლა გაგზავნილია",
+      "muted": "MUTE",
+      "rolesReveal": "როლების გამოვლენა",
+      "lhPerfect": "სრულყოფილი!",
+      "liftPrompt": "ხმის მიცემა: მოვაცილოთ ყველა სადავო ერთად?",
+      "liftYes": "კი",
+      "liftNo": "არა",
+      "liftMyVoteYes": "თქვენ მიეცი ხმა ZA",
+      "liftMyVoteNo": "თქვენ მიეცი ხმა ПРОТИВ",
+      "liftTally": "კი: {{yes}}  არა: {{no}}"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

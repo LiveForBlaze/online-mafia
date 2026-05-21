@@ -108,6 +108,9 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
         </PanelShell>
       );
 
+    case GAME_PHASE.DAY_LIFT_VOTE:
+      return <LiftAllVotePanel state={state} viewerIsAlive={viewerIsAlive} />;
+
     case GAME_PHASE.DAY_LAST_WORD:
       return (
         <PanelShell>
@@ -214,6 +217,70 @@ function NightCheckPanel({
           </span>
         </p>
       )}
+    </PanelShell>
+  );
+}
+
+// "Lift all" yes/no ballot panel — shown during DAY_LIFT_VOTE. Big yes/no
+// buttons for the viewer (if alive and hasn't voted), running tally for
+// everyone. Anonymous: no per-voter breakdown leaks.
+function LiftAllVotePanel({
+  state,
+  viewerIsAlive,
+}: {
+  state: GameStateProjected;
+  viewerIsAlive: boolean;
+}) {
+  const { t } = useTranslation();
+  const [pending, setPending] = useState<boolean | null>(null);
+
+  async function vote(yes: boolean) {
+    if (state.myLiftAllVote !== null || !viewerIsAlive || pending !== null) return;
+    setPending(yes);
+    try {
+      await emitGameAction(CLIENT_EVENT.LIFT_ALL_VOTE, { yes });
+    } finally {
+      setPending(null);
+    }
+  }
+
+  const hasVoted = state.myLiftAllVote !== null;
+  const canVote = viewerIsAlive && !hasVoted;
+
+  return (
+    <PanelShell>
+      <p className="text-fg">{t(`game.phase.${GAME_PHASE.DAY_LIFT_VOTE}`)}.</p>
+      {state.tiedSeats.length > 0 && (
+        <p className="mt-1 text-xs text-muted">
+          {t('game.ui.tiedCandidates')}: {state.tiedSeats.map((s) => `№${s}`).join(', ')}
+        </p>
+      )}
+      <p className="mt-2 text-sm text-muted">{t('game.ui.liftPrompt')}</p>
+
+      {hasVoted && (
+        <p className="mt-2 text-sm text-success">
+          {state.myLiftAllVote ? t('game.ui.liftMyVoteYes') : t('game.ui.liftMyVoteNo')}
+        </p>
+      )}
+
+      {canVote && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => vote(true)}
+            disabled={pending !== null}
+            className="bg-danger hover:bg-danger/90"
+          >
+            {t('game.ui.liftYes')}
+          </Button>
+          <Button onClick={() => vote(false)} disabled={pending !== null} variant="secondary">
+            {t('game.ui.liftNo')}
+          </Button>
+        </div>
+      )}
+
+      <p className="mt-3 text-xs font-mono text-muted">
+        {t('game.ui.liftTally', { yes: state.liftAllTally.yes, no: state.liftAllTally.no })}
+      </p>
     </PanelShell>
   );
 }

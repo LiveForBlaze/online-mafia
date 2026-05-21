@@ -91,6 +91,11 @@ export interface GameState {
   // hands the floor to the next tied seat.
   shootoutSpeakerIdx: number;
 
+  // "Lift all" yes/no ballots cast during DAY_LIFT_VOTE — voterSeat → vote.
+  // Resolved at the phase exit: simple majority of cast ballots kills every
+  // seat in tiedSeats. Cleared when DAY_LIFT_VOTE exits.
+  liftAllVotes: Map<number, boolean>;
+
   // "Best move" (Лучший Ход) guesses made by eliminated players during their
   // last word. One entry per eliminated player; they nominate 1–3 seats they
   // think are the mafia team. Scored by a future stats / tournament module

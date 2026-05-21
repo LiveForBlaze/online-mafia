@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
+import { GameOverReview } from '@/features/game/components/GameOverReview.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
 
 interface InfoTileProps {
@@ -85,12 +86,7 @@ function Body({
 }) {
   const { t } = useTranslation();
   if (state.status === 'finished') {
-    return (
-      <div className="text-base text-fg">
-        {state.winner &&
-          t('game.ui.winner', { team: t(`game.team.${state.winner}`).toLowerCase() })}
-      </div>
-    );
+    return <GameOverReview state={state} />;
   }
 
   switch (state.phase) {

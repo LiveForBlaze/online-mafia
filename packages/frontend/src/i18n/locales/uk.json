@@ -230,7 +230,8 @@
       "night_don": "Ніч — перевірка дона",
       "night_sheriff": "Ніч — перевірка шерифа",
       "morning_announcement": "Ранок — підсумки ночі",
-      "game_over": "Гру закінчено"
+      "game_over": "Гру закінчено",
+      "day_lift_vote": "Підняти всіх?"
     },
     "role": {
       "civilian": "Мирний",
@@ -311,7 +312,16 @@
       "lhTitle": "Найкращий хід",
       "lhHint": "Виберіть до 3 гравців, яких вважаєте мафією",
       "lhSubmit": "Відправити",
-      "lhSubmitted": "Найкращий хід відправлено"
+      "lhSubmitted": "Найкращий хід відправлено",
+      "muted": "MUTE",
+      "rolesReveal": "Розкриття ролей",
+      "lhPerfect": "НХ!",
+      "liftPrompt": "Голосування: підняти всіх спірних одним залпом?",
+      "liftYes": "Так",
+      "liftNo": "Ні",
+      "liftMyVoteYes": "Ви проголосували ЗА",
+      "liftMyVoteNo": "Ви проголосували ПРОТИ",
+      "liftTally": "За: {{yes}}  Проти: {{no}}"
     },
     "errors": {
       "not_participant": "Вас немає в цій грі",

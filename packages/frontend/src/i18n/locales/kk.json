@@ -230,7 +230,8 @@
       "night_don": "Ночь — проверка дона",
       "night_sheriff": "Ночь — проверка шерифа",
       "morning_announcement": "Утро — итоги ночи",
-      "game_over": "Игра окончена"
+      "game_over": "Игра окончена",
+      "day_lift_vote": "Барлығын көтеру керек пе?"
     },
     "role": {
       "civilian": "Мирный",
@@ -311,7 +312,16 @@
       "lhTitle": "Үздік қадам",
       "lhHint": "Мафия деп санайтын 3-ке дейінгі ойыншыны таңдаңыз",
       "lhSubmit": "Жіберу",
-      "lhSubmitted": "Үздік қадам жіберілді"
+      "lhSubmitted": "Үздік қадам жіберілді",
+      "muted": "MUTE",
+      "rolesReveal": "Рөлдер ашылды",
+      "lhPerfect": "Тамаша!",
+      "liftPrompt": "Дауыс: барлық даулыларды бір залппен көтеру?",
+      "liftYes": "Иә",
+      "liftNo": "Жоқ",
+      "liftMyVoteYes": "Сіз ИӘ деп дауыс бердіңіз",
+      "liftMyVoteNo": "Сіз ЖОҚ деп дауыс бердіңіз",
+      "liftTally": "Иә: {{yes}}  Жоқ: {{no}}"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

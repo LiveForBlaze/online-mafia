@@ -23,6 +23,7 @@ import {
   applyDonCheck,
   applyJudgeFoul,
   applyJudgeRemove,
+  applyLiftAllVote,
   applyMafiaTarget,
   applyNextSpeaker,
   applyNominate,
@@ -126,6 +127,7 @@ function replayState(
     lastWordIdx: 0,
     tiedSeats: [],
     shootoutSpeakerIdx: 0,
+    liftAllVotes: new Map(),
     bestMoveGuesses: [],
     winner: null,
     nextEventSeq: 0,
@@ -206,6 +208,14 @@ function applyEvent(state: GameState, event: EventLike): GameState {
       return r.ok ? r.data : state;
     }
 
+    case GAME_EVENT_TYPE.LIFT_ALL_VOTED: {
+      if (!event.actorId) return state;
+      const yes = extractBoolean(event.payload, 'yes');
+      if (yes === null) return state;
+      const r = applyLiftAllVote(state, event.actorId, yes);
+      return r.ok ? r.data : state;
+    }
+
     case GAME_EVENT_TYPE.BEST_MOVE_GUESSED: {
       if (!event.actorId) return state;
       const seats = extractSeatList(event.payload, 'guessedSeats');
@@ -240,6 +250,14 @@ function extractSeatList(payload: Prisma.JsonValue, field: string): number[] {
     }
   }
   return [];
+}
+
+function extractBoolean(payload: Prisma.JsonValue, field: string): boolean | null {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const value = (payload as Record<string, unknown>)[field];
+    if (typeof value === 'boolean') return value;
+  }
+  return null;
 }
 
 function extractString(payload: Prisma.JsonValue, field: string): string | null {

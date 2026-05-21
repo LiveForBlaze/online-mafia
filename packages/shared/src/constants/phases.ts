@@ -24,6 +24,11 @@ export const GAME_PHASE = {
   // Each tied player gives a short final speech, then the table decides to lift all or none.
   DAY_SHOOTOUT: 'day_shootout',
 
+  // After a second tie on revote: the table votes yes/no to "lift all" (kill
+  // every tied player). Per classic ФИИМ, a simple majority of yes votes
+  // among cast ballots kills all tied; otherwise no one dies that day.
+  DAY_LIFT_VOTE: 'day_lift_vote',
+
   // Voted-out player gives the final word.
   DAY_LAST_WORD: 'day_last_word',
 
@@ -51,6 +56,7 @@ export const DAY_PHASES: ReadonlyArray<GamePhase> = [
   GAME_PHASE.DAY_VOTE,
   GAME_PHASE.DAY_REVOTE,
   GAME_PHASE.DAY_SHOOTOUT,
+  GAME_PHASE.DAY_LIFT_VOTE,
   GAME_PHASE.DAY_LAST_WORD,
 ];
 

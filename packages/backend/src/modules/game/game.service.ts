@@ -25,6 +25,7 @@ import {
   applyJudgeEndGame,
   applyJudgeFoul,
   applyJudgeRemove,
+  applyLiftAllVote,
   applyMafiaTarget,
   applyNextSpeaker,
   applyNominate,
@@ -70,6 +71,8 @@ export const GAME_EVENT_TYPE = {
   // Лучший Ход (best-move guess) cast by an eliminated player during their
   // last word. Payload: { byUserId, guessedSeats: number[] }.
   BEST_MOVE_GUESSED: 'best_move_guessed',
+  // Yes/no ballot during DAY_LIFT_VOTE. Payload: { yes: boolean }.
+  LIFT_ALL_VOTED: 'lift_all_voted',
   GAME_ENDED: 'game_ended',
 } as const;
 
@@ -185,6 +188,7 @@ export async function createGameFromLobby(
     lastWordIdx: 0,
     tiedSeats: [],
     shootoutSpeakerIdx: 0,
+    liftAllVotes: new Map(),
     bestMoveGuesses: [],
     winner: null,
     nextEventSeq: 1,
@@ -727,6 +731,24 @@ export async function judgeIssueFoul(
 
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_ISSUED, ctx.userId, { targetUserId });
+    return ok(await commit(next));
+  });
+}
+
+// "Lift all" yes/no ballot during DAY_LIFT_VOTE.
+export async function castLiftAllVote(
+  ctx: ActionContext,
+  yes: boolean,
+): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+
+    const engineResult = applyLiftAllVote(loaded.data.state, ctx.userId, yes);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.LIFT_ALL_VOTED, ctx.userId, { yes });
     return ok(await commit(next));
   });
 }

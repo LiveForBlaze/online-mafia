@@ -19,6 +19,7 @@ import {
   donCheckPayloadSchema,
   judgeFoulPayloadSchema,
   judgeRemovePayloadSchema,
+  liftAllVotePayloadSchema,
   mafiaTargetPayloadSchema,
   nominatePayloadSchema,
   sheriffCheckPayloadSchema,
@@ -30,6 +31,7 @@ import { projectFor } from './game.engine.js';
 import { getGame } from './game.registry.js';
 import {
   castBestMoveGuess,
+  castLiftAllVote,
   castVote,
   checkAsDon,
   checkAsSheriff,
@@ -162,6 +164,13 @@ export function registerGameGateway(app: FastifyInstance): void {
       CLIENT_EVENT.BEST_MOVE_GUESS,
       withSchema(socket, bestMoveGuessPayloadSchema, (data) =>
         castBestMoveGuess({ gameId: getGameIdFromSocket(socket), userId }, data.guessedSeats),
+      ),
+    );
+
+    socket.on(
+      CLIENT_EVENT.LIFT_ALL_VOTE,
+      withSchema(socket, liftAllVotePayloadSchema, (data) =>
+        castLiftAllVote({ gameId: getGameIdFromSocket(socket), userId }, data.yes),
       ),
     );
 

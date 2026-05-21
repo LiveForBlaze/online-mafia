@@ -11,7 +11,7 @@ import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
 import { useNavigate } from 'react-router';
 
-import type { GameParticipantPublic } from '@mafia/shared';
+import { FOUL_MUTE_THRESHOLD, type GameParticipantPublic } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
@@ -78,6 +78,23 @@ export function MobileSeatTile({
           {voteCountAgainst !== undefined && voteCountAgainst > 0 && (
             <span className="absolute top-0.5 right-1 z-10 rounded bg-warning/85 text-white px-1 py-0.5 text-[10px] font-semibold">
               {voteCountAgainst}
+            </span>
+          )}
+
+          {/* Foul counter / mute indicator. Yellow for warnings (1-2 fouls),
+              red+bold once the player crosses into mute territory (3+). */}
+          {participant.foulsCount > 0 && (
+            <span
+              className={cn(
+                'absolute bottom-7 left-1 z-10 rounded px-1 py-0.5 text-[10px] font-bold leading-none',
+                participant.foulsCount >= FOUL_MUTE_THRESHOLD
+                  ? 'bg-danger text-white'
+                  : 'bg-warning/85 text-white',
+              )}
+            >
+              {participant.foulsCount >= FOUL_MUTE_THRESHOLD
+                ? `${participant.foulsCount}!`
+                : participant.foulsCount}
             </span>
           )}
 

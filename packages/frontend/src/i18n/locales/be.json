@@ -230,7 +230,8 @@
       "night_don": "Ноч — праверка дона",
       "night_sheriff": "Ноч — праверка шэрыфа",
       "morning_announcement": "Раніца — вынікі ночы",
-      "game_over": "Гульня скончана"
+      "game_over": "Гульня скончана",
+      "day_lift_vote": "Падняць усіх?"
     },
     "role": {
       "civilian": "Мірны",
@@ -311,7 +312,16 @@
       "lhTitle": "Лепшы ход",
       "lhHint": "Абярыце да 3 гульцоў, якіх лічыце мафіяй",
       "lhSubmit": "Адправіць",
-      "lhSubmitted": "Лепшы ход адпраўлены"
+      "lhSubmitted": "Лепшы ход адпраўлены",
+      "muted": "MUTE",
+      "rolesReveal": "Раскрыццё роляў",
+      "lhPerfect": "ЛХ!",
+      "liftPrompt": "Галасаванне: падняць усіх спрэчных адным залпам?",
+      "liftYes": "Так",
+      "liftNo": "Не",
+      "liftMyVoteYes": "Вы прагаласавалі ЗА",
+      "liftMyVoteNo": "Вы прагаласавалі СУПРАЦЬ",
+      "liftTally": "За: {{yes}}  Супраць: {{no}}"
     },
     "errors": {
       "not_participant": "Вас няма ў гэтай гульні",

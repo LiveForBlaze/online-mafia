@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
+import { GameOverReview } from '@/features/game/components/GameOverReview.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
 
 interface MobileStageProps {
@@ -61,12 +62,7 @@ export function MobileStage({ state, viewerRole, viewerSeat, viewerIsAlive }: Mo
 function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStageProps) {
   const { t } = useTranslation();
   if (state.status === 'finished') {
-    return (
-      <p className="text-base font-semibold text-fg">
-        {state.winner &&
-          t('game.ui.winner', { team: t(`game.team.${state.winner}`).toLowerCase() })}
-      </p>
-    );
+    return <GameOverReview state={state} />;
   }
 
   // Check result — promoted to the strip's dominant element when set.
@@ -167,6 +163,23 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
           {state.lastWordSeat !== null && (
             <p className="text-base font-bold text-warning">
               {t('game.ui.lastWordSpeaker', { seat: state.lastWordSeat })}
+            </p>
+          )}
+        </div>
+      );
+
+    case GAME_PHASE.DAY_LIFT_VOTE:
+      return (
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-sm text-fg">
+            {t('game.ui.tiedCandidates')}: {state.tiedSeats.map((s) => `№${s}`).join(', ')}
+          </p>
+          <p className="text-xs font-mono text-muted">
+            {t('game.ui.liftTally', { yes: state.liftAllTally.yes, no: state.liftAllTally.no })}
+          </p>
+          {state.myLiftAllVote !== null && (
+            <p className="text-xs text-success">
+              {state.myLiftAllVote ? t('game.ui.liftMyVoteYes') : t('game.ui.liftMyVoteNo')}
             </p>
           )}
         </div>

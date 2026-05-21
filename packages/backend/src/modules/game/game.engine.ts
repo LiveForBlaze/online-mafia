@@ -235,8 +235,17 @@ export function nextPhase(state: GameState): GamePhase {
       // tied seats.
       return GAME_PHASE.DAY_REVOTE;
     case GAME_PHASE.DAY_REVOTE:
-      // Mirror of DAY_VOTE, except a second tie just goes to night (V0 omits
-      // the "поднять всех" lift-all branch — see commit notes).
+      // Three outcomes after revote, mirror of DAY_VOTE plus the ФИИМ
+      // "lift all" branch when the table is still split:
+      //   - clear winner → DAY_LAST_WORD
+      //   - tied again   → DAY_LIFT_VOTE (yes/no on killing everyone tied)
+      //   - no votes     → NIGHT_MAFIA
+      if (state.lastWordSeats.length > 0) return GAME_PHASE.DAY_LAST_WORD;
+      if (state.tiedSeats.length >= 2) return GAME_PHASE.DAY_LIFT_VOTE;
+      return GAME_PHASE.NIGHT_MAFIA;
+    case GAME_PHASE.DAY_LIFT_VOTE:
+      // Majority-yes drops every tied seat into lastWordSeats; otherwise the
+      // queue is empty and we head to night with no one dying.
       if (state.lastWordSeats.length > 0) return GAME_PHASE.DAY_LAST_WORD;
       return GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.DAY_LAST_WORD:
@@ -474,16 +483,71 @@ export function applyAdvancePhase(state: GameState): GameState {
         lastWordSeats: [eliminatedSeat],
         lastWordIdx: 0,
         currentSpeakerSeat: eliminatedSeat,
+        // Tie-break trail is consumed.
+        votes: new Map(),
+        nominationSeats: [],
+        tiedSeats: [],
+        shootoutSpeakerIdx: 0,
+      };
+    } else {
+      const stillTied = findTiedSeats(state);
+      if (stillTied.length >= 2) {
+        // Second tie — table proceeds to the "lift all" vote. Keep tiedSeats
+        // (the candidates we'll either lift or spare) and prime an empty
+        // liftAllVotes map; drop the regular vote/nomination state since
+        // we're done with the seat-by-seat ballot.
+        next = {
+          ...next,
+          votes: new Map(),
+          nominationSeats: [],
+          tiedSeats: stillTied,
+          shootoutSpeakerIdx: 0,
+          liftAllVotes: new Map(),
+        };
+      } else {
+        // Edge: revote produced no votes / no tie-of-2+ — head straight to
+        // night with everyone alive.
+        next = {
+          ...next,
+          votes: new Map(),
+          nominationSeats: [],
+          tiedSeats: [],
+          shootoutSpeakerIdx: 0,
+        };
+      }
+    }
+  }
+
+  if (state.phase === GAME_PHASE.DAY_LIFT_VOTE) {
+    // Resolve the yes/no ballot. Simple majority of cast ballots — abstentions
+    // and a 50/50 split both fall on the side of "no one dies", which is
+    // the conservative outcome that matches most ФИИМ judges in practice.
+    let yes = 0;
+    let no = 0;
+    for (const v of next.liftAllVotes.values()) {
+      if (v) yes += 1;
+      else no += 1;
+    }
+    if (yes > no && next.tiedSeats.length > 0) {
+      // Kill everyone in the tie and queue them all for the last-word phase
+      // in seat order. lastWordSeats is consumed one speaker at a time by
+      // applyNextSpeaker, so this naturally walks the entire list.
+      let killed = next;
+      for (const seat of next.tiedSeats) {
+        killed = killSeat(killed, seat);
+      }
+      next = {
+        ...killed,
+        lastWordSeats: [...next.tiedSeats],
+        lastWordIdx: 0,
+        currentSpeakerSeat: next.tiedSeats[0]!,
       };
     }
-    // Either way (winner or repeated tie), the tie-break trail is consumed.
-    // V0 omits the "поднять всех" branch — a second tie just goes to night.
+    // Either branch — consume the lift-vote state.
     next = {
       ...next,
-      votes: new Map(),
-      nominationSeats: [],
+      liftAllVotes: new Map(),
       tiedSeats: [],
-      shootoutSpeakerIdx: 0,
     };
   }
 
@@ -745,6 +809,25 @@ export function applyJudgeEndGame(state: GameState): EngineResult<GameState> {
   });
 }
 
+// "Lift all" yes/no vote during DAY_LIFT_VOTE. One ballot per alive
+// non-judge player; muted players still vote (muting only affects speech).
+// Once cast, the ballot is locked — no overwriting.
+export function applyLiftAllVote(
+  state: GameState,
+  actorUserId: string,
+  yes: boolean,
+): EngineResult<GameState> {
+  if (state.phase !== GAME_PHASE.DAY_LIFT_VOTE) return fail(ENGINE_ERROR.WRONG_PHASE);
+  const actor = findByUserId(state, actorUserId);
+  if (!actor || actor.isJudge || !actor.isAlive || actor.isRemoved || actor.seat === null) {
+    return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
+  }
+  if (state.liftAllVotes.has(actor.seat)) return fail(ENGINE_ERROR.ALREADY_VOTED);
+  const newVotes = new Map(state.liftAllVotes);
+  newVotes.set(actor.seat, yes);
+  return ok({ ...state, liftAllVotes: newVotes });
+}
+
 // "Best move" — the player giving last word names 1–3 seats they think are
 // black. Recorded on the state; scoring happens elsewhere (future stats
 // module reads bestMoveGuesses after the game ends). The constraints below
@@ -929,9 +1012,25 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     // Public audit trail of Лучший Ход submissions. Shown to everyone since
     // it's a publicly-spoken move; future stats module will score them.
     bestMoveGuesses: state.bestMoveGuesses,
+    // Lift-all vote tally — counts only, no per-voter breakdown.
+    liftAllTally: liftAllTally(state),
+    // The viewer's own lift-all vote so the UI can lock the buttons after
+    // they've cast their ballot.
+    myLiftAllVote:
+      viewer && viewer.seat !== null ? (state.liftAllVotes.get(viewer.seat) ?? null) : null,
     myCheckResult: myCheck,
     winner: state.winner,
   };
+}
+
+function liftAllTally(state: GameState): { yes: number; no: number } {
+  let yes = 0;
+  let no = 0;
+  for (const v of state.liftAllVotes.values()) {
+    if (v) yes += 1;
+    else no += 1;
+  }
+  return { yes, no };
 }
 
 function shouldRevealRole(

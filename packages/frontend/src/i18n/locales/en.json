@@ -224,7 +224,8 @@
       "night_don": "Night — don's check",
       "night_sheriff": "Night — sheriff's check",
       "morning_announcement": "Morning — night results",
-      "game_over": "Game over"
+      "game_over": "Game over",
+      "day_lift_vote": "Lift all?"
     },
     "role": {
       "civilian": "Civilian",
@@ -305,7 +306,16 @@
       "lhTitle": "Best move",
       "lhHint": "Pick up to 3 players you think are mafia",
       "lhSubmit": "Submit",
-      "lhSubmitted": "Best move submitted"
+      "lhSubmitted": "Best move submitted",
+      "muted": "MUTE",
+      "rolesReveal": "Roles revealed",
+      "lhPerfect": "Perfect!",
+      "liftPrompt": "Vote: lift all tied players in one volley?",
+      "liftYes": "Yes",
+      "liftNo": "No",
+      "liftMyVoteYes": "You voted YES",
+      "liftMyVoteNo": "You voted NO",
+      "liftTally": "Yes: {{yes}}  No: {{no}}"
     },
     "errors": {
       "not_participant": "You're not in this game",

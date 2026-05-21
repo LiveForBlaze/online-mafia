@@ -63,6 +63,10 @@ export const CLIENT_EVENT = {
   // elimination names up to 3 seats they think are the mafia team. Only the
   // current last-word speaker can submit, exactly once per elimination.
   BEST_MOVE_GUESS: 'client:best_move_guess',
+
+  // "Lift all" — yes/no vote during the DAY_LIFT_VOTE phase that follows a
+  // second tie. Majority yes kills all tied players, otherwise none.
+  LIFT_ALL_VOTE: 'client:lift_all_vote',
 } as const;
 
 export type ClientEventName = (typeof CLIENT_EVENT)[keyof typeof CLIENT_EVENT];

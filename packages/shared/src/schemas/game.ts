@@ -54,6 +54,13 @@ export const bestMoveGuessPayloadSchema = z.object({
 });
 export type BestMoveGuessPayload = z.infer<typeof bestMoveGuessPayloadSchema>;
 
+// "Lift all" — yes/no vote on whether to kill every player tied after the
+// revote also tied. Cast once per voter; majority of cast ballots wins.
+export const liftAllVotePayloadSchema = z.object({
+  yes: z.boolean(),
+});
+export type LiftAllVotePayload = z.infer<typeof liftAllVotePayloadSchema>;
+
 // ---- Projected game state (sent server → client) ----
 //
 // The server holds the full state — including everyone's role — but each client receives
@@ -73,6 +80,7 @@ export const phaseSchema = z.enum([
   GAME_PHASE.DAY_VOTE,
   GAME_PHASE.DAY_REVOTE,
   GAME_PHASE.DAY_SHOOTOUT,
+  GAME_PHASE.DAY_LIFT_VOTE,
   GAME_PHASE.DAY_LAST_WORD,
   GAME_PHASE.NIGHT_MAFIA,
   GAME_PHASE.NIGHT_DON,
@@ -183,6 +191,15 @@ export const gameStateProjectedSchema = z.object({
       guessedSeats: z.array(z.number().int()),
     }),
   ),
+
+  // Aggregate tally of the in-flight DAY_LIFT_VOTE — counts only, no
+  // per-voter breakdown (anonymous ballot).
+  liftAllTally: z.object({
+    yes: z.number().int().nonnegative(),
+    no: z.number().int().nonnegative(),
+  }),
+  // The viewer's own lift-all vote, null if not cast or not eligible.
+  myLiftAllVote: z.boolean().nullable(),
 
   // Filled in once the game ends.
   winner: teamSchema.nullable(),

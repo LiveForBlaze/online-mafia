@@ -16,6 +16,7 @@ import {
   applyDonCheck,
   applyJudgeFoul,
   applyJudgeRemove,
+  applyLiftAllVote,
   applyMafiaTarget,
   applyNominate,
   applyNextSpeaker,
@@ -86,6 +87,7 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     lastWordIdx: 0,
     tiedSeats: [],
     shootoutSpeakerIdx: 0,
+    liftAllVotes: new Map(),
     bestMoveGuesses: [],
     winner: null,
     nextEventSeq: 0,
@@ -538,7 +540,7 @@ describe('tie-break flow (shootout → revote)', () => {
     expect(next.tiedSeats).toEqual([]);
   });
 
-  it('revote that ties again goes straight to night (V0 — no lift-all)', () => {
+  it('revote that ties again enters DAY_LIFT_VOTE', () => {
     const revote = buildState({
       phase: GAME_PHASE.DAY_REVOTE,
       currentSpeakerSeat: null,
@@ -550,12 +552,93 @@ describe('tie-break flow (shootout → revote)', () => {
       ]),
     });
     const next = applyAdvancePhase(revote);
-    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
-    expect(next.lastWordSeats).toEqual([]);
-    expect(next.tiedSeats).toEqual([]);
-    // Nobody died — both tied players survive the day.
+    expect(next.phase).toBe(GAME_PHASE.DAY_LIFT_VOTE);
+    // tiedSeats survives — we still need to know who's on the chopping block.
+    expect(next.tiedSeats).toEqual([3, 5]);
+    expect(next.liftAllVotes.size).toBe(0);
+    // Nobody died yet.
     expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
     expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
+  });
+});
+
+describe('lift-all vote', () => {
+  function liftVoteState(votes: Array<[number, boolean]> = []): GameState {
+    return buildState({
+      phase: GAME_PHASE.DAY_LIFT_VOTE,
+      currentSpeakerSeat: null,
+      tiedSeats: [3, 5],
+      liftAllVotes: new Map(votes),
+    });
+  }
+
+  it('records a yes/no ballot for an alive voter', () => {
+    const r = applyLiftAllVote(liftVoteState(), 'user-1', true);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.liftAllVotes.get(1)).toBe(true);
+  });
+
+  it('refuses a second ballot from the same voter', () => {
+    const after = applyLiftAllVote(liftVoteState([[1, true]]), 'user-1', false);
+    expect(after.ok).toBe(false);
+    if (!after.ok) expect(after.error).toBe(ENGINE_ERROR.ALREADY_VOTED);
+  });
+
+  it('majority yes kills every tied seat and queues them all for last word', () => {
+    // 3 yes vs 1 no — majority lifts seats 3 and 5.
+    const state = liftVoteState([
+      [1, true],
+      [2, true],
+      [4, true],
+      [6, false],
+    ]);
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(next.lastWordSeats).toEqual([3, 5]);
+    expect(next.lastWordIdx).toBe(0);
+    expect(next.currentSpeakerSeat).toBe(3);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(false);
+    // Lift-vote trail is consumed.
+    expect(next.tiedSeats).toEqual([]);
+    expect(next.liftAllVotes.size).toBe(0);
+  });
+
+  it('majority no (or tie) spares everyone and exits to night', () => {
+    // 2 yes vs 3 no — minority lift fails.
+    const state = liftVoteState([
+      [1, true],
+      [2, true],
+      [4, false],
+      [6, false],
+      [7, false],
+    ]);
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.lastWordSeats).toEqual([]);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
+  });
+
+  it('all abstain → no kill, goes to night', () => {
+    const next = applyAdvancePhase(liftVoteState([]));
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.tiedSeats).toEqual([]);
+  });
+
+  it('walks the multi-victim last-word queue via applyNextSpeaker', () => {
+    const state = liftVoteState([
+      [1, true],
+      [2, true],
+      [4, true],
+    ]);
+    const last = applyAdvancePhase(state);
+    expect(last.currentSpeakerSeat).toBe(3);
+    const second = applyNextSpeaker(last);
+    expect(second.state.currentSpeakerSeat).toBe(5);
+    const done = applyNextSpeaker(second.state);
+    expect(done.speechesDone).toBe(true);
   });
 });
 
