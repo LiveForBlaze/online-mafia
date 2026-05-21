@@ -1,28 +1,30 @@
 // Layout used by all authenticated "shell" pages — lobby list, profile, clubs,
 // tournaments, rules, about, and the lobby room. Provides a sticky top nav
-// (brand link + section links + theme toggle + user chip) and renders the
-// active route via <Outlet />.
+// (brand link + section links + language switcher + user chip) and renders
+// the active route via <Outlet />.
 //
 // Auth pages (login, register) and the full-screen game page deliberately
 // render outside this layout because they don't want the nav chrome.
 
+import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router';
 
 import { cn } from '@/lib/cn.js';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher.js';
 import { UserChip } from '@/components/ui/UserChip.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: ROUTE_PATH.HOME, label: 'Лобби' },
-  { to: ROUTE_PATH.CLUBS, label: 'Клубы' },
-  { to: ROUTE_PATH.TOURNAMENTS, label: 'Турниры' },
-  { to: ROUTE_PATH.RULES, label: 'Правила' },
-  { to: ROUTE_PATH.ABOUT, label: 'О проекте' },
+  { to: ROUTE_PATH.HOME, labelKey: 'nav.lobby' },
+  { to: ROUTE_PATH.CLUBS, labelKey: 'nav.clubs' },
+  { to: ROUTE_PATH.TOURNAMENTS, labelKey: 'nav.tournaments' },
+  { to: ROUTE_PATH.RULES, labelKey: 'nav.rules' },
+  { to: ROUTE_PATH.ABOUT, labelKey: 'nav.about' },
 ];
 
 export function MainLayout() {
@@ -63,6 +65,7 @@ function TopNav() {
           </nav>
 
           <div className="flex items-center gap-2 shrink-0">
+            <LanguageSwitcher />
             <UserChip />
           </div>
         </div>
@@ -79,6 +82,7 @@ function TopNav() {
 }
 
 function NavItemLink({ item }: { item: NavItem }) {
+  const { t } = useTranslation();
   return (
     <NavLink
       to={item.to}
@@ -90,7 +94,7 @@ function NavItemLink({ item }: { item: NavItem }) {
         )
       }
     >
-      {item.label}
+      {t(item.labelKey)}
     </NavLink>
   );
 }

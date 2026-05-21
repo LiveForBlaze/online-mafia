@@ -1,0 +1,71 @@
+{
+  "nav": {
+    "lobby": "Lobby",
+    "clubs": "Clubs",
+    "tournaments": "Tournaments",
+    "rules": "Rules",
+    "about": "About"
+  },
+  "common": {
+    "create_lobby": "Create lobby",
+    "how_to_play": "How to play",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "cancel": "Cancel",
+    "back": "Back",
+    "soon": "Coming soon",
+    "language": "Language",
+    "beta_notice": "This is a beta build. Bugs and breakages are possible — this is not what the final product looks like."
+  },
+  "languages": {
+    "ru": "Русский",
+    "uk": "Українська",
+    "be": "Беларуская",
+    "en": "English"
+  },
+  "hero": {
+    "title_top": "Mafia",
+    "title_bottom": "Online",
+    "tagline_primary": "Sport mafia online",
+    "tagline_secondary": "Play with people from all over the world"
+  },
+  "auth": {
+    "login_title": "Sign in",
+    "login_submit": "Sign in",
+    "login_submitting": "Signing in...",
+    "register_title": "Sign up",
+    "register_submit": "Create account",
+    "register_submitting": "Creating...",
+    "email": "Email",
+    "password": "Password",
+    "password_hint": "At least 8 characters",
+    "nickname": "Nickname",
+    "nickname_hint": "2 to 24 characters — this is how other players will see you",
+    "no_account": "No account yet?",
+    "register_link": "Sign up",
+    "have_account": "Already have an account?",
+    "login_link": "Sign in",
+    "google_button": "Sign in with Google",
+    "or": "or"
+  },
+  "profile": {
+    "title": "Profile",
+    "email_label": "Email",
+    "nickname_label": "Nickname",
+    "nickname_hint": "2 to 24 characters. This is how other players will see you.",
+    "logout": "Sign out",
+    "logging_out": "Signing out..."
+  },
+  "about": {
+    "subtitle": "Open-source platform for sport mafia online."
+  },
+  "coming_soon": {
+    "clubs_title": "Clubs",
+    "clubs_body": "Permanent communities of players with their own rules, ranking and schedule. Coming later.",
+    "tournaments_title": "Tournaments",
+    "tournaments_body": "Open and club tournaments — single-elimination and round-robin, with automatic table seeding and a unified leaderboard. Coming later.",
+    "rules_title": "Rules",
+    "rules_body": "Roles, phases, voting and judge actions explained — for first-timers or anyone wanting to nail the nuances. Coming later."
+  }
+}

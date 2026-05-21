@@ -1,6 +1,7 @@
 // Landing-style hero for the lobby list page. Big two-tone title, subtitle,
 // primary + secondary CTAs, and the splash artwork on the right.
 
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/Button.js';
@@ -12,23 +13,24 @@ interface HomeHeroProps {
 
 export function HomeHero({ onCreateLobby }: HomeHeroProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center py-6 sm:py-10">
       <div className="space-y-5">
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[0.95] tracking-tight uppercase">
-          <span className="block text-fg">Мафия</span>
-          <span className="block text-accent">Онлайн</span>
+          <span className="block text-fg">{t('hero.title_top')}</span>
+          <span className="block text-accent">{t('hero.title_bottom')}</span>
         </h1>
         <div className="space-y-1">
-          <p className="text-base sm:text-lg text-fg">Спортивная мафия онлайн</p>
-          <p className="text-sm sm:text-base text-muted">Играйте с людьми со всего мира</p>
+          <p className="text-base sm:text-lg text-fg">{t('hero.tagline_primary')}</p>
+          <p className="text-sm sm:text-base text-muted">{t('hero.tagline_secondary')}</p>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
           <Button onClick={onCreateLobby} size="lg">
-            Создать лобби
+            {t('common.create_lobby')}
           </Button>
           <Button variant="secondary" size="lg" onClick={() => navigate(ROUTE_PATH.RULES)}>
-            Как играть
+            {t('common.how_to_play')}
           </Button>
         </div>
       </div>
