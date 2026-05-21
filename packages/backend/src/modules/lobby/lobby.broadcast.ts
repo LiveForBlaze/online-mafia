@@ -32,11 +32,13 @@ export async function broadcastLobbyUpdate(lobbyId: string): Promise<void> {
   const lobby = await prisma.lobby.findUnique({
     where: { id: lobbyId },
     include: {
-      host: { select: { id: true, nickname: true } },
+      host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
       members: {
         include: {
-          user: { select: { id: true, nickname: true, avatarUrl: true, isBot: true } },
+          user: {
+            select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+          },
         },
         orderBy: [{ isJudge: 'desc' }, { seat: 'asc' }],
       },

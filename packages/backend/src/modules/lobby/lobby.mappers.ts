@@ -28,12 +28,12 @@ function parsePreassignedRole(value: string | null): Role | null {
 }
 
 type LobbyWithHost = Lobby & {
-  host: Pick<User, 'id' | 'nickname'>;
+  host: Pick<User, 'id' | 'nickname' | 'publicCode'>;
   game?: { id: string } | null;
 };
 
 type MemberWithUser = LobbyMember & {
-  user: Pick<User, 'id' | 'nickname' | 'avatarUrl' | 'isBot'>;
+  user: Pick<User, 'id' | 'nickname' | 'publicCode' | 'avatarUrl' | 'isBot'>;
 };
 
 type LobbyWithMembersAndHost = LobbyWithHost & {
@@ -57,6 +57,7 @@ export function toLobbySummary(
     isPrivate: lobby.isPrivate,
     hostId: lobby.hostId,
     hostNickname: lobby.host.nickname,
+    hostPublicCode: lobby.host.publicCode,
     rulesetSlug: lobby.rulesetSlug,
     status: DB_STATUS_TO_API[lobby.status] ?? LOBBY_STATUS.WAITING,
     memberCount,
@@ -75,6 +76,7 @@ export function toLobbyMemberPublic(
   return {
     userId: member.user.id,
     nickname: member.user.nickname,
+    publicCode: member.user.publicCode,
     avatarUrl: member.user.avatarUrl,
     seat: member.seat,
     isJudge: member.isJudge,

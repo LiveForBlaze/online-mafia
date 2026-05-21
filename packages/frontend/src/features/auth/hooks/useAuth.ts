@@ -8,7 +8,13 @@ import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import type { LoginInput, RegisterInput, UpdateNicknameInput } from '@mafia/shared';
+import type {
+  DeleteAccountInput,
+  LoginInput,
+  RegisterInput,
+  UpdateNicknameInput,
+  UpdateProfileInput,
+} from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
@@ -54,12 +60,33 @@ export function useUpdateNickname() {
   });
 }
 
+export function useUpdateProfile() {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useMutation({
+    mutationFn: (input: UpdateProfileInput) => authApi.updateProfile(input),
+    onSuccess: (data) => setUser(data.user),
+  });
+}
+
 export function useLogout() {
   const setUser = useAuthStore((state) => state.setUser);
 
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSettled: () => setUser(null),
+  });
+}
+
+// Permanently delete (anonymise) the current account. The backend wipes the
+// session cookie; we mirror that here by clearing the local user. Callers
+// handle the navigation away from authenticated pages on success.
+export function useDeleteAccount() {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useMutation({
+    mutationFn: (input: DeleteAccountInput) => authApi.deleteAccount(input),
+    onSuccess: () => setUser(null),
   });
 }
 

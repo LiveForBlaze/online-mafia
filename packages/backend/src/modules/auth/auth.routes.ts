@@ -12,18 +12,26 @@
 //   GET  /google/callback   complete Google OAuth flow
 
 import type { FastifyPluginAsync } from 'fastify';
-import { loginInputSchema, registerInputSchema, updateNicknameInputSchema } from '@mafia/shared';
+import {
+  deleteAccountInputSchema,
+  loginInputSchema,
+  registerInputSchema,
+  updateNicknameInputSchema,
+  updateProfileInputSchema,
+} from '@mafia/shared';
 
 import { env } from '../../config/env.js';
 
 import {
   AUTH_ERROR,
+  deleteOwnAccount,
   findOrCreateUserFromGoogle,
   getUserById,
   loginWithPassword,
   registerWithPassword,
   toAuthenticatedUser,
   updateNickname,
+  updateProfile,
   type AuthErrorCode,
 } from './auth.service.js';
 import {
@@ -141,6 +149,41 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
     }
     return reply.send({ user: toAuthenticatedUser(result.user) });
+  });
+
+  // ---- Update public profile (real name, country, club) ----
+  app.patch('/me/profile', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const parsed = updateProfileInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply
+        .code(HTTP_STATUS.BAD_REQUEST)
+        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+    }
+
+    const result = await updateProfile(request.user.sub, parsed.data);
+    if (!result.ok) {
+      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+    }
+    return reply.send({ user: toAuthenticatedUser(result.user) });
+  });
+
+  // ---- Delete own account ----
+  // Body must contain { confirmEmail }: the user retypes their email to
+  // confirm. The server validates the match. Account is anonymised, not
+  // hard-deleted, because game history references it.
+  app.delete('/me', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const parsed = deleteAccountInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply
+        .code(HTTP_STATUS.BAD_REQUEST)
+        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+    }
+    const result = await deleteOwnAccount(request.user.sub, parsed.data.confirmEmail);
+    if (!result.ok) {
+      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+    }
+    clearSessionCookie(reply);
+    return reply.code(HTTP_STATUS.NO_CONTENT).send();
   });
 
   // ---- Google OAuth: start ----

@@ -1,11 +1,13 @@
 // Card showing the judge slot above the player grid. Visually prominent because
 // the judge is the lobby host and the slot is irreplaceable.
 
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { LobbyMemberPublic } from '@mafia/shared';
 
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface JudgeSlotProps {
   judge: LobbyMemberPublic | undefined;
@@ -47,7 +49,13 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
           </p>
           {judge ? (
             <p className="mt-0.5 text-sm font-medium text-fg truncate">
-              {judge.nickname}
+              {judge.publicCode ? (
+                <Link to={publicUserPath(judge.publicCode)} className="hover:underline">
+                  {judge.nickname}
+                </Link>
+              ) : (
+                judge.nickname
+              )}
               {isViewer && <span className="ml-2 text-xs text-muted">({t('lobby.room.you')})</span>}
             </p>
           ) : (

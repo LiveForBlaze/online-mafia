@@ -59,29 +59,31 @@ function botEmail(nickname: string): string {
   return `${slug}-${Date.now()}-${Math.floor(Math.random() * 1000)}@bot.local`;
 }
 
-/** Create one bot User row, retrying nickname on collision. */
-async function createBot() {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const nickname = pickBotName();
-    const existing = await prisma.user.findUnique({
-      where: { nickname },
+/** Generate a short uppercase alphanumeric publicCode for a bot. */
+const BOT_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+async function allocateBotPublicCode(): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    let code = '';
+    for (let i = 0; i < 6; i += 1) {
+      code += BOT_CODE_ALPHABET[Math.floor(Math.random() * BOT_CODE_ALPHABET.length)];
+    }
+    const taken = await prisma.user.findUnique({
+      where: { publicCode: code },
       select: { id: true },
     });
-    if (existing) continue;
-    return prisma.user.create({
-      data: {
-        email: botEmail(nickname),
-        nickname,
-        isBot: true,
-        passwordHash: null,
-      },
-    });
+    if (!taken) return code;
   }
-  // Fallback after collisions: use a guaranteed unique nickname.
+  throw new Error('Could not allocate a unique publicCode for a bot');
+}
+
+/** Create one bot User row. Nicknames are no longer unique, so no retry needed. */
+async function createBot() {
+  const nickname = pickBotName();
   return prisma.user.create({
     data: {
-      email: botEmail(`bot${Date.now()}`),
-      nickname: `🤖 Bot-${Date.now()}`,
+      email: botEmail(nickname),
+      nickname,
+      publicCode: await allocateBotPublicCode(),
       isBot: true,
       passwordHash: null,
     },

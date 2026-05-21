@@ -3,9 +3,12 @@
 
 import type {
   AuthSessionResponse,
+  DeleteAccountInput,
   LoginInput,
+  PublicUserProfileResponse,
   RegisterInput,
   UpdateNicknameInput,
+  UpdateProfileInput,
 } from '@mafia/shared';
 
 import { apiClient } from '@/lib/api-client.js';
@@ -16,6 +19,8 @@ const AUTH_PATH = {
   LOGOUT: '/api/v1/auth/logout',
   ME: '/api/v1/auth/me',
   UPDATE_NICKNAME: '/api/v1/auth/me/nickname',
+  UPDATE_PROFILE: '/api/v1/auth/me/profile',
+  PUBLIC_USER: (code: string) => `/api/v1/users/${encodeURIComponent(code)}`,
   GOOGLE_START: '/api/v1/auth/google',
 } as const;
 
@@ -27,6 +32,11 @@ export const authApi = {
   getCurrentUser: () => apiClient.get<AuthSessionResponse>(AUTH_PATH.ME),
   updateNickname: (input: UpdateNicknameInput) =>
     apiClient.patch<AuthSessionResponse>(AUTH_PATH.UPDATE_NICKNAME, input),
+  updateProfile: (input: UpdateProfileInput) =>
+    apiClient.patch<AuthSessionResponse>(AUTH_PATH.UPDATE_PROFILE, input),
+  getPublicUser: (code: string) =>
+    apiClient.get<PublicUserProfileResponse>(AUTH_PATH.PUBLIC_USER(code)),
+  deleteAccount: (input: DeleteAccountInput) => apiClient.delete<void>(AUTH_PATH.ME, input),
 
   // The Google flow is a navigation, not an AJAX call.
   // The user is sent to the backend, then to Google, then back to the frontend

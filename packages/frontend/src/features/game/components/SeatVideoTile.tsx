@@ -5,6 +5,7 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { GameParticipantPublic } from '@mafia/shared';
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface SeatVideoTileProps {
   participant: GameParticipantPublic;
@@ -121,7 +123,19 @@ export function SeatVideoTile({
             <p className={cn('text-xs text-warning', participant.foulsCount === 0 && 'invisible')}>
               {t('game.ui.foulsCount', { count: participant.foulsCount })}
             </p>
-            <p className="text-sm font-medium text-white truncate">{participant.nickname}</p>
+            {participant.publicCode ? (
+              <Link
+                to={publicUserPath(participant.publicCode)}
+                // Don't trigger the surrounding zoom-on-click handler when the
+                // user is just trying to open the profile link.
+                onClick={(event) => event.stopPropagation()}
+                className="block text-sm font-medium text-white truncate hover:underline"
+              >
+                {participant.nickname}
+              </Link>
+            ) : (
+              <p className="text-sm font-medium text-white truncate">{participant.nickname}</p>
+            )}
             {action && (
               <Button
                 size="sm"

@@ -1,12 +1,14 @@
 // Grid of 10 player seats. Each seat shows either the seated player's nickname or
 // "free". Host gets a small badge; the current viewer gets a faint highlight.
 
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { GAME, ROLE, type LobbyMemberPublic, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface SeatGridProps {
   members: LobbyMemberPublic[];
@@ -126,9 +128,18 @@ function SeatCard({
             >
               {extractInitial(occupant.nickname)}
             </span>
-            <span className="text-sm font-medium text-fg truncate min-w-0">
-              {occupant.nickname}
-            </span>
+            {occupant.publicCode ? (
+              <Link
+                to={publicUserPath(occupant.publicCode)}
+                className="text-sm font-medium text-fg truncate min-w-0 hover:underline"
+              >
+                {occupant.nickname}
+              </Link>
+            ) : (
+              <span className="text-sm font-medium text-fg truncate min-w-0">
+                {occupant.nickname}
+              </span>
+            )}
             {canKick && (
               <button
                 type="button"

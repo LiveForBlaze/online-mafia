@@ -3,7 +3,15 @@
 // All Prisma calls and password operations live here, isolated from route handlers.
 // Route handlers translate HTTP <-> service calls and have no business logic of their own.
 
-import type { AuthenticatedUser, LoginInput, RegisterInput } from '@mafia/shared';
+import { randomBytes } from 'node:crypto';
+
+import type {
+  AuthenticatedUser,
+  LoginInput,
+  PublicUserProfile,
+  RegisterInput,
+  UpdateProfileInput,
+} from '@mafia/shared';
 import type { User } from '@prisma/client';
 
 import { prisma } from '../../db/prisma.client.js';
@@ -38,29 +46,72 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
     id: user.id,
     email: user.email,
     nickname: user.nickname,
+    publicCode: user.publicCode,
     avatarUrl: user.avatarUrl ?? null,
+    realName: user.realName ?? null,
+    country: user.country ?? null,
+    clubName: user.clubName ?? null,
   };
+}
+
+/** Public projection — no email exposed. */
+export function toPublicUserProfile(user: User): PublicUserProfile {
+  return {
+    id: user.id,
+    publicCode: user.publicCode,
+    nickname: user.nickname,
+    avatarUrl: user.avatarUrl ?? null,
+    realName: user.realName ?? null,
+    country: user.country ?? null,
+    clubName: user.clubName ?? null,
+    createdAt: user.createdAt.toISOString(),
+  };
+}
+
+// Generate a fresh 6-character uppercase alphanumeric code (A-Z 0-9) that
+// is not yet taken in the User table. Retries on collision a few times,
+// then throws — collisions are astronomically rare at this scale.
+const PUBLIC_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const PUBLIC_CODE_LENGTH = 6;
+function randomPublicCode(): string {
+  const bytes = randomBytes(PUBLIC_CODE_LENGTH);
+  let out = '';
+  for (let i = 0; i < PUBLIC_CODE_LENGTH; i += 1) {
+    out += PUBLIC_CODE_ALPHABET[bytes[i]! % PUBLIC_CODE_ALPHABET.length];
+  }
+  return out;
+}
+async function allocatePublicCode(): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const code = randomPublicCode();
+    const taken = await prisma.user.findUnique({
+      where: { publicCode: code },
+      select: { id: true },
+    });
+    if (!taken) return code;
+  }
+  throw new Error('Could not allocate a unique publicCode after 10 attempts');
 }
 
 export async function registerWithPassword(input: RegisterInput): Promise<AuthResult> {
   const normalizedEmail = input.email.toLowerCase().trim();
   const normalizedNickname = input.nickname.trim();
 
-  // Check for collisions explicitly so we can return a clear error code,
-  // instead of relying on Prisma's generic P2002 unique-constraint exception.
-  const [emailTaken, nicknameTaken] = await Promise.all([
-    prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } }),
-    prisma.user.findUnique({ where: { nickname: normalizedNickname }, select: { id: true } }),
-  ]);
+  // Email must still be unique. Nicknames are no longer constrained.
+  const emailTaken = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: { id: true },
+  });
   if (emailTaken) return { ok: false, error: AUTH_ERROR.EMAIL_TAKEN };
-  if (nicknameTaken) return { ok: false, error: AUTH_ERROR.NICKNAME_TAKEN };
 
   const passwordHash = await hashPassword(input.password);
+  const publicCode = await allocatePublicCode();
 
   const user = await prisma.user.create({
     data: {
       email: normalizedEmail,
       nickname: normalizedNickname,
+      publicCode,
       passwordHash,
     },
   });
@@ -70,21 +121,80 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
 
 export async function updateNickname(userId: string, nickname: string): Promise<AuthResult> {
   const normalized = nickname.trim();
-
-  // Allow setting to the same nickname (no-op from the user's POV) without a 409.
-  const existing = await prisma.user.findUnique({
-    where: { nickname: normalized },
-    select: { id: true },
-  });
-  if (existing && existing.id !== userId) {
-    return { ok: false, error: AUTH_ERROR.NICKNAME_TAKEN };
-  }
-
+  // Nicknames are no longer unique — no collision check needed.
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { nickname: normalized },
   });
   return { ok: true, user: updated };
+}
+
+// Update optional public-profile fields. Each field independently: undefined
+// means "leave alone", null means "clear". Strings are trimmed; an empty
+// string after trim is also treated as "clear" so blank textboxes do what
+// users expect.
+export async function updateProfile(
+  userId: string,
+  input: UpdateProfileInput,
+): Promise<AuthResult> {
+  const norm = (v: string | null | undefined) => {
+    if (v === undefined) return undefined;
+    if (v === null) return null;
+    const trimmed = v.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  };
+  const data: { realName?: string | null; country?: string | null; clubName?: string | null } = {};
+  if (input.realName !== undefined) data.realName = norm(input.realName) ?? null;
+  if (input.country !== undefined) data.country = norm(input.country) ?? null;
+  if (input.clubName !== undefined) data.clubName = norm(input.clubName) ?? null;
+
+  const updated = await prisma.user.update({ where: { id: userId }, data });
+  return { ok: true, user: updated };
+}
+
+// Public profile lookup by short code. Case-insensitive: the URL slug may
+// arrive lowercased but codes are stored uppercase.
+export async function findUserByPublicCode(code: string): Promise<User | null> {
+  return prisma.user.findUnique({ where: { publicCode: code.trim().toUpperCase() } });
+}
+
+// Account deletion. Confirmation is enforced upstream — the route only calls
+// this when the user has typed their email correctly.
+//
+// We DO NOT hard-delete the User row because GameParticipant, LobbyMember
+// and event-log entries reference it. Instead we anonymise the row: email
+// is rewritten to a sentinel, nickname becomes "[удалён]", role-bearing
+// columns are cleared, and tokenVersion is bumped to kill every live session.
+// Hosted lobbies are closed; lobby memberships removed.
+export async function deleteOwnAccount(userId: string, confirmEmail: string): Promise<AuthResult> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
+  if (confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
+    return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
+  }
+
+  const deletedMarker = `deleted-${userId}@deleted.local`;
+  const anonymised = await prisma.$transaction(async (tx) => {
+    // Drop active lobby presences so the user vanishes from rosters.
+    await tx.lobbyMember.deleteMany({ where: { userId } });
+    // Close any lobbies they were hosting.
+    await tx.lobby.updateMany({ where: { hostId: userId }, data: { status: 'CLOSED' } });
+    return tx.user.update({
+      where: { id: userId },
+      data: {
+        email: deletedMarker,
+        nickname: '[удалён]',
+        passwordHash: null,
+        googleId: null,
+        avatarUrl: null,
+        realName: null,
+        country: null,
+        clubName: null,
+        tokenVersion: { increment: 1 },
+      },
+    });
+  });
+  return { ok: true, user: anonymised };
 }
 
 export async function loginWithPassword(input: LoginInput): Promise<AuthResult> {
@@ -160,9 +270,8 @@ export async function findOrCreateUserFromGoogle(
   const created = await prisma.user.create({
     data: {
       email: normalizedEmail,
-      nickname: await suggestUniqueNickname(
-        profile.name ?? normalizedEmail.split('@')[0] ?? 'user',
-      ),
+      nickname: profile.name ?? normalizedEmail.split('@')[0] ?? 'user',
+      publicCode: await allocatePublicCode(),
       googleId: profile.sub,
       avatarUrl: profile.picture ?? null,
       // Google verified the email for us — no separate verification flow needed.
@@ -177,23 +286,5 @@ export async function findOrCreateUserFromGoogle(
  * If "alice" is taken, try "alice-2", then "alice-3", and so on.
  * Falls back to a random suffix after a few attempts to keep this bounded.
  */
-async function suggestUniqueNickname(seed: string): Promise<string> {
-  const base =
-    seed
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 16) || 'player';
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
-    const exists = await prisma.user.findUnique({
-      where: { nickname: candidate },
-      select: { id: true },
-    });
-    if (!exists) return candidate;
-  }
-
-  const randomSuffix = Math.floor(Math.random() * 1_000_000).toString(36);
-  return `${base}-${randomSuffix}`;
-}
+// (suggestUniqueNickname removed — nicknames are no longer unique. Pass
+// whatever the OAuth provider gave us straight through.)

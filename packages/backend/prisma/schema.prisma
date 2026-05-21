@@ -22,7 +22,20 @@ datasource db {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
-  nickname     String   @unique
+  // Nicknames are intentionally NOT unique — multiple players can share the
+  // same display name. Use `publicCode` for unique addressing.
+  nickname     String
+  // Short human-friendly identifier (6 chars, alphanumeric, uppercase) used
+  // for /u/:code URLs and "find me by code" sharing. Stable across nickname
+  // changes; assigned on user creation.
+  publicCode   String   @unique
+
+  // Optional public profile fields. All free text for V0; country is a free
+  // string until we ship a proper picker, clubName likewise becomes a FK
+  // once the clubs module exists.
+  realName     String?
+  country      String?
+  clubName     String?
 
   // Nullable to support users who sign up only via OAuth (no password set) and bots.
   passwordHash String?

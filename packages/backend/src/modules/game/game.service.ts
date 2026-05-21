@@ -94,6 +94,7 @@ export async function createGameFromLobby(
   const initialParticipants: GameParticipant[] = lobby.members.map((m) => ({
     userId: m.user.id,
     nickname: m.user.nickname,
+    publicCode: m.user.publicCode,
     avatarUrl: m.user.avatarUrl,
     seat: m.seat,
     isJudge: m.isJudge,

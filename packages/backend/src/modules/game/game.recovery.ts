@@ -46,7 +46,9 @@ export async function recoverActiveGames(): Promise<void> {
     include: {
       participants: {
         include: {
-          user: { select: { id: true, nickname: true, avatarUrl: true, isBot: true } },
+          user: {
+            select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+          },
         },
       },
     },
@@ -69,6 +71,7 @@ export async function recoverActiveGames(): Promise<void> {
         game.participants.map((p) => ({
           userId: p.userId,
           nickname: p.user.nickname,
+          publicCode: p.user.publicCode,
           avatarUrl: p.user.avatarUrl,
           seat: p.seat,
           isJudge: p.isJudge,

@@ -563,6 +563,7 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
   const participants = state.participants.map((p) => ({
     userId: p.userId,
     nickname: p.nickname,
+    publicCode: p.publicCode,
     avatarUrl: p.avatarUrl,
     seat: p.seat,
     isJudge: p.isJudge,

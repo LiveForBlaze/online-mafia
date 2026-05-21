@@ -15,6 +15,7 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage.js';
 import { LobbyListPage } from '@/features/lobby/pages/LobbyListPage.js';
 import { LobbyRoomPage } from '@/features/lobby/pages/LobbyRoomPage.js';
 import { GamePage } from '@/features/game/pages/GamePage.js';
+import { PublicProfilePage } from '@/features/users/pages/PublicProfilePage.js';
 import { AboutPage } from '@/pages/AboutPage.js';
 import { ClubsPage } from '@/pages/ClubsPage.js';
 import { RulesPage } from '@/pages/RulesPage.js';
@@ -45,6 +46,7 @@ export function App() {
         <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />
         <Route path={ROUTE_PATH.ABOUT} element={<AboutPage />} />
         <Route path={ROUTE_PATH.LOBBY_ROOM} element={<LobbyRoomPage />} />
+        <Route path={ROUTE_PATH.PUBLIC_USER} element={<PublicProfilePage />} />
       </Route>
 
       {/* Full-screen game page — no top nav. */}

@@ -16,6 +16,16 @@ export const updateNicknameInputSchema = z.object({
 });
 export type UpdateNicknameInput = z.infer<typeof updateNicknameInputSchema>;
 
+// Payload for PATCH /api/v1/auth/me/profile — optional public fields. Pass
+// null in any field to clear it. Omitted fields are left untouched.
+const optionalShortText = z.string().trim().max(80).nullable().optional();
+export const updateProfileInputSchema = z.object({
+  realName: optionalShortText,
+  country: optionalShortText,
+  clubName: optionalShortText,
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
+
 // Payload for POST /api/v1/auth/login
 export const loginInputSchema = z.object({
   email: emailSchema,
@@ -31,9 +41,38 @@ export const authenticatedUserSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   nickname: z.string(),
+  publicCode: z.string(),
   avatarUrl: z.string().url().nullable(),
+  realName: z.string().nullable(),
+  country: z.string().nullable(),
+  clubName: z.string().nullable(),
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
+
+// Public profile — what /api/v1/users/:code returns. No email exposed.
+export const publicUserProfileSchema = z.object({
+  id: z.string().uuid(),
+  publicCode: z.string(),
+  nickname: z.string(),
+  avatarUrl: z.string().url().nullable(),
+  realName: z.string().nullable(),
+  country: z.string().nullable(),
+  clubName: z.string().nullable(),
+  createdAt: z.string().datetime(),
+});
+export type PublicUserProfile = z.infer<typeof publicUserProfileSchema>;
+
+export const publicUserProfileResponseSchema = z.object({
+  user: publicUserProfileSchema,
+});
+export type PublicUserProfileResponse = z.infer<typeof publicUserProfileResponseSchema>;
+
+// Payload for DELETE /api/v1/auth/me. The user must retype their email to
+// confirm — the server enforces the match.
+export const deleteAccountInputSchema = z.object({
+  confirmEmail: z.string().email(),
+});
+export type DeleteAccountInput = z.infer<typeof deleteAccountInputSchema>;
 
 // Response of any auth endpoint that establishes a session.
 export const authSessionResponseSchema = z.object({

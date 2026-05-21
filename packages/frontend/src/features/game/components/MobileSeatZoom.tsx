@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { GameParticipantPublic } from '@mafia/shared';
@@ -13,6 +14,7 @@ import type { GameParticipantPublic } from '@mafia/shared';
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface MobileSeatZoomProps {
   participant: GameParticipantPublic;
@@ -75,7 +77,17 @@ export function MobileSeatZoom({
         <div className="flex-none bg-bg/95 border-t border-border p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-lg font-semibold text-fg truncate">{participant.nickname}</p>
+              {participant.publicCode ? (
+                <Link
+                  to={publicUserPath(participant.publicCode)}
+                  onClick={(event) => event.stopPropagation()}
+                  className="block text-lg font-semibold text-fg truncate hover:underline"
+                >
+                  {participant.nickname}
+                </Link>
+              ) : (
+                <p className="text-lg font-semibold text-fg truncate">{participant.nickname}</p>
+              )}
               <div className="flex items-center gap-2 mt-0.5">
                 {participant.role && (
                   <span className="text-xs uppercase tracking-wider text-muted">

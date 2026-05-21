@@ -6,6 +6,7 @@
 // V2 layout: avatar (left) · title + meta chips + progress bar (middle) · primary CTA (right).
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { LobbySummary } from '@mafia/shared';
@@ -13,6 +14,7 @@ import type { LobbySummary } from '@mafia/shared';
 import { Button } from '@/components/ui/Button.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface LobbyCardProps {
   lobby: LobbySummary;
@@ -64,7 +66,20 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
           <h3 className="truncate text-base font-semibold text-fg sm:text-lg">{lobby.name}</h3>
           <p className="mt-0.5 truncate text-sm text-muted">
             <span>{t('lobby.card.hostPrefix')}</span>
-            <span className="text-fg/80">{lobby.hostNickname}</span>
+            {lobby.hostPublicCode ? (
+              <Link
+                to={publicUserPath(lobby.hostPublicCode)}
+                // The card-wide click handler treats anything that bubbles up as
+                // a "join" intent. Stop the link click from reaching it so the
+                // navigation goes to the host profile, not into the lobby.
+                onClick={(event) => event.stopPropagation()}
+                className="text-fg/80 hover:underline"
+              >
+                {lobby.hostNickname}
+              </Link>
+            ) : (
+              <span className="text-fg/80">{lobby.hostNickname}</span>
+            )}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <Chip>

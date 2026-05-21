@@ -14,6 +14,7 @@ import { socketioPlugin } from './plugins/socketio.js';
 import { authModule } from './modules/auth/index.js';
 import { lobbyModule } from './modules/lobby/index.js';
 import { gameModule } from './modules/game/index.js';
+import { userModule } from './modules/users/users.routes.js';
 
 const API_PREFIX = '/api/v1';
 
@@ -93,6 +94,7 @@ export async function buildServer(): Promise<FastifyInstance> {
 
   // Feature modules are mounted under /api/v1/<module>.
   await app.register(authModule, { prefix: `${API_PREFIX}/auth` });
+  await app.register(userModule, { prefix: `${API_PREFIX}/users` });
   await app.register(lobbyModule, { prefix: `${API_PREFIX}/lobby` });
   await app.register(gameModule, { prefix: `${API_PREFIX}/game` });
 

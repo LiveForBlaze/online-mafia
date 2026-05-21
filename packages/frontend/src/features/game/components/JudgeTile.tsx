@@ -5,12 +5,14 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { GameStateProjected } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface JudgeTileProps {
   state: GameStateProjected;
@@ -78,7 +80,17 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
 
       {/* Bottom strip with nickname */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-        <p className="text-sm font-medium text-white truncate">{judge.nickname}</p>
+        {judge.publicCode ? (
+          <Link
+            to={publicUserPath(judge.publicCode)}
+            onClick={(event) => event.stopPropagation()}
+            className="block text-sm font-medium text-white truncate hover:underline"
+          >
+            {judge.nickname}
+          </Link>
+        ) : (
+          <p className="text-sm font-medium text-white truncate">{judge.nickname}</p>
+        )}
       </div>
     </div>
   );

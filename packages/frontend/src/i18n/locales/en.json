@@ -26,7 +26,9 @@
     "ru": "Русский",
     "uk": "Українська",
     "be": "Беларуская",
-    "en": "English"
+    "en": "English",
+    "ka": "ქართული",
+    "kk": "Қазақша"
   },
   "hero": {
     "title_top": "Mafia",
@@ -358,7 +360,34 @@
     "nickname_label": "Nickname",
     "nickname_hint": "2 to 24 characters. This is how other players will see you.",
     "logout": "Sign out",
-    "logging_out": "Signing out..."
+    "logging_out": "Signing out...",
+    "code_label": "Your code",
+    "real_name": "Real name",
+    "real_name_hint": "Your real name. Visible to other players.",
+    "country": "Country",
+    "country_hint": "Country or city. Visible to other players.",
+    "club": "Club",
+    "club_hint": "Your mafia club or community. Visible to other players.",
+    "copy_code": "Copy",
+    "copy_code_done": "Copied",
+    "danger_zone": "Danger zone",
+    "delete_account": "Delete account",
+    "delete_modal_title": "Delete account permanently",
+    "delete_modal_body": "This is irreversible. All your data will be anonymised. Type your email to confirm.",
+    "delete_modal_email_hint": "Your account email:",
+    "delete_modal_email_label": "Confirm email",
+    "delete_modal_confirm": "Delete forever",
+    "delete_modal_cancel": "Cancel"
+  },
+  "public_profile": {
+    "code_label": "Code",
+    "real_name": "Real name",
+    "country": "Country",
+    "club": "Club",
+    "joined": "Joined",
+    "edit_link": "That's you — edit your profile",
+    "not_found": "Player not found",
+    "not_found_back": "Back"
   },
   "coming_soon": {
     "clubs_title": "Clubs",

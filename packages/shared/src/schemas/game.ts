@@ -76,6 +76,10 @@ export const phaseSchema = z.enum([
 export const gameParticipantPublicSchema = z.object({
   userId: userIdSchema,
   nickname: z.string(),
+  // Public profile code so the game UI can deep-link nicknames to /u/:code.
+  // Optional for backwards compatibility with payloads emitted before this
+  // field existed (recovered games, older bot rows, etc.).
+  publicCode: z.string().optional(),
   avatarUrl: z.string().url().nullable(),
   seat: z.number().int().nullable(),
   isJudge: z.boolean(),

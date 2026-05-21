@@ -14,10 +14,12 @@ import { initReactI18next } from 'react-i18next';
 
 import be from './locales/be.json';
 import en from './locales/en.json';
+import ka from './locales/ka.json';
+import kk from './locales/kk.json';
 import ru from './locales/ru.json';
 import uk from './locales/uk.json';
 
-export const SUPPORTED_LOCALES = ['ru', 'uk', 'be', 'en'] as const;
+export const SUPPORTED_LOCALES = ['ru', 'uk', 'be', 'en', 'ka', 'kk'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 void i18n
@@ -29,6 +31,8 @@ void i18n
       uk: { translation: uk },
       be: { translation: be },
       en: { translation: en },
+      ka: { translation: ka },
+      kk: { translation: kk },
     },
     fallbackLng: 'ru',
     supportedLngs: SUPPORTED_LOCALES,

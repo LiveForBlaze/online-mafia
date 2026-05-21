@@ -26,7 +26,9 @@
     "ru": "Русский",
     "uk": "Українська",
     "be": "Беларуская",
-    "en": "English"
+    "en": "English",
+    "ka": "ქართული",
+    "kk": "Қазақша"
   },
   "hero": {
     "title_top": "Мафія",
@@ -376,7 +378,34 @@
     "nickname_label": "Нікнейм",
     "nickname_hint": "Ад 2 да 24 сімвалаў. Так вас убачаць іншыя гульцы.",
     "logout": "Выйсці з акаўнта",
-    "logging_out": "Выходзім..."
+    "logging_out": "Выходзім...",
+    "code_label": "Ваш код",
+    "real_name": "Імя",
+    "real_name_hint": "Сапраўднае імя. Бачна іншым гульцам.",
+    "country": "Краіна",
+    "country_hint": "Краіна або горад. Бачна іншым гульцам.",
+    "club": "Клуб",
+    "club_hint": "Ваш мафія-клуб або супольнасць. Бачна іншым гульцам.",
+    "copy_code": "Скапіяваць",
+    "copy_code_done": "Скапіявана",
+    "danger_zone": "Небяспечная зона",
+    "delete_account": "Выдаліць акаўнт",
+    "delete_modal_title": "Выдаліць акаўнт назаўжды",
+    "delete_modal_body": "Дзеянне незваротнае. Усе вашы дадзеныя будуць знеасоблены. Увядзіце свой email, каб пацвердзіць.",
+    "delete_modal_email_hint": "Email вашага акаўнта:",
+    "delete_modal_email_label": "Пацвердзіце email",
+    "delete_modal_confirm": "Выдаліць назаўсёды",
+    "delete_modal_cancel": "Скасаваць"
+  },
+  "public_profile": {
+    "code_label": "Код",
+    "real_name": "Імя",
+    "country": "Краіна",
+    "club": "Клуб",
+    "joined": "Зарэгістраваны",
+    "edit_link": "Гэта вы — рэдагаваць",
+    "not_found": "Гульца не знойдзена",
+    "not_found_back": "Назад"
   },
   "coming_soon": {
     "clubs_title": "Клубы",

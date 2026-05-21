@@ -69,10 +69,14 @@ export async function createLobby(
       },
     },
     include: {
-      host: { select: { id: true, nickname: true } },
+      host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
       members: {
-        include: { user: { select: { id: true, nickname: true, avatarUrl: true, isBot: true } } },
+        include: {
+          user: {
+            select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+          },
+        },
         orderBy: [{ isJudge: 'desc' }, { seat: 'asc' }],
       },
     },
@@ -92,7 +96,7 @@ export async function listUserActiveLobbies(viewerUserId: string): Promise<Lobby
       members: { some: { userId: viewerUserId } },
     },
     include: {
-      host: { select: { id: true, nickname: true } },
+      host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
       _count: { select: { members: true } },
     },
@@ -114,7 +118,7 @@ export async function listPublicLobbies(viewerUserId: string): Promise<LobbySumm
       host: { isBot: false },
     },
     include: {
-      host: { select: { id: true, nickname: true } },
+      host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
       _count: { select: { members: true } },
       members: {
@@ -136,10 +140,14 @@ export async function getLobbyDetails(
   const lobby = await prisma.lobby.findUnique({
     where: { id: lobbyId },
     include: {
-      host: { select: { id: true, nickname: true } },
+      host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
       members: {
-        include: { user: { select: { id: true, nickname: true, avatarUrl: true, isBot: true } } },
+        include: {
+          user: {
+            select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+          },
+        },
         orderBy: [{ isJudge: 'desc' }, { seat: 'asc' }],
       },
     },

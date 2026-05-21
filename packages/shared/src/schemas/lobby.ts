@@ -66,6 +66,9 @@ export type PreassignRoleInput = z.infer<typeof preassignRoleInputSchema>;
 export const lobbyMemberPublicSchema = z.object({
   userId: z.string().uuid(),
   nickname: z.string(),
+  // Public profile code so the UI can deep-link to /u/:code. Optional for
+  // backwards compatibility with older payloads (e.g. bot rows pre-migration).
+  publicCode: z.string().optional(),
   avatarUrl: z.string().url().nullable(),
   seat: z.number().int().min(GAME.FIRST_SEAT).max(GAME.LAST_SEAT).nullable(),
   isJudge: z.boolean(),
@@ -91,6 +94,9 @@ export const lobbySummarySchema = z.object({
   isPrivate: z.boolean(),
   hostId: z.string().uuid(),
   hostNickname: z.string(),
+  // Public profile code of the host, so the lobby card can link the host name
+  // to /u/:code. Optional for backwards compatibility with older payloads.
+  hostPublicCode: z.string().optional(),
   rulesetSlug: z.string(),
   status: lobbyStatusSchema,
   memberCount: z.number().int().nonnegative(),

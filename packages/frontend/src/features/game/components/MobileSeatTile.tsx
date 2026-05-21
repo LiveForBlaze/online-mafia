@@ -9,11 +9,13 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { useNavigate } from 'react-router';
 
 import type { GameParticipantPublic } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { publicUserPath } from '@/routes/paths.js';
 
 interface MobileSeatTileProps {
   seat: number;
@@ -36,6 +38,7 @@ export function MobileSeatTile({
   action,
   onZoom,
 }: MobileSeatTileProps) {
+  const navigate = useNavigate();
   if (!participant) {
     return (
       <div className="rounded-md border border-dashed border-border bg-bg flex items-center justify-center text-xs text-muted min-h-0">
@@ -80,7 +83,28 @@ export function MobileSeatTile({
 
           {/* Bottom: gradient with nickname + optional action chip. */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1 z-10">
-            <p className="text-[11px] font-medium text-white truncate">{participant.nickname}</p>
+            {participant.publicCode ? (
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(publicUserPath(participant.publicCode as string));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    navigate(publicUserPath(participant.publicCode as string));
+                  }
+                }}
+                className="block text-[11px] font-medium text-white truncate hover:underline"
+              >
+                {participant.nickname}
+              </span>
+            ) : (
+              <p className="text-[11px] font-medium text-white truncate">{participant.nickname}</p>
+            )}
             {action && (
               <span
                 onClick={(event) => {

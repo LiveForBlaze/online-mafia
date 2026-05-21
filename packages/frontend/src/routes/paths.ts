@@ -13,6 +13,7 @@ export const ROUTE_PATH = {
   ABOUT: '/about',
   LOBBY_ROOM: '/lobby/:id',
   GAME_ROOM: '/game/:id',
+  PUBLIC_USER: '/u/:code',
 } as const;
 
 /** Build a concrete lobby room URL from a lobby id. */
@@ -23,4 +24,9 @@ export function lobbyRoomPath(lobbyId: string): string {
 /** Build a concrete game URL from a game id. */
 export function gameRoomPath(gameId: string): string {
   return `/game/${gameId}`;
+}
+
+/** Build a public-profile URL from a user's public code. */
+export function publicUserPath(code: string): string {
+  return `/u/${encodeURIComponent(code)}`;
 }

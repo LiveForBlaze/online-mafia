@@ -6,6 +6,10 @@ import { GAME_PHASE, type GamePhase, type Role, type Team } from '@mafia/shared'
 export interface GameParticipant {
   userId: string;
   nickname: string;
+  // Public profile code, propagated through projection so clients can deep-link
+  // each nickname to /u/:code. Optional because recovery from old event rows
+  // / older code paths may surface a participant without this field set yet.
+  publicCode?: string;
   avatarUrl: string | null;
   seat: number | null; // null for judge
   isJudge: boolean;
