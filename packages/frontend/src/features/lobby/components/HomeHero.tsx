@@ -17,6 +17,11 @@ export function HomeHero({ onCreateLobby }: HomeHeroProps) {
   return (
     <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center py-6 sm:py-10">
       <div className="space-y-5">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning">
+            {t('hero.alpha_badge')}
+          </span>
+        </div>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[0.95] tracking-tight uppercase">
           <span className="block text-fg">{t('hero.title_top')}</span>
           <span className="block text-accent">{t('hero.title_bottom')}</span>

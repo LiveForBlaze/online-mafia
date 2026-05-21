@@ -34,7 +34,8 @@
     "title_top": "Мафія",
     "title_bottom": "Онлайн",
     "tagline_primary": "Спортивна мафія онлайн",
-    "tagline_secondary": "Грайте з людьми з усього світу"
+    "tagline_secondary": "Грайте з людьми з усього світу",
+    "alpha_badge": "Альфа-версія"
   },
   "auth": {
     "login": {

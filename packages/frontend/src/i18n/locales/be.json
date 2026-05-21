@@ -34,7 +34,8 @@
     "title_top": "Мафія",
     "title_bottom": "Анлайн",
     "tagline_primary": "Спартыўная мафія анлайн",
-    "tagline_secondary": "Гуляйце з людзьмі з усяго свету"
+    "tagline_secondary": "Гуляйце з людзьмі з усяго свету",
+    "alpha_badge": "Альфа-версія"
   },
   "auth": {
     "login": {

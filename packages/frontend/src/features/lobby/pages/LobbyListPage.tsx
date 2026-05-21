@@ -99,13 +99,6 @@ export function LobbyListPage() {
       <div className="mx-auto max-w-6xl space-y-8">
         <HomeHero onCreateLobby={() => setIsCreateOpen(true)} />
 
-        <div
-          role="note"
-          className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
-        >
-          {t('lobby.list.betaNotice')}
-        </div>
-
         {activeGameId && (
           <section className="rounded-lg border border-accent/40 bg-accent/10 p-4 space-y-3">
             <div>

@@ -34,7 +34,8 @@
     "title_top": "Mafia",
     "title_bottom": "Online",
     "tagline_primary": "Sport mafia online",
-    "tagline_secondary": "Play with people from all over the world"
+    "tagline_secondary": "Play with people from all over the world",
+    "alpha_badge": "Alpha version"
   },
   "auth": {
     "login": {

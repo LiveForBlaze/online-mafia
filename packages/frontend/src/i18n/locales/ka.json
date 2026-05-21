@@ -34,7 +34,8 @@
     "title_top": "მაფია",
     "title_bottom": "ონლაინ",
     "tagline_primary": "სპორტული მაფია ონლაინ",
-    "tagline_secondary": "ითამაშეთ ხალხთან მთელი მსოფლიოდან"
+    "tagline_secondary": "ითამაშეთ ხალხთან მთელი მსოფლიოდან",
+    "alpha_badge": "ალფა ვერსია"
   },
   "auth": {
     "login": {
