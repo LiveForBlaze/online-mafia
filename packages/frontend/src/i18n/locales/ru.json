@@ -304,7 +304,14 @@
       "micDisable": "Выключить микрофон",
       "cameraEnable": "Включить камеру",
       "cameraDisable": "Выключить камеру",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "shootoutSpeaker": "Перестрелка: говорит №{{seat}}",
+      "tiedCandidates": "Спорные",
+      "lastWordSpeaker": "Последнее слово: №{{seat}}",
+      "lhTitle": "Лучший ход",
+      "lhHint": "Выберите до 3 игроков, которых считаете мафией",
+      "lhSubmit": "Отправить",
+      "lhSubmitted": "Лучший ход отправлен"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

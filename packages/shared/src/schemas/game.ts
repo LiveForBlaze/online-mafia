@@ -169,6 +169,21 @@ export const gameStateProjectedSchema = z.object({
   // of DAY_SHOOTOUT and DAY_REVOTE.
   tiedSeats: z.array(z.number().int()),
 
+  // The viewer's own mafia-consensus vote this night, or null if they haven't
+  // voted / aren't on the mafia team. UI keys "have I voted yet?" off this
+  // instead of pendingMafiaTargetSeat (which mirrors the last writer across
+  // the team, not the viewer specifically).
+  myMafiaVote: z.number().int().nullable(),
+
+  // Лучший Ход submissions made so far this game. Public — anyone can see
+  // who guessed what after their last word.
+  bestMoveGuesses: z.array(
+    z.object({
+      byUserId: userIdSchema,
+      guessedSeats: z.array(z.number().int()),
+    }),
+  ),
+
   // Filled in once the game ends.
   winner: teamSchema.nullable(),
 });

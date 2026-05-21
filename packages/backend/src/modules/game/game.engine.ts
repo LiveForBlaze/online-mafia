@@ -918,6 +918,17 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     // Tied candidates during DAY_SHOOTOUT / DAY_REVOTE so the UI can
     // highlight who's in contention.
     tiedSeats: state.tiedSeats,
+    // Whether this viewer (if mafia/don) has cast their consensus vote this
+    // night, so the UI can hide the "shoot" button after their own pick. We
+    // deliberately don't expose other shooters' picks here — coordination
+    // happens in-game, not via leaked state.
+    myMafiaVote:
+      viewer && viewer.seat !== null && (viewer.role === ROLE.MAFIA || viewer.role === ROLE.DON)
+        ? (state.mafiaVotes.get(viewer.seat) ?? null)
+        : null,
+    // Public audit trail of Лучший Ход submissions. Shown to everyone since
+    // it's a publicly-spoken move; future stats module will score them.
+    bestMoveGuesses: state.bestMoveGuesses,
     myCheckResult: myCheck,
     winner: state.winner,
   };

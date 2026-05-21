@@ -129,8 +129,7 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       );
 
     case GAME_PHASE.DAY_VOTE:
-    case GAME_PHASE.DAY_REVOTE:
-    case GAME_PHASE.DAY_SHOOTOUT: {
+    case GAME_PHASE.DAY_REVOTE: {
       const hasVoted =
         viewerSeat !== null &&
         Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
@@ -145,6 +144,33 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
         </div>
       );
     }
+
+    case GAME_PHASE.DAY_SHOOTOUT:
+      return (
+        <div className="flex items-baseline gap-2 flex-wrap">
+          {state.currentSpeakerSeat !== null && (
+            <p className="text-base font-bold text-warning">
+              {t('game.ui.shootoutSpeaker', { seat: state.currentSpeakerSeat })}
+            </p>
+          )}
+          {state.tiedSeats.length > 0 && (
+            <p className="text-xs text-muted">
+              {t('game.ui.tiedCandidates')}: {state.tiedSeats.map((s) => `№${s}`).join(', ')}
+            </p>
+          )}
+        </div>
+      );
+
+    case GAME_PHASE.DAY_LAST_WORD:
+      return (
+        <div className="flex items-baseline gap-2 flex-wrap">
+          {state.lastWordSeat !== null && (
+            <p className="text-base font-bold text-warning">
+              {t('game.ui.lastWordSpeaker', { seat: state.lastWordSeat })}
+            </p>
+          )}
+        </div>
+      );
 
     case GAME_PHASE.NIGHT_MAFIA: {
       const isMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;

@@ -304,7 +304,14 @@
       "micDisable": "Вимкнути мікрофон",
       "cameraEnable": "Увімкнути камеру",
       "cameraDisable": "Вимкнути камеру",
-      "close": "Закрити"
+      "close": "Закрити",
+      "shootoutSpeaker": "Перестрілка: говорить №{{seat}}",
+      "tiedCandidates": "Спірні",
+      "lastWordSpeaker": "Останнє слово: №{{seat}}",
+      "lhTitle": "Найкращий хід",
+      "lhHint": "Виберіть до 3 гравців, яких вважаєте мафією",
+      "lhSubmit": "Відправити",
+      "lhSubmitted": "Найкращий хід відправлено"
     },
     "errors": {
       "not_participant": "Вас немає в цій грі",

@@ -298,7 +298,14 @@
       "micDisable": "Disable microphone",
       "cameraEnable": "Enable camera",
       "cameraDisable": "Disable camera",
-      "close": "Close"
+      "close": "Close",
+      "shootoutSpeaker": "Shootout: №{{seat}} is speaking",
+      "tiedCandidates": "Tied",
+      "lastWordSpeaker": "Last word: №{{seat}}",
+      "lhTitle": "Best move",
+      "lhHint": "Pick up to 3 players you think are mafia",
+      "lhSubmit": "Submit",
+      "lhSubmitted": "Best move submitted"
     },
     "errors": {
       "not_participant": "You're not in this game",

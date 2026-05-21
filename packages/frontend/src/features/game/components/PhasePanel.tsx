@@ -3,6 +3,7 @@
 // The switch on `state.phase` is intentionally explicit and lives in one file:
 // it is the clearest place to see what every role sees in every phase.
 
+import { useState } from 'react';
 import { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +16,9 @@ import {
   type Role,
 } from '@mafia/shared';
 
+import { Button } from '@/components/ui/Button.js';
+import { cn } from '@/lib/cn.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 
 interface PhasePanelProps {
@@ -74,14 +78,47 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
       );
 
     case GAME_PHASE.DAY_VOTE:
+    case GAME_PHASE.DAY_REVOTE:
       return (
         <PanelShell>
-          <p className="text-fg">{t(`game.phase.${GAME_PHASE.DAY_VOTE}`)}.</p>
+          <p className="text-fg">{t(`game.phase.${state.phase}`)}.</p>
           <p className="mt-1 text-sm text-muted">
             {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
           </p>
           {viewerIsAlive && hasVoted(state, viewerSeat) && (
             <p className="mt-1 text-sm text-success">{t('game.ui.voted')}</p>
+          )}
+        </PanelShell>
+      );
+
+    case GAME_PHASE.DAY_SHOOTOUT:
+      return (
+        <PanelShell>
+          <p className="text-fg">{t(`game.phase.${GAME_PHASE.DAY_SHOOTOUT}`)}.</p>
+          {state.currentSpeakerSeat !== null && (
+            <p className="mt-1 text-base font-semibold text-warning">
+              {t('game.ui.shootoutSpeaker', { seat: state.currentSpeakerSeat })}
+            </p>
+          )}
+          {state.tiedSeats.length > 0 && (
+            <p className="mt-1 text-xs text-muted">
+              {t('game.ui.tiedCandidates')}: {state.tiedSeats.map((s) => `№${s}`).join(', ')}
+            </p>
+          )}
+        </PanelShell>
+      );
+
+    case GAME_PHASE.DAY_LAST_WORD:
+      return (
+        <PanelShell>
+          <p className="text-fg">{t(`game.phase.${GAME_PHASE.DAY_LAST_WORD}`)}.</p>
+          {state.lastWordSeat !== null && (
+            <p className="mt-1 text-base font-semibold text-warning">
+              {t('game.ui.lastWordSpeaker', { seat: state.lastWordSeat })}
+            </p>
+          )}
+          {state.lastWordSeat !== null && viewerSeat === state.lastWordSeat && (
+            <BestMoveGuessForm state={state} />
           )}
         </PanelShell>
       );
@@ -181,6 +218,90 @@ function NightCheckPanel({
   );
 }
 
+// LH (Лучший Ход) submission form for the last-word speaker.
+// Shown inline in the DAY_LAST_WORD panel when the viewer is the eliminated
+// player who hasn't submitted yet. They pick 1–3 alive non-self seats they
+// think are mafia/don. After submission the form collapses to a confirmation.
+function BestMoveGuessForm({ state }: { state: GameStateProjected }) {
+  const { t } = useTranslation();
+  const viewerId = useAuthStore((s) => s.user?.id);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!viewerId) return null;
+
+  const alreadyGuessed = state.bestMoveGuesses.some((g) => g.byUserId === viewerId);
+  if (alreadyGuessed || submitted) {
+    return <p className="mt-2 text-sm text-success">{t('game.ui.lhSubmitted')}</p>;
+  }
+
+  // Candidates: alive non-self players. The eliminated speaker can't pick
+  // themselves and can't pick already-dead seats — those would be rejected
+  // by the engine anyway.
+  const candidates = state.participants.filter(
+    (p) => !p.isJudge && p.isAlive && !p.isRemoved && p.userId !== viewerId,
+  );
+
+  const toggle = (seat: number) => {
+    setSelected((current) =>
+      current.includes(seat)
+        ? current.filter((s) => s !== seat)
+        : current.length < 3
+          ? [...current, seat]
+          : current,
+    );
+  };
+
+  const canSubmit = selected.length >= 1 && selected.length <= 3 && !submitting;
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      await emitGameAction(CLIENT_EVENT.BEST_MOVE_GUESS, { guessedSeats: selected });
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-sm font-semibold text-fg">{t('game.ui.lhTitle')}</p>
+      <p className="text-xs text-muted">{t('game.ui.lhHint')}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {candidates
+          .filter((p) => p.seat !== null)
+          .map((p) => {
+            const seat = p.seat as number;
+            const picked = selected.includes(seat);
+            return (
+              <button
+                key={seat}
+                type="button"
+                onClick={() => toggle(seat)}
+                disabled={submitting}
+                className={cn(
+                  'inline-flex items-center justify-center w-9 h-9 rounded-md border text-sm font-semibold transition',
+                  picked
+                    ? 'border-warning bg-warning/20 text-warning'
+                    : 'border-border bg-card hover:bg-bg text-fg',
+                  submitting && 'opacity-60',
+                )}
+              >
+                {seat}
+              </button>
+            );
+          })}
+      </div>
+      <Button onClick={handleSubmit} disabled={!canSubmit} className="w-full">
+        {submitting ? t('common.saving') : t('game.ui.lhSubmit')}
+      </Button>
+    </div>
+  );
+}
+
 function GameOverContent({ state }: { state: GameStateProjected }) {
   const { t } = useTranslation();
   return (
@@ -234,6 +355,10 @@ export function actionForSeatInCurrentPhase(args: {
       };
 
     case GAME_PHASE.DAY_VOTE:
+    case GAME_PHASE.DAY_REVOTE:
+      // Both rounds share the same vote affordance — nominationSeats is
+      // pinned to tiedSeats at the DAY_VOTE→DAY_SHOOTOUT transition, so the
+      // existing includes() check restricts revote candidates correctly.
       if (!state.nominationSeats.includes(participantSeat)) return null;
       if (viewerSeat !== null && hasVoted(state, viewerSeat)) return null;
       return {
@@ -243,9 +368,11 @@ export function actionForSeatInCurrentPhase(args: {
 
     case GAME_PHASE.NIGHT_MAFIA:
       if (viewerRole !== ROLE.MAFIA && viewerRole !== ROLE.DON) return null;
-      // Once the mafia has chosen a target this night, the button disappears so
-      // there's no ambiguity about whether the click actually registered.
-      if (state.pendingMafiaTargetSeat !== null) return null;
+      // Hide the button once THIS viewer has cast their consensus vote.
+      // Other shooters' picks still propagate via pendingMafiaTargetSeat in
+      // the side panel, but each shooter retains their own button until
+      // they've voted themselves.
+      if (state.myMafiaVote !== null) return null;
       return {
         label: t('game.ui.shootButton'),
         onClick: () => emitGameAction(CLIENT_EVENT.MAFIA_TARGET, { targetSeat: participantSeat }),

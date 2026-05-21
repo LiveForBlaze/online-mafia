@@ -304,7 +304,14 @@
       "micDisable": "Выключить микрофон",
       "cameraEnable": "Включить камеру",
       "cameraDisable": "Выключить камеру",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "shootoutSpeaker": "გადასროლა: ლაპარაკობს №{{seat}}",
+      "tiedCandidates": "სადავო",
+      "lastWordSpeaker": "ბოლო სიტყვა: №{{seat}}",
+      "lhTitle": "საუკეთესო სვლა",
+      "lhHint": "აირჩიეთ 3-მდე მოთამაშე, რომელსაც მაფიად მიიჩნევთ",
+      "lhSubmit": "გაგზავნა",
+      "lhSubmitted": "საუკეთესო სვლა გაგზავნილია"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

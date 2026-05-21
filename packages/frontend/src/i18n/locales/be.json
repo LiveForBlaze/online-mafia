@@ -304,7 +304,14 @@
       "micDisable": "Выключыць мікрафон",
       "cameraEnable": "Уключыць камеру",
       "cameraDisable": "Выключыць камеру",
-      "close": "Зачыніць"
+      "close": "Зачыніць",
+      "shootoutSpeaker": "Перастрэлка: гаворыць №{{seat}}",
+      "tiedCandidates": "Спрэчныя",
+      "lastWordSpeaker": "Апошняе слова: №{{seat}}",
+      "lhTitle": "Лепшы ход",
+      "lhHint": "Абярыце да 3 гульцоў, якіх лічыце мафіяй",
+      "lhSubmit": "Адправіць",
+      "lhSubmitted": "Лепшы ход адпраўлены"
     },
     "errors": {
       "not_participant": "Вас няма ў гэтай гульні",
