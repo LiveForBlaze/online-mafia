@@ -9,9 +9,9 @@ ALTER TABLE "User" ADD COLUMN "realName" TEXT;
 ALTER TABLE "User" ADD COLUMN "country" TEXT;
 ALTER TABLE "User" ADD COLUMN "clubName" TEXT;
 
--- Backfill publicCode for existing users with a 6-char A-Z 0-9 code.
--- Postgres's gen_random_bytes(4) produces 8 hex chars; we slice 6 and
--- uppercase. Collision risk over the whole table is negligible.
+-- Backfill publicCode for existing users with a 6-char uppercase code.
+-- md5(random()::text) is always available without extensions; the previous
+-- gen_random_bytes() variant needed pgcrypto, which prod doesn't have on.
 DO $$
 DECLARE
   u RECORD;
@@ -19,7 +19,7 @@ DECLARE
 BEGIN
   FOR u IN SELECT id FROM "User" WHERE "publicCode" IS NULL LOOP
     LOOP
-      new_code := UPPER(SUBSTRING(ENCODE(gen_random_bytes(4), 'hex'), 1, 6));
+      new_code := UPPER(SUBSTRING(MD5(RANDOM()::TEXT || CLOCK_TIMESTAMP()::TEXT), 1, 6));
       EXIT WHEN NOT EXISTS (SELECT 1 FROM "User" WHERE "publicCode" = new_code);
     END LOOP;
     UPDATE "User" SET "publicCode" = new_code WHERE id = u.id;
