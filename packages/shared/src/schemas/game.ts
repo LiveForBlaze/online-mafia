@@ -147,6 +147,11 @@ export const gameStateProjectedSchema = z.object({
   // (ФИИМ-style). Equal to nominationSeats.length once every round has
   // closed and remaining voters have been auto-cast for the last candidate.
   voteRoundIdx: z.number().int().nonnegative(),
+  // True when the current speaker has already had one nomination called
+  // during their turn — judge's "Выставить" button hides until the next
+  // speaker takes the floor. False outside DAY_SPEECH or when no nomination
+  // yet for this speech.
+  nominationLockedForSpeaker: z.boolean(),
 
   // Latest mafia target chosen this night.
   // Visible to mafia, don, judge during night; visible to everyone after morning announcement.

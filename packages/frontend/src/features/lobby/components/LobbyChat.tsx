@@ -29,13 +29,24 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // YouTube-style "follow new messages while you're at the bottom" tracker.
+  // Recomputed on every scroll so the moment a user drags up, we stop snapping
+  // their viewport — but the moment they drag back to the bottom, we resume.
+  const stickToBottom = useRef(true);
 
-  // Stick to bottom when near it, but let the user scroll up freely.
-  useEffect(() => {
+  function handleScroll() {
     const list = listRef.current;
     if (!list) return;
-    const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    if (nearBottom) list.scrollTop = list.scrollHeight;
+    const distance = list.scrollHeight - list.scrollTop - list.clientHeight;
+    stickToBottom.current = distance < 24;
+  }
+
+  useEffect(() => {
+    if (!stickToBottom.current) return;
+    const list = listRef.current;
+    if (!list) return;
+    list.scrollTop = list.scrollHeight;
   }, [messages]);
 
   async function handleSend(event: React.FormEvent<HTMLFormElement>) {
@@ -46,7 +57,16 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
     setSending(true);
     const ack = await send(text);
     setSending(false);
-    if (ack.ok) setDraft('');
+    if (ack.ok) {
+      setDraft('');
+      // Keep the input focused so the next message is just type-and-Enter
+      // away — the conversation flows continuously instead of forcing the
+      // user to re-click after every send.
+      inputRef.current?.focus();
+      // Sending implies they're engaged with the bottom of the conversation;
+      // re-arm follow-mode so the broadcast they're about to see auto-scrolls.
+      stickToBottom.current = true;
+    }
   }
 
   return (
@@ -54,7 +74,11 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
       <header className="px-3 py-2 border-b border-border text-xs uppercase tracking-wider text-muted">
         {t('lobby.chat.title')}
       </header>
-      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+      <div
+        ref={listRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2"
+      >
         {messages.length === 0 ? (
           <p className="text-sm text-muted">{t('lobby.chat.empty')}</p>
         ) : (
@@ -69,6 +93,7 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
         noValidate
       >
         <Input
+          ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={t('lobby.chat.placeholder')}

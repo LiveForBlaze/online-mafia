@@ -70,12 +70,14 @@ function decideAction(state: GameState, bot: GameParticipant): (() => Promise<un
 
   switch (state.phase) {
     case GAME_PHASE.NIGHT_MAFIA: {
-      if (bot.role !== ROLE.MAFIA && bot.role !== ROLE.DON) return null;
-      // Each shooter votes once per night under the consensus rule. Skip if
+      // Only mafia (not don) participate in the UI kill ballot — don's
+      // contribution is verbal during the night-zero discussion.
+      if (bot.role !== ROLE.MAFIA) return null;
+      // Each mafia votes once per night under the consensus rule. Skip if
       // this bot has already voted; the engine will resolve agreement at
-      // night's end. Note: in mixed bot/human games with multiple mafia,
-      // independently-random bots will likely disagree → miss. That's the
-      // correct emergent behavior, not a bug.
+      // night's end. With multiple mafia bots picking independently, their
+      // votes will probably disagree → miss. That's the correct emergent
+      // behavior, not a bug.
       if (bot.seat !== null && state.mafiaVotes.has(bot.seat)) return null;
       const target = pickRandomLivingSeat(state, {
         excludeRoles: [ROLE.MAFIA, ROLE.DON],

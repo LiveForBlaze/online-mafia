@@ -74,6 +74,7 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     phaseDeadline: null,
     participants,
     currentSpeakerSeat: 1,
+    lastNominatorSeat: null,
     nominationSeats: [],
     votes: new Map(),
     voteRoundIdx: 0,

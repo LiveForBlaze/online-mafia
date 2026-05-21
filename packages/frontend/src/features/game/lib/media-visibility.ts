@@ -82,10 +82,24 @@ export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
     targetIsJudge,
   } = args;
 
-  if (!targetIsAlive) return false;
   // Judge camera is always live to everyone — they're the one running the
   // game and the table needs to see them, including during the night.
   if (targetIsJudge) return true;
+
+  // Dead-but-speaking exception: a player giving their farewell minute
+  // (overnight kill) or last word (day-vote elimination) keeps both camera
+  // and mic live until their minute ends. Without this, the eliminated
+  // player could neither be heard nor seen during their own speech.
+  if (
+    !targetIsAlive &&
+    args.targetSeat !== null &&
+    (args.targetSeat === args.farewellSeat || args.targetSeat === args.lastWordSeat) &&
+    !isDeadlinePast(args.phaseDeadline, args.now)
+  ) {
+    return true;
+  }
+
+  if (!targetIsAlive) return false;
   if (targetUserId === viewerUserId) return true;
   if (viewerIsJudge) return true;
   if (!viewerIsAlive) return true;

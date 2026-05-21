@@ -6,22 +6,32 @@
 // promotes whatever is the most important information for the current phase
 // to large type (e.g. the ЧЁРНЫЙ / КРАСНЫЙ check result).
 
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
+import { CLIENT_EVENT, GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
+import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { GameOverReview } from '@/features/game/components/GameOverReview.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
+import { emitGameAction } from '@/features/game/socket/game.socket.js';
 
 interface MobileStageProps {
   state: GameStateProjected;
   viewerRole: Role | null;
   viewerSeat: number | null;
   viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
 }
 
-export function MobileStage({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStageProps) {
+export function MobileStage({
+  state,
+  viewerRole,
+  viewerSeat,
+  viewerIsAlive,
+  viewerIsJudge,
+}: MobileStageProps) {
   const { t } = useTranslation();
   const { secondsLeft, expired, hasTimer } = useCountdown(state.phaseDeadline);
 
@@ -54,12 +64,19 @@ export function MobileStage({ state, viewerRole, viewerSeat, viewerIsAlive }: Mo
         viewerRole={viewerRole}
         viewerSeat={viewerSeat}
         viewerIsAlive={viewerIsAlive}
+        viewerIsJudge={viewerIsJudge}
       />
     </section>
   );
 }
 
-function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStageProps) {
+function StageBody({
+  state,
+  viewerRole,
+  viewerSeat,
+  viewerIsAlive,
+  viewerIsJudge,
+}: MobileStageProps) {
   const { t } = useTranslation();
   if (state.status === 'finished') {
     return <GameOverReview state={state} />;
@@ -128,39 +145,15 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       );
 
     case GAME_PHASE.DAY_VOTE:
-    case GAME_PHASE.DAY_REVOTE: {
-      const hasVoted =
-        viewerSeat !== null &&
-        Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
-      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
-      const tally = currentCandidate
-        ? Object.values(state.votes).filter((c) => c === currentCandidate).length
-        : 0;
-      const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
+    case GAME_PHASE.DAY_REVOTE:
       return (
-        <div className="flex items-baseline gap-2 flex-wrap">
-          {!votingClosed && currentCandidate !== undefined ? (
-            <p className="text-base font-bold text-warning">
-              {t('game.ui.voteRoundPrompt', {
-                seat: currentCandidate,
-                current: state.voteRoundIdx + 1,
-                total: state.nominationSeats.length,
-              })}
-            </p>
-          ) : (
-            <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
-          )}
-          {!votingClosed && currentCandidate !== undefined && (
-            <p className="text-xs font-mono text-muted">
-              {t('game.ui.voteRoundTally', { count: tally })}
-            </p>
-          )}
-          {viewerIsAlive && hasVoted && (
-            <p className="text-xs text-success">{t('game.ui.voted')}</p>
-          )}
-        </div>
+        <MobileVoteBody
+          state={state}
+          viewerSeat={viewerSeat}
+          viewerIsAlive={viewerIsAlive}
+          viewerIsJudge={viewerIsJudge}
+        />
       );
-    }
 
     case GAME_PHASE.DAY_SHOOTOUT:
       return (
@@ -207,17 +200,17 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       );
 
     case GAME_PHASE.NIGHT_MAFIA: {
-      const isMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;
+      const isMafia = viewerRole === ROLE.MAFIA;
       return (
         <div className="space-y-0.5">
-          {viewerIsAlive && isMafiaTeam ? (
+          {viewerIsAlive && isMafia ? (
             <p className="text-xs text-muted">{t('game.ui.chooseMafiaTarget')}</p>
           ) : (
             <p className="text-xs text-muted">{t('game.ui.waitingForOthers')}</p>
           )}
-          {state.pendingMafiaTargetSeat !== null && (
-            <p className="text-base font-bold text-danger">
-              {t('game.ui.mafiaTarget', { seat: state.pendingMafiaTargetSeat })}
+          {isMafia && state.myMafiaVote !== null && (
+            <p className="text-sm font-semibold text-success">
+              {t('game.ui.myMafiaVote', { seat: state.myMafiaVote })}
             </p>
           )}
         </div>
@@ -254,4 +247,78 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
     default:
       return null;
   }
+}
+
+// Compact vote panel for the mobile stage strip — same logic as InfoTile's
+// VoteBody, just rendered to fit a single horizontal row with a tap target
+// for the "ЗА" button.
+function MobileVoteBody({
+  state,
+  viewerSeat,
+  viewerIsAlive,
+  viewerIsJudge,
+}: {
+  state: GameStateProjected;
+  viewerSeat: number | null;
+  viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
+}) {
+  const { t } = useTranslation();
+  const [pending, setPending] = useState(false);
+  const hasVoted =
+    viewerSeat !== null && Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
+  const currentCandidate = state.nominationSeats[state.voteRoundIdx];
+  const tally = currentCandidate
+    ? Object.values(state.votes).filter((c) => c === currentCandidate).length
+    : 0;
+  const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
+  const canVote =
+    !viewerIsJudge &&
+    viewerIsAlive &&
+    !hasVoted &&
+    !votingClosed &&
+    currentCandidate !== undefined &&
+    viewerSeat !== currentCandidate;
+
+  async function castVote() {
+    if (!canVote || pending || currentCandidate === undefined) return;
+    setPending(true);
+    try {
+      await emitGameAction(CLIENT_EVENT.CAST_VOTE, { candidateSeat: currentCandidate });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {!votingClosed && currentCandidate !== undefined ? (
+        <p className="text-base font-bold text-warning">
+          {t('game.ui.voteRoundPrompt', {
+            seat: currentCandidate,
+            current: state.voteRoundIdx + 1,
+            total: state.nominationSeats.length,
+          })}
+        </p>
+      ) : (
+        <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
+      )}
+      {!votingClosed && currentCandidate !== undefined && (
+        <p className="text-xs font-mono text-muted">
+          {t('game.ui.voteRoundTally', { count: tally })}
+        </p>
+      )}
+      {canVote && (
+        <Button
+          size="sm"
+          onClick={castVote}
+          disabled={pending}
+          className="ml-auto bg-danger hover:bg-danger/90"
+        >
+          {t('game.ui.voteForButton')}
+        </Button>
+      )}
+      {viewerIsAlive && hasVoted && <p className="text-xs text-success">{t('game.ui.voted')}</p>}
+    </div>
+  );
 }

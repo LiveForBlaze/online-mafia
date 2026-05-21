@@ -170,6 +170,7 @@ export function GamePage() {
               viewerRole={viewerRole}
               viewerSeat={viewerSeat}
               viewerIsAlive={viewerIsAlive}
+              viewerIsJudge={viewerIsJudge}
             />
           </div>
 
@@ -187,6 +188,7 @@ export function GamePage() {
                 viewerRole={viewerRole}
                 viewerSeat={viewerSeat}
                 viewerIsAlive={viewerIsAlive}
+                viewerIsJudge={viewerIsJudge}
               />
             }
             actionFor={actionFor}

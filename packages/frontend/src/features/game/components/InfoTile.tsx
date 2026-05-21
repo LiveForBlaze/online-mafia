@@ -4,22 +4,32 @@
 // nominations, vote progress, check results). Personal prompts (your check result)
 // are still surfaced here for the relevant viewer.
 
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
+import { CLIENT_EVENT, GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
+import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { GameOverReview } from '@/features/game/components/GameOverReview.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
+import { emitGameAction } from '@/features/game/socket/game.socket.js';
 
 interface InfoTileProps {
   state: GameStateProjected;
   viewerRole: Role | null;
   viewerSeat: number | null;
   viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
 }
 
-export function InfoTile({ state, viewerRole, viewerSeat, viewerIsAlive }: InfoTileProps) {
+export function InfoTile({
+  state,
+  viewerRole,
+  viewerSeat,
+  viewerIsAlive,
+  viewerIsJudge,
+}: InfoTileProps) {
   return (
     // Same dark surface as the JudgeTile so the two centre cells form a unified
     // "control zone" clearly distinct from the surrounding video tiles.
@@ -31,6 +41,7 @@ export function InfoTile({ state, viewerRole, viewerSeat, viewerIsAlive }: InfoT
         viewerRole={viewerRole}
         viewerSeat={viewerSeat}
         viewerIsAlive={viewerIsAlive}
+        viewerIsJudge={viewerIsJudge}
       />
     </div>
   );
@@ -78,11 +89,13 @@ function Body({
   viewerRole,
   viewerSeat,
   viewerIsAlive,
+  viewerIsJudge,
 }: {
   state: GameStateProjected;
   viewerRole: Role | null;
   viewerSeat: number | null;
   viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
 }) {
   const { t } = useTranslation();
   if (state.status === 'finished') {
@@ -139,54 +152,63 @@ function Body({
       );
 
     case GAME_PHASE.DAY_VOTE:
-    case GAME_PHASE.DAY_REVOTE: {
-      const hasVoted =
-        viewerSeat !== null &&
-        Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
-      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
-      const tally = currentCandidate
-        ? Object.values(state.votes).filter((c) => c === currentCandidate).length
-        : 0;
-      const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
+    case GAME_PHASE.DAY_REVOTE:
+      return (
+        <VoteBody
+          state={state}
+          viewerSeat={viewerSeat}
+          viewerIsAlive={viewerIsAlive}
+          viewerIsJudge={viewerIsJudge}
+        />
+      );
+
+    case GAME_PHASE.DAY_LAST_WORD: {
+      // Post-vote tally so the judge (and everyone else) sees the full
+      // breakdown of who got how many "ЗА" votes, in addition to the
+      // eliminated speaker.
+      const tally = new Map<number, number>();
+      for (const candidate of Object.values(state.votes)) {
+        tally.set(candidate, (tally.get(candidate) ?? 0) + 1);
+      }
+      const sorted = [...tally.entries()].sort((a, b) => b[1] - a[1]);
       return (
         <div className="space-y-2">
-          {!votingClosed && currentCandidate !== undefined ? (
-            <>
-              <p className="text-2xl sm:text-3xl font-extrabold text-warning leading-tight">
-                №{currentCandidate}
-              </p>
-              <p className="text-sm text-muted">
-                {t('game.ui.voteRoundPromptShort', {
-                  current: state.voteRoundIdx + 1,
-                  total: state.nominationSeats.length,
-                })}
-              </p>
-              <p className="text-xs font-mono text-muted">
-                {t('game.ui.voteRoundTally', { count: tally })}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
+          {state.lastWordSeat !== null && (
+            <p className="text-xl sm:text-2xl font-extrabold text-warning leading-tight">
+              {t('game.ui.lastWordSpeaker', { seat: state.lastWordSeat })}
+            </p>
           )}
-          {viewerIsAlive && hasVoted && (
-            <p className="text-base text-success">{t('game.ui.voted')}</p>
+          {sorted.length > 0 && (
+            <div className="text-xs">
+              <p className="uppercase tracking-wider text-muted mb-1">
+                {t('game.ui.voteTallyTitle')}
+              </p>
+              <ul className="space-y-0.5">
+                {sorted.map(([seat, count]) => (
+                  <li key={seat} className="flex items-center gap-2">
+                    <span className="font-mono text-muted w-6">№{seat}</span>
+                    <span className="font-semibold text-fg">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       );
     }
 
     case GAME_PHASE.NIGHT_MAFIA: {
-      const isMafiaTeam = viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON;
+      const isMafia = viewerRole === ROLE.MAFIA;
       return (
         <div className="space-y-2">
-          {viewerIsAlive && isMafiaTeam ? (
+          {viewerIsAlive && isMafia ? (
             <p className="text-sm text-muted">{t('game.ui.chooseMafiaTarget')}</p>
           ) : (
             <p className="text-sm text-muted">{t('game.ui.waitingForOthers')}</p>
           )}
-          {state.pendingMafiaTargetSeat !== null && (
-            <p className="text-xl sm:text-2xl font-bold text-danger leading-tight">
-              {t('game.ui.mafiaTarget', { seat: state.pendingMafiaTargetSeat })}
+          {isMafia && state.myMafiaVote !== null && (
+            <p className="text-base font-semibold text-success">
+              {t('game.ui.myMafiaVote', { seat: state.myMafiaVote })}
             </p>
           )}
         </div>
@@ -274,6 +296,85 @@ function NightCheckBody({
   return (
     <div className="text-xs">
       <p className="text-muted">{allowed ? prompt : t('game.ui.waitingForOthers')}</p>
+    </div>
+  );
+}
+
+// Sequential-vote body for the info tile: candidate number, tally, and a big
+// "ЗА" button right under it so the voter doesn't have to scan the table to
+// find where to click. The button is also bound to Space via useVoteHotkey,
+// but most players will reach for the mouse first.
+function VoteBody({
+  state,
+  viewerSeat,
+  viewerIsAlive,
+  viewerIsJudge,
+}: {
+  state: GameStateProjected;
+  viewerSeat: number | null;
+  viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
+}) {
+  const { t } = useTranslation();
+  const [pending, setPending] = useState(false);
+  const hasVoted =
+    viewerSeat !== null && Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
+  const currentCandidate = state.nominationSeats[state.voteRoundIdx];
+  const tally = currentCandidate
+    ? Object.values(state.votes).filter((c) => c === currentCandidate).length
+    : 0;
+  const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
+
+  const canVote =
+    !viewerIsJudge &&
+    viewerIsAlive &&
+    !hasVoted &&
+    !votingClosed &&
+    currentCandidate !== undefined &&
+    viewerSeat !== currentCandidate;
+
+  async function castVote() {
+    if (!canVote || pending || currentCandidate === undefined) return;
+    setPending(true);
+    try {
+      await emitGameAction(CLIENT_EVENT.CAST_VOTE, { candidateSeat: currentCandidate });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {!votingClosed && currentCandidate !== undefined ? (
+        <>
+          <p className="text-2xl sm:text-3xl font-extrabold text-warning leading-tight">
+            №{currentCandidate}
+          </p>
+          <p className="text-sm text-muted">
+            {t('game.ui.voteRoundPromptShort', {
+              current: state.voteRoundIdx + 1,
+              total: state.nominationSeats.length,
+            })}
+          </p>
+          <p className="text-xs font-mono text-muted">
+            {t('game.ui.voteRoundTally', { count: tally })}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
+      )}
+
+      {canVote && (
+        <Button
+          onClick={castVote}
+          disabled={pending}
+          className="w-full bg-danger hover:bg-danger/90 mt-2"
+        >
+          {t('game.ui.voteForButton')}
+        </Button>
+      )}
+
+      {viewerIsAlive && hasVoted && <p className="text-base text-success">{t('game.ui.voted')}</p>}
     </div>
   );
 }

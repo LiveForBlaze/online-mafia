@@ -175,6 +175,7 @@ export async function createGameFromLobby(
     phaseDeadline: null,
     participants: withRoles,
     currentSpeakerSeat: null,
+    lastNominatorSeat: null,
     nominationSeats: [],
     votes: new Map(),
     voteRoundIdx: 0,

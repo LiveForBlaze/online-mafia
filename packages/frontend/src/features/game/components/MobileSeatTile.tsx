@@ -10,6 +10,7 @@
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 import { FOUL_MUTE_THRESHOLD, type GameParticipantPublic } from '@mafia/shared';
 
@@ -39,6 +40,7 @@ export function MobileSeatTile({
   onZoom,
 }: MobileSeatTileProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   if (!participant) {
     return (
       <div className="rounded-md border border-dashed border-border bg-bg flex items-center justify-center text-xs text-muted min-h-0">
@@ -75,8 +77,18 @@ export function MobileSeatTile({
               {seat}
             </span>
           </div>
+          {/* Role badge (top-right). Only present when the projection has
+              revealed this role to the viewer — judge sees everyone, mafia
+              sees their own team, players see their own. Critical for the
+              mobile judge UI: without it the judge has no way to track
+              who's mafia at a glance. */}
+          {participant.role && (
+            <span className="absolute top-0.5 right-1 z-10 rounded bg-black/65 text-white px-1 py-0.5 text-[10px] font-semibold leading-none">
+              {t(`game.role.${participant.role}`)}
+            </span>
+          )}
           {voteCountAgainst !== undefined && voteCountAgainst > 0 && (
-            <span className="absolute top-0.5 right-1 z-10 rounded bg-warning/85 text-white px-1 py-0.5 text-[10px] font-semibold">
+            <span className="absolute top-5 right-1 z-10 rounded bg-warning/85 text-white px-1 py-0.5 text-[10px] font-semibold">
               {voteCountAgainst}
             </span>
           )}

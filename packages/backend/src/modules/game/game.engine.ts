@@ -292,6 +292,13 @@ export function applyNominate(
   const actor = findByUserId(state, actorUserId);
   if (!actor || !actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
 
+  // One nomination per speech per ФИИМ — if the current speaker has already
+  // had a nomination called from their turn, refuse further ones until the
+  // judge advances to the next speaker.
+  if (state.lastNominatorSeat === state.currentSpeakerSeat) {
+    return fail(ENGINE_ERROR.ALREADY_NOMINATED);
+  }
+
   const target = findBySeat(state, targetSeat);
   if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
   if (target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
@@ -301,7 +308,11 @@ export function applyNominate(
   // since the actor is now the judge.
   if (targetSeat === state.currentSpeakerSeat) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
 
-  return ok({ ...state, nominationSeats: [...state.nominationSeats, targetSeat] });
+  return ok({
+    ...state,
+    nominationSeats: [...state.nominationSeats, targetSeat],
+    lastNominatorSeat: state.currentSpeakerSeat,
+  });
 }
 
 export function applyCastVote(
@@ -339,7 +350,11 @@ export function applyMafiaTarget(
 
   const actor = findByUserId(state, actorUserId);
   if (!actor || actor.isJudge || !actor.isAlive) return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
-  if (actor.role !== ROLE.MAFIA && actor.role !== ROLE.DON) {
+  // Only mafia (not don) cast the night kill ballot via the UI. Per the
+  // project owner: the don makes their case during the night-zero spoken
+  // discussion, not through the click mechanic. The don's own UI action
+  // remains the sheriff-check at NIGHT_DON.
+  if (actor.role !== ROLE.MAFIA) {
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
 
@@ -351,9 +366,9 @@ export function applyMafiaTarget(
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
 
-  // Record this shooter's individual vote. Consensus across all alive black
-  // players is computed at resolution time in applyAdvancePhase — if any of
-  // them voted for a different seat (or didn't vote at all), nobody dies.
+  // Record this shooter's individual vote. Consensus across all alive mafia
+  // is computed at resolution time in applyAdvancePhase — if any of them
+  // voted for a different seat (or didn't vote at all), nobody dies.
   const newVotes = new Map(state.mafiaVotes);
   newVotes.set(actor.seat!, targetSeat);
   return ok({
@@ -366,11 +381,12 @@ export function applyMafiaTarget(
   });
 }
 
-// Resolve the night's kill: if every alive shooter (mafia + don) voted AND
-// they all picked the same seat, that seat dies. Otherwise it's a miss —
-// no one dies. Returns null on miss / no consensus.
+// Resolve the night's kill: if every alive MAFIA seat voted AND they all
+// picked the same target, that seat dies. The don doesn't participate in
+// this mechanic — they make their case during the night-zero discussion.
+// Returns null on miss / no consensus.
 function resolveMafiaConsensus(state: GameState): number | null {
-  const shooters = alivePlayers(state).filter((p) => p.role === ROLE.MAFIA || p.role === ROLE.DON);
+  const shooters = alivePlayers(state).filter((p) => p.role === ROLE.MAFIA);
   if (shooters.length === 0) return null;
   let agreed: number | null = null;
   for (const shooter of shooters) {
@@ -784,7 +800,7 @@ export function applyNextSpeaker(state: GameState): {
   // hasSpokenThisDay flag (alive-player filter already excludes them).
   if (state.farewellSeat === state.currentSpeakerSeat) {
     const startSeat = dayStartSeat(state);
-    const cleared: GameState = { ...state, farewellSeat: null };
+    const cleared: GameState = { ...state, farewellSeat: null, lastNominatorSeat: null };
     if (startSeat === null) {
       return { state: { ...cleared, currentSpeakerSeat: null }, speechesDone: true };
     }
@@ -810,11 +826,17 @@ export function applyNextSpeaker(state: GameState): {
 
   const next = nextSpeakerSeat(updated, state.currentSpeakerSeat + 1);
   if (next === null) {
-    return { state: { ...updated, currentSpeakerSeat: null }, speechesDone: true };
+    return {
+      state: { ...updated, currentSpeakerSeat: null, lastNominatorSeat: null },
+      speechesDone: true,
+    };
   }
-  // New speaker → fresh 60-second timer.
+  // New speaker → fresh 60-second timer, and a fresh nomination quota.
   return {
-    state: withFreshDeadline({ ...updated, currentSpeakerSeat: next }, GAME_PHASE.DAY_SPEECH),
+    state: withFreshDeadline(
+      { ...updated, currentSpeakerSeat: next, lastNominatorSeat: null },
+      GAME_PHASE.DAY_SPEECH,
+    ),
     speechesDone: false,
   };
 }
@@ -1058,6 +1080,10 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     nominationSeats: state.nominationSeats,
     votes: Object.fromEntries([...state.votes].map(([k, v]) => [String(k), v])),
     voteRoundIdx: state.voteRoundIdx,
+    // Whether the current speaker has already had a nomination called.
+    // UI uses this to hide the judge's "Выставить" buttons once one click
+    // has landed for that speech — one nomination per speech per ФИИМ.
+    nominationLockedForSpeaker: state.lastNominatorSeat === state.currentSpeakerSeat,
     pendingMafiaTargetSeat: showMafiaTarget ? state.pendingMafiaTargetSeat : null,
     lastNightVictimSeat: state.lastNightVictimSeat,
     // Drop the field once it has expired so clients don't have to do timer

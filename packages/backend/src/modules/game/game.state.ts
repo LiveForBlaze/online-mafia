@@ -40,6 +40,11 @@ export interface GameState {
 
   // Day-time transient state. Cleared on day start.
   currentSpeakerSeat: number | null;
+  // The seat whose speech produced the most recent nomination. While this
+  // equals currentSpeakerSeat, the judge cannot nominate again — one
+  // nomination per speech per ФИИМ. Cleared on every advanceSpeaker so the
+  // next speaker starts with a fresh quota.
+  lastNominatorSeat: number | null;
   nominationSeats: number[];
   votes: Map<number, number>; // voter seat → candidate seat
   // ФИИМ-style sequential voting: each candidate from nominationSeats is

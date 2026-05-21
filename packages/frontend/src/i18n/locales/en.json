@@ -329,7 +329,9 @@
       "voteRoundTally": "Yes: {{count}}",
       "voteClosed": "Voting closed",
       "voteSpaceHint": "Tip: Space = FOR",
-      "introHint": "Mics and cameras open — say hi, get to know the table."
+      "introHint": "Mics and cameras open — say hi, get to know the table.",
+      "myMafiaVote": "Your pick: №{{seat}}",
+      "voteTallyTitle": "Vote tally"
     },
     "errors": {
       "not_participant": "You're not in this game",

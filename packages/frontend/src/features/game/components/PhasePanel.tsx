@@ -167,14 +167,14 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
       return (
         <PanelShell>
           <p className="text-fg">{t(`game.phase.${GAME_PHASE.NIGHT_MAFIA}`)}.</p>
-          {viewerIsAlive && (viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) ? (
+          {viewerIsAlive && viewerRole === ROLE.MAFIA ? (
             <p className="mt-1 text-sm text-muted">{t('game.ui.chooseMafiaTarget')}</p>
           ) : (
             <p className="mt-1 text-sm text-muted">{t('game.ui.waitingForOthers')}</p>
           )}
-          {state.pendingMafiaTargetSeat !== null && (
-            <p className="mt-1 text-sm text-danger">
-              {t('game.ui.mafiaTarget', { seat: state.pendingMafiaTargetSeat })}
+          {viewerRole === ROLE.MAFIA && state.myMafiaVote !== null && (
+            <p className="mt-1 text-sm text-success">
+              {t('game.ui.myMafiaVote', { seat: state.myMafiaVote })}
             </p>
           )}
         </PanelShell>
@@ -439,7 +439,6 @@ export function actionForSeatInCurrentPhase(args: {
     t,
     state,
     viewerRole,
-    viewerSeat,
     viewerUserId,
     viewerIsAlive,
     viewerIsJudge,
@@ -463,9 +462,13 @@ export function actionForSeatInCurrentPhase(args: {
       // loud, the judge clicks the corresponding tile. Hidden from players;
       // only shown to the judge while there's an active speaker and the
       // target isn't already nominated / isn't the speaker themselves.
+      // One nomination per speech: once the speaker has called one,
+      // nominationLockedForSpeaker flips on and all nominate buttons hide
+      // until the next speaker takes the floor.
       if (!viewerIsJudge) return null;
       if (state.currentSpeakerSeat === null) return null;
       if (state.farewellSeat !== null) return null;
+      if (state.nominationLockedForSpeaker) return null;
       if (participantSeat === state.currentSpeakerSeat) return null;
       if (state.nominationSeats.includes(participantSeat)) return null;
       return {
@@ -475,22 +478,11 @@ export function actionForSeatInCurrentPhase(args: {
       };
 
     case GAME_PHASE.DAY_VOTE:
-    case GAME_PHASE.DAY_REVOTE: {
-      // Sequential voting: only the candidate of the current round shows a
-      // "ЗА" button to alive non-judge voters who haven't voted yet.
-      if (viewerIsJudge) return null;
-      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
-      if (currentCandidate === undefined) return null;
-      if (participantSeat !== currentCandidate) return null;
-      if (viewerSeat !== null && hasVoted(state, viewerSeat)) return null;
-      // A voter can't vote for themselves — hide the button when their own
-      // seat is the current candidate.
-      if (viewerSeat === currentCandidate) return null;
-      return {
-        label: t('game.ui.voteForButton'),
-        onClick: () => emitGameAction(CLIENT_EVENT.CAST_VOTE, { candidateSeat: participantSeat }),
-      };
-    }
+    case GAME_PHASE.DAY_REVOTE:
+      // Voting button lives in the InfoTile (and MobileStage), centered
+      // with the candidate's seat number — no per-tile button so players
+      // don't have to hunt across the table for it.
+      return null;
 
     case GAME_PHASE.NIGHT_MAFIA:
       if (viewerRole !== ROLE.MAFIA && viewerRole !== ROLE.DON) return null;

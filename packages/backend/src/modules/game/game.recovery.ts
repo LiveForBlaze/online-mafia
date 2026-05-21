@@ -114,6 +114,7 @@ function replayState(
     phaseDeadline: null,
     participants,
     currentSpeakerSeat: null,
+    lastNominatorSeat: null,
     nominationSeats: [],
     votes: new Map(),
     voteRoundIdx: 0,
