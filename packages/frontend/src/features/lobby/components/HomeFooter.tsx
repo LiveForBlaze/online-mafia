@@ -2,12 +2,13 @@
 // icons. Links are placeholders for now; the project owner will swap them for
 // real channels later.
 
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
+import { useTranslation } from 'react-i18next';
 
 export function HomeFooter() {
+  const { t } = useTranslation();
   return (
     <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-border text-xs text-muted">
-      <span>{LOBBY_MESSAGES.list.footer}</span>
+      <span>{t('lobby.list.footer')}</span>
       <div className="flex items-center gap-4 text-muted">
         <SocialLink label="Discord" href="#">
           <DiscordIcon />

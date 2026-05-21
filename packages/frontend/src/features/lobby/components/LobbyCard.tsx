@@ -6,13 +6,13 @@
 // V2 layout: avatar (left) · title + meta chips + progress bar (middle) · primary CTA (right).
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { LobbySummary } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
-import { formatRelativeTimeRu } from '@/features/lobby/lib/relativeTime.js';
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
+import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 
 interface LobbyCardProps {
   lobby: LobbySummary;
@@ -21,10 +21,11 @@ interface LobbyCardProps {
 }
 
 export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
+  const { t } = useTranslation();
   const ratio =
     lobby.maxMembers > 0 ? Math.min(1, Math.max(0, lobby.memberCount / lobby.maxMembers)) : 0;
   const percent = Math.round(ratio * 100);
-  const createdLabel = formatRelativeTimeRu(lobby.createdAt);
+  const createdLabel = formatRelativeTime(lobby.createdAt);
 
   function triggerJoin() {
     if (!isJoining) onJoin();
@@ -53,7 +54,7 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
       tabIndex={0}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
-      aria-label={`${lobby.name}, ${LOBBY_MESSAGES.card.host}: ${lobby.hostNickname}`}
+      aria-label={t('lobby.card.ariaLabel', { name: lobby.name, host: lobby.hostNickname })}
       className="group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-accent/40 hover:bg-card-deep focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
     >
       <div className="flex items-center gap-3 p-4">
@@ -62,11 +63,16 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-semibold text-fg sm:text-lg">{lobby.name}</h3>
           <p className="mt-0.5 truncate text-sm text-muted">
-            <span>{LOBBY_MESSAGES.card.hostPrefix}</span>
+            <span>{t('lobby.card.hostPrefix')}</span>
             <span className="text-fg/80">{lobby.hostNickname}</span>
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <Chip>{LOBBY_MESSAGES.card.membersShort(lobby.memberCount, lobby.maxMembers)}</Chip>
+            <Chip>
+              {t('lobby.card.membersShort', {
+                current: lobby.memberCount,
+                max: lobby.maxMembers,
+              })}
+            </Chip>
             <PrivacyBadge isPrivate={lobby.isPrivate} />
             {createdLabel && <Chip tone="muted">{createdLabel}</Chip>}
           </div>
@@ -83,7 +89,7 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
             variant={lobby.isViewerMember ? 'secondary' : 'primary'}
             size="sm"
           >
-            {lobby.isViewerMember ? LOBBY_MESSAGES.card.continue : LOBBY_MESSAGES.card.join}
+            {lobby.isViewerMember ? t('lobby.card.continue') : t('lobby.card.join')}
           </Button>
         </div>
       </div>
@@ -95,7 +101,10 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        aria-label={LOBBY_MESSAGES.card.membersOf(lobby.memberCount, lobby.maxMembers)}
+        aria-label={t('lobby.card.membersOf', {
+          current: lobby.memberCount,
+          max: lobby.maxMembers,
+        })}
         className="h-1 w-full bg-card-deep"
       >
         <div
@@ -128,6 +137,7 @@ function Chip({ children, tone = 'default' }: { children: ReactNode; tone?: 'def
 }
 
 function PrivacyBadge({ isPrivate }: { isPrivate: boolean }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -136,7 +146,7 @@ function PrivacyBadge({ isPrivate }: { isPrivate: boolean }) {
           : 'inline-flex items-center rounded-md bg-success/20 px-1.5 py-0.5 text-xs text-fg'
       }
     >
-      {isPrivate ? LOBBY_MESSAGES.card.private : LOBBY_MESSAGES.card.public}
+      {isPrivate ? t('lobby.card.private') : t('lobby.card.public')}
     </span>
   );
 }

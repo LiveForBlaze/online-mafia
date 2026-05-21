@@ -1,11 +1,12 @@
 // Page header showing the current phase, day number, and the viewer's own role.
 
+import { useTranslation } from 'react-i18next';
+
 import { TEAM, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { FullscreenToggle } from '@/features/game/components/FullscreenToggle.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
-import { GAME_MESSAGES } from '@/features/game/messages.js';
 
 interface PhaseHeaderProps {
   state: GameStateProjected;
@@ -24,6 +25,7 @@ export function PhaseHeader({
   onLeaveGame,
   onOpenLog,
 }: PhaseHeaderProps) {
+  const { t } = useTranslation();
   return (
     <header className="flex items-center justify-between gap-2 sm:gap-3">
       <div className="flex items-center gap-2 min-w-0">
@@ -33,7 +35,7 @@ export function PhaseHeader({
             onClick={onLeaveGame}
             className="text-xs sm:text-sm font-medium text-danger hover:underline whitespace-nowrap"
           >
-            {GAME_MESSAGES.ui.leaveGame}
+            {t('game.ui.leaveGame')}
           </button>
         ) : (
           <span />
@@ -42,10 +44,10 @@ export function PhaseHeader({
           <button
             type="button"
             onClick={onOpenLog}
-            title="Лог партии"
+            title={t('game.ui.logTitle')}
             className="text-xs sm:text-sm text-muted hover:text-fg hover:underline"
           >
-            Лог
+            {t('game.ui.logShort')}
           </button>
         )}
       </div>
@@ -54,12 +56,12 @@ export function PhaseHeader({
           hide it here and surface only the day-number chip instead. */}
       <div className="hidden lg:block text-center">
         <p className="text-xs uppercase tracking-wider text-muted">
-          {state.dayNumber > 0 && GAME_MESSAGES.ui.day(state.dayNumber)}
+          {state.dayNumber > 0 && t('game.ui.day', { n: state.dayNumber })}
         </p>
-        <h1 className="text-lg font-semibold text-fg">{GAME_MESSAGES.phase[state.phase]}</h1>
+        <h1 className="text-lg font-semibold text-fg">{t(`game.phase.${state.phase}`)}</h1>
       </div>
       <p className="lg:hidden text-xs uppercase tracking-wider text-muted whitespace-nowrap">
-        {state.dayNumber > 0 ? GAME_MESSAGES.ui.day(state.dayNumber) : ''}
+        {state.dayNumber > 0 ? t('game.ui.day', { n: state.dayNumber }) : ''}
       </p>
 
       <div className="flex items-center gap-1 sm:gap-2">
@@ -75,12 +77,13 @@ export function PhaseHeader({
 }
 
 function RoleBadge({ role, isJudge }: { role: Role | null; isJudge: boolean }) {
+  const { t } = useTranslation();
   if (isJudge) {
-    return <Badge tone="neutral">{GAME_MESSAGES.ui.judge}</Badge>;
+    return <Badge tone="neutral">{t('game.ui.judge')}</Badge>;
   }
   if (!role) return <span />;
   const isBlack = role === 'mafia' || role === 'don';
-  return <Badge tone={isBlack ? 'black' : 'red'}>{GAME_MESSAGES.role[role]}</Badge>;
+  return <Badge tone={isBlack ? 'black' : 'red'}>{t(`game.role.${role}`)}</Badge>;
 }
 
 function Badge({

@@ -4,10 +4,11 @@
 // nominations, vote progress, check results). Personal prompts (your check result)
 // are still surfaced here for the relevant viewer.
 
+import { useTranslation } from 'react-i18next';
+
 import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
-import { GAME_MESSAGES } from '@/features/game/messages.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
 
 interface InfoTileProps {
@@ -46,15 +47,16 @@ function InfoGlyph() {
 }
 
 function Header({ state }: { state: GameStateProjected }) {
+  const { t } = useTranslation();
   const { secondsLeft, expired, hasTimer } = useCountdown(state.phaseDeadline);
 
   return (
     <div>
       <p className="text-xs uppercase tracking-wider text-muted">
-        {state.dayNumber > 0 ? GAME_MESSAGES.ui.day(state.dayNumber) : 'Партия'}
+        {state.dayNumber > 0 ? t('game.ui.day', { n: state.dayNumber }) : t('game.ui.match')}
       </p>
       <p className="text-base sm:text-lg font-semibold text-fg leading-tight">
-        {GAME_MESSAGES.phase[state.phase]}
+        {t(`game.phase.${state.phase}`)}
       </p>
       {hasTimer && (
         <p
@@ -81,10 +83,12 @@ function Body({
   viewerSeat: number | null;
   viewerIsAlive: boolean;
 }) {
+  const { t } = useTranslation();
   if (state.status === 'finished') {
     return (
       <div className="text-base text-fg">
-        {state.winner && GAME_MESSAGES.ui.winner(GAME_MESSAGES.team[state.winner])}
+        {state.winner &&
+          t('game.ui.winner', { team: t(`game.team.${state.winner}`).toLowerCase() })}
       </div>
     );
   }
@@ -95,9 +99,9 @@ function Body({
         <div className="text-sm text-muted">
           {viewerRole && (
             <>
-              {GAME_MESSAGES.ui.yourRole}:{' '}
+              {t('game.ui.yourRole')}:{' '}
               <span className="text-fg text-base font-semibold">
-                {GAME_MESSAGES.role[viewerRole]}
+                {t(`game.role.${viewerRole}`)}
               </span>
             </>
           )}
@@ -107,7 +111,8 @@ function Body({
     case GAME_PHASE.NIGHT_ZERO:
       return (
         <div className="text-sm text-muted">
-          {(viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) && 'Ваша команда подсвечена'}
+          {(viewerRole === ROLE.MAFIA || viewerRole === ROLE.DON) &&
+            t('game.ui.mafiaTeamHighlight')}
         </div>
       );
 
@@ -122,13 +127,13 @@ function Body({
               )}
             >
               {state.farewellSeat !== null
-                ? GAME_MESSAGES.ui.farewellSpeaker(state.currentSpeakerSeat)
-                : GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
+                ? t('game.ui.farewellSpeaker', { seat: state.currentSpeakerSeat })
+                : t('game.ui.currentSpeaker', { seat: state.currentSpeakerSeat })}
             </p>
           )}
           {state.nominationSeats.length > 0 && (
             <p className="text-sm text-muted">
-              {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+              {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
             </p>
           )}
         </div>
@@ -141,10 +146,10 @@ function Body({
       return (
         <div className="space-y-2">
           <p className="text-lg sm:text-xl font-semibold text-fg leading-tight">
-            {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+            {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
           </p>
           {viewerIsAlive && hasVoted && (
-            <p className="text-base text-success">{GAME_MESSAGES.ui.voted}</p>
+            <p className="text-base text-success">{t('game.ui.voted')}</p>
           )}
         </div>
       );
@@ -155,13 +160,13 @@ function Body({
       return (
         <div className="space-y-2">
           {viewerIsAlive && isMafiaTeam ? (
-            <p className="text-sm text-muted">{GAME_MESSAGES.ui.chooseMafiaTarget}</p>
+            <p className="text-sm text-muted">{t('game.ui.chooseMafiaTarget')}</p>
           ) : (
-            <p className="text-sm text-muted">{GAME_MESSAGES.ui.waitingForOthers}</p>
+            <p className="text-sm text-muted">{t('game.ui.waitingForOthers')}</p>
           )}
           {state.pendingMafiaTargetSeat !== null && (
             <p className="text-xl sm:text-2xl font-bold text-danger leading-tight">
-              {GAME_MESSAGES.ui.mafiaTarget(state.pendingMafiaTargetSeat)}
+              {t('game.ui.mafiaTarget', { seat: state.pendingMafiaTargetSeat })}
             </p>
           )}
         </div>
@@ -173,7 +178,7 @@ function Body({
         <NightCheckBody
           kind="don"
           allowed={viewerRole === ROLE.DON && viewerIsAlive}
-          prompt={GAME_MESSAGES.ui.chooseDonTarget}
+          prompt={t('game.ui.chooseDonTarget')}
           checkResult={state.myCheckResult}
         />
       );
@@ -183,7 +188,7 @@ function Body({
         <NightCheckBody
           kind="sheriff"
           allowed={viewerRole === ROLE.SHERIFF && viewerIsAlive}
-          prompt={GAME_MESSAGES.ui.chooseSheriffTarget}
+          prompt={t('game.ui.chooseSheriffTarget')}
           checkResult={state.myCheckResult}
         />
       );
@@ -192,8 +197,8 @@ function Body({
       return (
         <div className="text-lg sm:text-xl font-semibold text-fg leading-tight">
           {state.lastNightVictimSeat !== null
-            ? GAME_MESSAGES.ui.morningVictim(state.lastNightVictimSeat)
-            : GAME_MESSAGES.ui.nobodyDied}
+            ? t('game.ui.morningVictim', { seat: state.lastNightVictimSeat })
+            : t('game.ui.nobodyDied')}
         </div>
       );
 
@@ -213,6 +218,7 @@ function NightCheckBody({
   prompt: string;
   checkResult: GameStateProjected['myCheckResult'];
 }) {
+  const { t } = useTranslation();
   // Once a check has been made, the result is THE thing the player needs to
   // read — make it the dominant element of the tile so it's legible from
   // across the table. The prompt fades to a small caption.
@@ -225,14 +231,10 @@ function NightCheckBody({
     let label: string;
     let labelClass: string;
     if (kind === 'sheriff') {
-      label = checkResult.result
-        ? GAME_MESSAGES.ui.sheriffCheckBlack
-        : GAME_MESSAGES.ui.sheriffCheckRed;
+      label = checkResult.result ? t('game.ui.sheriffCheckBlack') : t('game.ui.sheriffCheckRed');
       labelClass = checkResult.result ? 'text-fg' : 'text-danger';
     } else {
-      label = checkResult.result
-        ? GAME_MESSAGES.ui.donCheckSheriff
-        : GAME_MESSAGES.ui.donCheckNotSheriff;
+      label = checkResult.result ? t('game.ui.donCheckSheriff') : t('game.ui.donCheckNotSheriff');
       labelClass = checkResult.result ? 'text-danger' : 'text-fg';
     }
     return (
@@ -251,7 +253,7 @@ function NightCheckBody({
   }
   return (
     <div className="text-xs">
-      <p className="text-muted">{allowed ? prompt : GAME_MESSAGES.ui.waitingForOthers}</p>
+      <p className="text-muted">{allowed ? prompt : t('game.ui.waitingForOthers')}</p>
     </div>
   );
 }

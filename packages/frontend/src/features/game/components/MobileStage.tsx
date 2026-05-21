@@ -6,11 +6,12 @@
 // promotes whatever is the most important information for the current phase
 // to large type (e.g. the ЧЁРНЫЙ / КРАСНЫЙ check result).
 
+import { useTranslation } from 'react-i18next';
+
 import { GAME_PHASE, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
-import { GAME_MESSAGES } from '@/features/game/messages.js';
 
 interface MobileStageProps {
   state: GameStateProjected;
@@ -20,18 +21,19 @@ interface MobileStageProps {
 }
 
 export function MobileStage({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStageProps) {
+  const { t } = useTranslation();
   const { secondsLeft, expired, hasTimer } = useCountdown(state.phaseDeadline);
 
   return (
     <section className="rounded-md border border-border bg-card-deep p-3 space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-fg leading-tight truncate">
-          {GAME_MESSAGES.phase[state.phase]}
+          {t(`game.phase.${state.phase}`)}
         </p>
         <div className="flex items-center gap-2 shrink-0">
           {state.dayNumber > 0 && (
             <p className="text-[10px] uppercase tracking-wider text-muted">
-              {GAME_MESSAGES.ui.day(state.dayNumber)}
+              {t('game.ui.day', { n: state.dayNumber })}
             </p>
           )}
           {hasTimer && (
@@ -57,10 +59,12 @@ export function MobileStage({ state, viewerRole, viewerSeat, viewerIsAlive }: Mo
 }
 
 function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStageProps) {
+  const { t } = useTranslation();
   if (state.status === 'finished') {
     return (
       <p className="text-base font-semibold text-fg">
-        {state.winner && GAME_MESSAGES.ui.winner(GAME_MESSAGES.team[state.winner])}
+        {state.winner &&
+          t('game.ui.winner', { team: t(`game.team.${state.winner}`).toLowerCase() })}
       </p>
     );
   }
@@ -70,11 +74,11 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
     const isSheriff = state.phase === GAME_PHASE.NIGHT_SHERIFF;
     const label = isSheriff
       ? state.myCheckResult.result
-        ? GAME_MESSAGES.ui.sheriffCheckBlack
-        : GAME_MESSAGES.ui.sheriffCheckRed
+        ? t('game.ui.sheriffCheckBlack')
+        : t('game.ui.sheriffCheckRed')
       : state.myCheckResult.result
-        ? GAME_MESSAGES.ui.donCheckSheriff
-        : GAME_MESSAGES.ui.donCheckNotSheriff;
+        ? t('game.ui.donCheckSheriff')
+        : t('game.ui.donCheckNotSheriff');
     const labelClass = isSheriff
       ? state.myCheckResult.result
         ? 'text-fg'
@@ -96,8 +100,8 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
     case GAME_PHASE.ROLE_DISTRIBUTION:
       return viewerRole ? (
         <p className="text-sm text-muted">
-          {GAME_MESSAGES.ui.yourRole}:{' '}
-          <span className="text-fg font-semibold">{GAME_MESSAGES.role[viewerRole]}</span>
+          {t('game.ui.yourRole')}:{' '}
+          <span className="text-fg font-semibold">{t(`game.role.${viewerRole}`)}</span>
         </p>
       ) : null;
 
@@ -112,13 +116,13 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
               )}
             >
               {state.farewellSeat !== null
-                ? GAME_MESSAGES.ui.farewellSpeaker(state.currentSpeakerSeat)
-                : GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
+                ? t('game.ui.farewellSpeaker', { seat: state.currentSpeakerSeat })
+                : t('game.ui.currentSpeaker', { seat: state.currentSpeakerSeat })}
             </p>
           )}
           {state.nominationSeats.length > 0 && (
             <p className="text-xs text-muted">
-              {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+              {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
             </p>
           )}
         </div>
@@ -133,10 +137,10 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       return (
         <div className="flex items-baseline gap-2 flex-wrap">
           <p className="text-sm text-fg">
-            {GAME_MESSAGES.ui.nominations}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+            {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
           </p>
           {viewerIsAlive && hasVoted && (
-            <p className="text-xs text-success">{GAME_MESSAGES.ui.voted}</p>
+            <p className="text-xs text-success">{t('game.ui.voted')}</p>
           )}
         </div>
       );
@@ -147,13 +151,13 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       return (
         <div className="space-y-0.5">
           {viewerIsAlive && isMafiaTeam ? (
-            <p className="text-xs text-muted">{GAME_MESSAGES.ui.chooseMafiaTarget}</p>
+            <p className="text-xs text-muted">{t('game.ui.chooseMafiaTarget')}</p>
           ) : (
-            <p className="text-xs text-muted">{GAME_MESSAGES.ui.waitingForOthers}</p>
+            <p className="text-xs text-muted">{t('game.ui.waitingForOthers')}</p>
           )}
           {state.pendingMafiaTargetSeat !== null && (
             <p className="text-base font-bold text-danger">
-              {GAME_MESSAGES.ui.mafiaTarget(state.pendingMafiaTargetSeat)}
+              {t('game.ui.mafiaTarget', { seat: state.pendingMafiaTargetSeat })}
             </p>
           )}
         </div>
@@ -164,8 +168,8 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       return (
         <p className="text-xs text-muted">
           {viewerRole === ROLE.DON && viewerIsAlive
-            ? GAME_MESSAGES.ui.chooseDonTarget
-            : GAME_MESSAGES.ui.waitingForOthers}
+            ? t('game.ui.chooseDonTarget')
+            : t('game.ui.waitingForOthers')}
         </p>
       );
 
@@ -173,8 +177,8 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       return (
         <p className="text-xs text-muted">
           {viewerRole === ROLE.SHERIFF && viewerIsAlive
-            ? GAME_MESSAGES.ui.chooseSheriffTarget
-            : GAME_MESSAGES.ui.waitingForOthers}
+            ? t('game.ui.chooseSheriffTarget')
+            : t('game.ui.waitingForOthers')}
         </p>
       );
 
@@ -182,8 +186,8 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       return (
         <p className="text-base font-semibold text-fg">
           {state.lastNightVictimSeat !== null
-            ? GAME_MESSAGES.ui.morningVictim(state.lastNightVictimSeat)
-            : GAME_MESSAGES.ui.nobodyDied}
+            ? t('game.ui.morningVictim', { seat: state.lastNightVictimSeat })
+            : t('game.ui.nobodyDied')}
         </p>
       );
 

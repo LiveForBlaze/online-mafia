@@ -4,21 +4,23 @@
 // to avoid noisy red borders while the user is still typing.
 
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
 import { PasswordField } from '@/components/ui/PasswordField.js';
-import { extractAuthErrorMessage, useLogin } from '@/features/auth/hooks/useAuth.js';
-import { AUTH_MESSAGES } from '@/features/auth/messages.js';
+import { useExtractAuthErrorMessage, useLogin } from '@/features/auth/hooks/useAuth.js';
 
 interface LoginFormProps {
   onSuccess: () => void;
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const login = useLogin();
+  const extractAuthErrorMessage = useExtractAuthErrorMessage();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +37,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <FormField
-        label={AUTH_MESSAGES.login.emailLabel}
+        label={t('auth.login.emailLabel')}
         type="email"
         autoComplete="email"
         required
@@ -45,7 +47,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       />
 
       <PasswordField
-        label={AUTH_MESSAGES.login.passwordLabel}
+        label={t('auth.login.passwordLabel')}
         autoComplete="current-password"
         required
         value={password}
@@ -60,7 +62,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       )}
 
       <Button type="submit" size="md" className="w-full" disabled={login.isPending}>
-        {login.isPending ? AUTH_MESSAGES.login.submitting : AUTH_MESSAGES.login.submit}
+        {login.isPending ? t('auth.login.submitting') : t('auth.login.submit')}
       </Button>
     </form>
   );

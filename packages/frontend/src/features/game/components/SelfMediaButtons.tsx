@@ -2,6 +2,7 @@
 // Rendered inside SeatVideoTile when isSelf is true, replacing the page-level control bar.
 
 import { useLocalParticipant } from '@livekit/components-react';
+import { useTranslation } from 'react-i18next';
 
 import { CLIENT_EVENT, DAY_PHASES } from '@mafia/shared';
 
@@ -9,9 +10,9 @@ import { cn } from '@/lib/cn.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
-import { GAME_MESSAGES } from '@/features/game/messages.js';
 
 export function SelfMediaButtons() {
+  const { t } = useTranslation();
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
 
   // "Сказать под фол" is visible only when it makes sense: a live non-judge
@@ -41,14 +42,14 @@ export function SelfMediaButtons() {
       <IconButton
         on={isMicrophoneEnabled}
         onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
-        label={isMicrophoneEnabled ? 'Выключить микрофон' : 'Включить микрофон'}
+        label={isMicrophoneEnabled ? t('game.ui.micDisable') : t('game.ui.micEnable')}
       >
         {isMicrophoneEnabled ? <MicOnIcon /> : <MicOffIcon />}
       </IconButton>
       <IconButton
         on={isCameraEnabled}
         onClick={() => localParticipant.setCameraEnabled(!isCameraEnabled)}
-        label={isCameraEnabled ? 'Выключить камеру' : 'Включить камеру'}
+        label={isCameraEnabled ? t('game.ui.cameraDisable') : t('game.ui.cameraEnable')}
       >
         {isCameraEnabled ? <CameraOnIcon /> : <CameraOffIcon />}
       </IconButton>
@@ -56,11 +57,11 @@ export function SelfMediaButtons() {
         <button
           type="button"
           onClick={() => emitGameAction(CLIENT_EVENT.SAY_OUT_OF_TURN)}
-          aria-label={GAME_MESSAGES.ui.sayOutOfTurn}
-          title={GAME_MESSAGES.ui.sayOutOfTurnHint}
+          aria-label={t('game.ui.sayOutOfTurn')}
+          title={t('game.ui.sayOutOfTurnHint')}
           className="inline-flex items-center justify-center h-7 px-2 rounded-full bg-warning/85 hover:bg-warning text-[10px] font-semibold uppercase tracking-wider text-fg shadow"
         >
-          Фол
+          {t('game.ui.foulShort')}
         </button>
       )}
     </div>

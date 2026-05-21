@@ -3,12 +3,13 @@
 // concerns are owned by the parent page.
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import type { LobbyDetails, Role } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
-import { formatRelativeTimeRu } from '@/features/lobby/lib/relativeTime.js';
+import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 
 import { JudgeSlot } from './JudgeSlot.js';
 import { SeatGrid } from './SeatGrid.js';
@@ -48,6 +49,7 @@ export function LobbyRoom({
   isPreassignPending,
   errorMessage,
 }: LobbyRoomProps) {
+  const { t } = useTranslation();
   const isHost = lobby.hostId === currentUserId;
   const judge = lobby.members.find((m) => m.isJudge);
   const playerCount = lobby.members.filter((m) => !m.isJudge).length;
@@ -59,10 +61,10 @@ export function LobbyRoom({
   const judgeMissing = !judge;
   const allSeatsFilled = allPlayerSeatsFilled && !judgeMissing;
   const statusMessage = allSeatsFilled
-    ? LOBBY_MESSAGES.room.ready
+    ? t('lobby.room.ready')
     : !allPlayerSeatsFilled
-      ? LOBBY_MESSAGES.room.waitingFor(playersNeeded)
-      : LOBBY_MESSAGES.room.needJudge;
+      ? t('lobby.room.waitingFor', { n: playersNeeded })
+      : t('lobby.room.needJudge');
 
   const progressPct = Math.min(
     100,
@@ -83,7 +85,9 @@ export function LobbyRoom({
         />
 
         <section className="rounded-md border border-border bg-card p-4 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Места</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">
+            {t('lobby.room.seatsTitle')}
+          </h2>
           <SeatGrid
             members={lobby.members}
             currentUserId={currentUserId}
@@ -98,7 +102,7 @@ export function LobbyRoom({
         <section className="rounded-md border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium text-fg">
-              {LOBBY_MESSAGES.room.seatsProgress(playerCount, totalPlayerSeats)}
+              {t('lobby.room.seatsProgress', { current: playerCount, total: totalPlayerSeats })}
             </p>
             <p className="text-xs text-muted text-right">{statusMessage}</p>
           </div>
@@ -116,8 +120,8 @@ export function LobbyRoom({
           </div>
           <p className={cn('text-xs', judge ? 'text-success' : 'text-danger')}>
             {judge
-              ? LOBBY_MESSAGES.room.judgePresent(judge.nickname)
-              : LOBBY_MESSAGES.room.judgeAbsent}
+              ? t('lobby.room.judgePresent', { nickname: judge.nickname })
+              : t('lobby.room.judgeAbsent')}
           </p>
         </section>
 
@@ -136,17 +140,15 @@ export function LobbyRoom({
                   disabled={!allSeatsFilled || isStartPending}
                   title={!allSeatsFilled ? statusMessage : undefined}
                 >
-                  {LOBBY_MESSAGES.room.startGame}
+                  {t('lobby.room.startGame')}
                 </Button>
                 {!allPlayerSeatsFilled && (
                   <Button variant="secondary" onClick={onFillBots} disabled={isFillBotsPending}>
-                    {isFillBotsPending
-                      ? LOBBY_MESSAGES.room.fillingBots
-                      : LOBBY_MESSAGES.room.fillBots}
+                    {isFillBotsPending ? t('lobby.room.fillingBots') : t('lobby.room.fillBots')}
                   </Button>
                 )}
                 <Button variant="secondary" onClick={onClose} disabled={isClosePending}>
-                  {LOBBY_MESSAGES.room.close}
+                  {t('lobby.room.close')}
                 </Button>
               </>
             )}
@@ -157,7 +159,7 @@ export function LobbyRoom({
             disabled={isLeavePending}
             className="text-danger hover:bg-danger/10"
           >
-            {isLeavePending ? LOBBY_MESSAGES.room.leaving : LOBBY_MESSAGES.room.leave}
+            {isLeavePending ? t('lobby.room.leaving') : t('lobby.room.leave')}
           </Button>
         </div>
       </div>
@@ -168,6 +170,7 @@ export function LobbyRoom({
 // Header card — lobby name, info chips, and a share button. Kept in this file so
 // the room composition stays readable in one place.
 function LobbyHeaderCard({ lobby }: { lobby: LobbyDetails }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -188,12 +191,19 @@ function LobbyHeaderCard({ lobby }: { lobby: LobbyDetails }) {
           <h1 className="text-xl sm:text-2xl font-bold text-fg break-words">{lobby.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <Chip tone={lobby.isPrivate ? 'warning' : 'success'}>
-              {lobby.isPrivate ? LOBBY_MESSAGES.card.private : LOBBY_MESSAGES.card.public}
+              {lobby.isPrivate ? t('lobby.card.private') : t('lobby.card.public')}
             </Chip>
-            <Chip>{LOBBY_MESSAGES.room.membersChip(lobby.memberCount, lobby.maxMembers)}</Chip>
+            <Chip>
+              {t('lobby.room.membersChip', {
+                current: lobby.memberCount,
+                max: lobby.maxMembers,
+              })}
+            </Chip>
             <Chip>
               <ClockIcon />
-              <span>{LOBBY_MESSAGES.room.createdAgo(formatRelativeTimeRu(lobby.createdAt))}</span>
+              <span>
+                {t('lobby.room.createdAgo', { rel: formatRelativeTime(lobby.createdAt) })}
+              </span>
             </Chip>
           </div>
         </div>
@@ -201,12 +211,12 @@ function LobbyHeaderCard({ lobby }: { lobby: LobbyDetails }) {
           variant="secondary"
           size="sm"
           onClick={handleShare}
-          aria-label={LOBBY_MESSAGES.room.share}
+          aria-label={t('lobby.room.share')}
           className="shrink-0"
         >
           {copied ? <CheckIcon /> : <LinkIcon />}
           <span className="hidden sm:inline">
-            {copied ? LOBBY_MESSAGES.room.shareCopied : LOBBY_MESSAGES.room.share}
+            {copied ? t('lobby.room.shareCopied') : t('lobby.room.share')}
           </span>
         </Button>
       </div>

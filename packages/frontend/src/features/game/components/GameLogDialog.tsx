@@ -3,6 +3,7 @@
 // scrollable monospace list. Section headers ("── Ночь N ──") read as
 // dividers; everything else is plain log lines.
 
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/Button.js';
@@ -17,6 +18,7 @@ interface GameLogDialogProps {
 }
 
 export function GameLogDialog({ gameId, open, onClose }: GameLogDialogProps) {
+  const { t } = useTranslation();
   const logQuery = useQuery({
     queryKey: ['game', gameId, 'log'],
     queryFn: () => gameApi.log(gameId),
@@ -30,19 +32,19 @@ export function GameLogDialog({ gameId, open, onClose }: GameLogDialogProps) {
     <Dialog
       open={open}
       onClose={onClose}
-      title="Лог партии"
+      title={t('game.ui.logTitle')}
       className="max-w-xl"
       footer={
         <Button variant="ghost" onClick={onClose}>
-          Закрыть
+          {t('common.close')}
         </Button>
       }
     >
       <div className="max-h-[60vh] overflow-y-auto rounded-md border border-border bg-bg p-3 font-mono text-sm leading-relaxed">
-        {logQuery.isLoading && <p className="text-muted">Загрузка...</p>}
-        {logQuery.isError && <p className="text-danger">Не удалось загрузить лог</p>}
+        {logQuery.isLoading && <p className="text-muted">{t('common.loading')}</p>}
+        {logQuery.isError && <p className="text-danger">{t('game.ui.logLoadError')}</p>}
         {!logQuery.isLoading && !logQuery.isError && lines.length === 0 && (
-          <p className="text-muted">События пока не записаны</p>
+          <p className="text-muted">{t('game.ui.logEmpty')}</p>
         )}
         <ul className="space-y-0.5">
           {lines.map((line, idx) => {

@@ -1,29 +1,30 @@
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
 import { AuthLayout } from '@/features/auth/components/AuthLayout.js';
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton.js';
 import { LoginForm } from '@/features/auth/components/LoginForm.js';
-import { AUTH_MESSAGES } from '@/features/auth/messages.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <AuthLayout
-      title={AUTH_MESSAGES.login.title}
+      title={t('auth.login.title')}
       footer={
         <>
-          {AUTH_MESSAGES.login.noAccountPrompt}{' '}
+          {t('auth.login.noAccountPrompt')}{' '}
           <Link to={ROUTE_PATH.REGISTER} className="text-accent hover:underline">
-            {AUTH_MESSAGES.login.registerLink}
+            {t('auth.login.registerLink')}
           </Link>
         </>
       }
     >
       <LoginForm onSuccess={() => navigate(ROUTE_PATH.HOME)} />
 
-      <Separator label={AUTH_MESSAGES.login.or} />
+      <Separator label={t('auth.login.or')} />
 
       <GoogleSignInButton />
     </AuthLayout>

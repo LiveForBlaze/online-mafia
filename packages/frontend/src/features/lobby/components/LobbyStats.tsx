@@ -2,15 +2,16 @@
 // All numbers are derived from the currently-visible lobby list — no extra
 // API call. Single row on desktop, wraps on mobile.
 
-import type { LobbySummary } from '@mafia/shared';
+import { useTranslation } from 'react-i18next';
 
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
+import type { LobbySummary } from '@mafia/shared';
 
 interface LobbyStatsProps {
   lobbies: ReadonlyArray<LobbySummary>;
 }
 
 export function LobbyStats({ lobbies }: LobbyStatsProps) {
+  const { t } = useTranslation();
   const openCount = lobbies.length;
   const waitingCount = lobbies.reduce((sum, lobby) => sum + lobby.memberCount, 0);
   const privateCount = lobbies.reduce((sum, lobby) => sum + (lobby.isPrivate ? 1 : 0), 0);
@@ -18,17 +19,17 @@ export function LobbyStats({ lobbies }: LobbyStatsProps) {
   return (
     <div
       className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted"
-      aria-label="Статистика лобби"
+      aria-label={t('lobby.list.statsAria')}
     >
-      <Stat dotClass="bg-accent" label={LOBBY_MESSAGES.list.statsOpen(openCount)} />
+      <Stat dotClass="bg-accent" label={t('lobby.list.statsOpen', { count: openCount })} />
       <span aria-hidden="true" className="hidden sm:inline text-border">
         ·
       </span>
-      <Stat dotClass="bg-success" label={LOBBY_MESSAGES.list.statsWaiting(waitingCount)} />
+      <Stat dotClass="bg-success" label={t('lobby.list.statsWaiting', { count: waitingCount })} />
       <span aria-hidden="true" className="hidden sm:inline text-border">
         ·
       </span>
-      <Stat dotClass="bg-warning" label={LOBBY_MESSAGES.list.statsPrivate(privateCount)} />
+      <Stat dotClass="bg-warning" label={t('lobby.list.statsPrivate', { count: privateCount })} />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 // invokes the join mutation passed in by the parent.
 
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { LobbyDetailsResponse } from '@mafia/shared';
 
@@ -10,10 +11,9 @@ import { Button } from '@/components/ui/Button.js';
 import { Dialog } from '@/components/ui/Dialog.js';
 import { PasswordField } from '@/components/ui/PasswordField.js';
 import {
-  extractLobbyErrorMessage,
+  useExtractLobbyErrorMessage,
   useJoinLobby,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
 
 interface JoinPrivateLobbyDialogProps {
   open: boolean;
@@ -28,8 +28,10 @@ export function JoinPrivateLobbyDialog({
   onClose,
   onJoined,
 }: JoinPrivateLobbyDialogProps) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const join = useJoinLobby();
+  const extractLobbyErrorMessage = useExtractLobbyErrorMessage();
 
   function handleClose() {
     if (join.isPending) return;
@@ -58,23 +60,21 @@ export function JoinPrivateLobbyDialog({
     <Dialog
       open={open}
       onClose={handleClose}
-      title={LOBBY_MESSAGES.joinPrivate.title}
+      title={t('lobby.joinPrivate.title')}
       footer={
         <>
           <Button variant="ghost" onClick={handleClose} disabled={join.isPending}>
-            {LOBBY_MESSAGES.joinPrivate.cancel}
+            {t('lobby.joinPrivate.cancel')}
           </Button>
           <Button type="submit" form="join-private-form" disabled={join.isPending}>
-            {join.isPending
-              ? LOBBY_MESSAGES.joinPrivate.submitting
-              : LOBBY_MESSAGES.joinPrivate.submit}
+            {join.isPending ? t('lobby.joinPrivate.submitting') : t('lobby.joinPrivate.submit')}
           </Button>
         </>
       }
     >
       <form id="join-private-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         <PasswordField
-          label={LOBBY_MESSAGES.joinPrivate.password}
+          label={t('lobby.joinPrivate.password')}
           autoFocus
           required
           value={password}

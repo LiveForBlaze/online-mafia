@@ -4,7 +4,8 @@
 // and a 12-tile video grid that fills the rest of the viewport. The grid contains the
 // 10 player seats, the judge tile, and an info tile with current-phase context.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -25,11 +26,25 @@ import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePan
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
-import { GAME_MESSAGES, gameErrorMessage } from '@/features/game/messages.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
+const GAME_ERROR_KEYS = new Set([
+  'not_participant',
+  'game_not_found',
+  'wrong_phase',
+  'not_your_turn',
+  'not_authorized_role',
+  'target_not_found',
+  'target_not_live',
+  'already_voted',
+  'already_nominated',
+  'cannot_target_self',
+  'unknown',
+]);
+
 export function GamePage() {
+  const { t } = useTranslation();
   const params = useParams<{ id: string }>();
   const gameId = params.id;
   const navigate = useNavigate();
@@ -46,10 +61,10 @@ export function GamePage() {
 
   // Reset the active-game query so the home page does not bounce us back in.
   // Cached data could still hold our gameId for up to the refetch interval.
-  function goHome() {
+  const goHome = useCallback(() => {
     queryClient.setQueryData(['game', 'active'], { gameId: null });
     navigate(ROUTE_PATH.HOME);
-  }
+  }, [navigate, queryClient]);
 
   function handleConfirmLeave() {
     void emitGameAction(CLIENT_EVENT.LEAVE_GAME).finally(() => {
@@ -66,18 +81,18 @@ export function GamePage() {
     if (gameStatus !== 'finished') return;
     const timer = window.setTimeout(() => goHome(), 1500);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameStatus]);
+  }, [gameStatus, goHome]);
 
   if (!user || !gameId) return null;
 
   if (lastError) {
+    const errorKey = GAME_ERROR_KEYS.has(lastError) ? lastError : 'unknown';
     return (
       <main className="min-h-screen p-6 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <p className="text-danger">{gameErrorMessage(lastError)}</p>
+          <p className="text-danger">{t(`game.errors.${errorKey}`)}</p>
           <button type="button" onClick={goHome} className="text-accent hover:underline text-sm">
-            {GAME_MESSAGES.ui.back}
+            {t('game.ui.back')}
           </button>
         </div>
       </main>
@@ -87,7 +102,7 @@ export function GamePage() {
   if (!state) {
     return (
       <main className="min-h-screen p-6 flex items-center justify-center text-muted">
-        {isConnected ? 'Загрузка...' : 'Подключение...'}
+        {isConnected ? t('common.loading') : t('common.connecting')}
       </main>
     );
   }
@@ -100,6 +115,7 @@ export function GamePage() {
 
   const actionFor = (participant: (typeof state.participants)[number]) =>
     actionForSeatInCurrentPhase({
+      t,
       state,
       viewerRole,
       viewerSeat,
@@ -177,7 +193,7 @@ export function GamePage() {
 
         {viewer && !viewer.isAlive && !viewer.isJudge && (
           <p className="flex-none text-center text-sm text-muted py-1">
-            {viewer.isRemoved ? GAME_MESSAGES.ui.youAreRemoved : GAME_MESSAGES.ui.youDied}
+            {viewer.isRemoved ? t('game.ui.youAreRemoved') : t('game.ui.youDied')}
           </p>
         )}
       </main>
@@ -198,9 +214,9 @@ export function GamePage() {
       )}
       <ConfirmDialog
         open={showLeaveConfirm}
-        title={GAME_MESSAGES.ui.leaveGameConfirmTitle}
-        message={GAME_MESSAGES.ui.leaveGameConfirmMessage}
-        confirmLabel={GAME_MESSAGES.ui.leaveGameConfirm}
+        title={t('game.ui.leaveGameConfirmTitle')}
+        message={t('game.ui.leaveGameConfirmMessage')}
+        confirmLabel={t('game.ui.leaveGameConfirm')}
         destructive
         onConfirm={handleConfirmLeave}
         onCancel={() => setShowLeaveConfirm(false)}

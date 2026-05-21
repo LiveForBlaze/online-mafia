@@ -5,12 +5,12 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { useTranslation } from 'react-i18next';
 
 import type { GameStateProjected } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { GAME_MESSAGES } from '@/features/game/messages.js';
 
 interface JudgeTileProps {
   state: GameStateProjected;
@@ -18,6 +18,7 @@ interface JudgeTileProps {
 }
 
 export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
+  const { t } = useTranslation();
   const judge = state.participants.find((p) => p.isJudge);
   const liveKitParticipants = useParticipants();
   const lkJudge = judge ? liveKitParticipants.find((p) => p.identity === judge.userId) : undefined;
@@ -27,7 +28,7 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
   if (!judge) {
     return (
       <div className="w-full h-full min-h-0 rounded-md border border-dashed border-border bg-bg flex items-center justify-center text-sm text-muted">
-        Без судьи
+        {t('game.ui.judgeNone')}
       </div>
     );
   }
@@ -66,9 +67,13 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
       {/* СУДЬЯ badge in the top-left */}
       <div className="absolute top-1 left-1 flex items-center gap-1.5 text-xs">
         <span className="rounded bg-accent text-accent-fg px-1.5 py-0.5 font-semibold uppercase tracking-wider">
-          {GAME_MESSAGES.ui.judge}
+          {t('game.ui.judge')}
         </span>
-        {isSelf && <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5">вы</span>}
+        {isSelf && (
+          <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5">
+            {t('game.ui.you')}
+          </span>
+        )}
       </div>
 
       {/* Bottom strip with nickname */}

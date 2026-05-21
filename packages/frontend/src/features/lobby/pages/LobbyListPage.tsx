@@ -2,6 +2,7 @@
 // All real logic lives in hooks/components; this page is mostly composition.
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -21,18 +22,19 @@ import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
 import { LobbyStats } from '@/features/lobby/components/LobbyStats.js';
 import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
-  extractLobbyErrorMessage,
+  useExtractLobbyErrorMessage,
   useJoinLobby,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
 import { gameRoomPath, lobbyRoomPath } from '@/routes/paths.js';
 
 export function LobbyListPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const lobbiesQuery = useLobbies();
   const activeGameQuery = useActiveGame();
   const join = useJoinLobby();
+  const extractLobbyErrorMessage = useExtractLobbyErrorMessage();
 
   // Active game banner: explicit choice between resuming and leaving. We
   // deliberately do NOT auto-redirect — the user might have dropped on purpose
@@ -91,20 +93,18 @@ export function LobbyListPage() {
           role="note"
           className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
         >
-          {LOBBY_MESSAGES.list.betaNotice}
+          {t('lobby.list.betaNotice')}
         </div>
 
         {activeGameId && (
           <section className="rounded-lg border border-accent/40 bg-accent/10 p-4 space-y-3">
             <div>
-              <h2 className="text-base font-semibold text-fg">
-                {LOBBY_MESSAGES.list.resumeGameTitle}
-              </h2>
-              <p className="mt-1 text-sm text-muted">{LOBBY_MESSAGES.list.resumeGameDescription}</p>
+              <h2 className="text-base font-semibold text-fg">{t('lobby.list.resumeGameTitle')}</h2>
+              <p className="mt-1 text-sm text-muted">{t('lobby.list.resumeGameDescription')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => navigate(gameRoomPath(activeGameId))}>
-                {LOBBY_MESSAGES.list.resumeGameButton}
+                {t('lobby.list.resumeGameButton')}
               </Button>
               <button
                 type="button"
@@ -113,8 +113,8 @@ export function LobbyListPage() {
                 className="text-sm font-medium text-danger hover:underline disabled:opacity-60"
               >
                 {leaveGame.isPending
-                  ? LOBBY_MESSAGES.list.resumeGameLeaving
-                  : LOBBY_MESSAGES.list.resumeGameLeaveButton}
+                  ? t('lobby.list.resumeGameLeaving')
+                  : t('lobby.list.resumeGameLeaveButton')}
               </button>
             </div>
           </section>

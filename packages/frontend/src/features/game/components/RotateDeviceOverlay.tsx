@@ -4,8 +4,10 @@
 // stage and the seats would compete for too little width.
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function RotateDeviceOverlay() {
+  const { t } = useTranslation();
   const isPortraitPhone = useIsPortraitPhone();
   if (!isPortraitPhone) return null;
 
@@ -17,10 +19,8 @@ export function RotateDeviceOverlay() {
     >
       <div className="max-w-xs text-center space-y-4">
         <RotateIcon />
-        <h2 className="text-xl font-bold text-fg">Поверните телефон</h2>
-        <p className="text-sm text-muted leading-relaxed">
-          Игра идёт в альбомном режиме — поверните устройство, чтобы продолжить.
-        </p>
+        <h2 className="text-xl font-bold text-fg">{t('rotate_device.title')}</h2>
+        <p className="text-sm text-muted leading-relaxed">{t('rotate_device.body')}</p>
       </div>
     </div>
   );

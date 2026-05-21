@@ -6,11 +6,13 @@
 //
 // We do not handle this with fetch because the OAuth flow requires a top-level navigation.
 
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/Button.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
-import { AUTH_MESSAGES } from '@/features/auth/messages.js';
 
 export function GoogleSignInButton() {
+  const { t } = useTranslation();
   return (
     <Button
       variant="secondary"
@@ -21,7 +23,7 @@ export function GoogleSignInButton() {
       }}
     >
       <GoogleIcon />
-      <span>{AUTH_MESSAGES.google.button}</span>
+      <span>{t('auth.google.button')}</span>
     </Button>
   );
 }

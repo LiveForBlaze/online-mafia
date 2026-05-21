@@ -5,18 +5,24 @@
 // Visible to authenticated users only (registered via AuthGuard in App.tsx).
 
 import { useEffect, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
 import { ApiError } from '@/lib/api-client.js';
-import { authErrorMessage, AUTH_MESSAGES } from '@/features/auth/messages.js';
-import { useLogout, useUpdateNickname } from '@/features/auth/hooks/useAuth.js';
+import {
+  useAuthErrorMessage,
+  useLogout,
+  useUpdateNickname,
+} from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 
 export function ProfilePage() {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const updateNickname = useUpdateNickname();
   const logout = useLogout();
+  const authErrorMessage = useAuthErrorMessage();
 
   // Keep a local draft so the input is controlled while the user types,
   // but reset it whenever the underlying user changes (e.g. after save).
@@ -48,12 +54,19 @@ export function ProfilePage() {
     );
   }
 
+  function extractErrorMessage(error: unknown): string {
+    if (error instanceof ApiError) {
+      return authErrorMessage(error.body.error);
+    }
+    return authErrorMessage(undefined);
+  }
+
   const errorMessage = updateNickname.isError ? extractErrorMessage(updateNickname.error) : null;
 
   return (
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-md space-y-6">
-        <h1 className="text-2xl font-bold text-fg">{AUTH_MESSAGES.profile.title}</h1>
+        <h1 className="text-2xl font-bold text-fg">{t('auth.profile.title')}</h1>
 
         <form
           onSubmit={handleSubmit}
@@ -61,7 +74,7 @@ export function ProfilePage() {
           noValidate
         >
           <FormField
-            label={AUTH_MESSAGES.profile.emailLabel}
+            label={t('auth.profile.emailLabel')}
             type="email"
             value={user.email}
             disabled
@@ -70,7 +83,7 @@ export function ProfilePage() {
 
           <div>
             <FormField
-              label={AUTH_MESSAGES.profile.nicknameLabel}
+              label={t('auth.profile.nicknameLabel')}
               type="text"
               autoComplete="nickname"
               required
@@ -80,7 +93,7 @@ export function ProfilePage() {
               onChange={(event) => setNickname(event.target.value)}
               disabled={updateNickname.isPending}
             />
-            <p className="mt-1 text-xs text-muted">{AUTH_MESSAGES.profile.nicknameHint}</p>
+            <p className="mt-1 text-xs text-muted">{t('auth.profile.nicknameHint')}</p>
           </div>
 
           {errorMessage && (
@@ -91,7 +104,7 @@ export function ProfilePage() {
 
           {savedRecently && !updateNickname.isError && (
             <p role="status" className="text-sm text-accent">
-              {AUTH_MESSAGES.profile.saved}
+              {t('auth.profile.saved')}
             </p>
           )}
 
@@ -101,7 +114,7 @@ export function ProfilePage() {
             className="w-full"
             disabled={updateNickname.isPending || isUnchanged}
           >
-            {updateNickname.isPending ? AUTH_MESSAGES.profile.saving : AUTH_MESSAGES.profile.save}
+            {updateNickname.isPending ? t('auth.profile.saving') : t('auth.profile.save')}
           </Button>
         </form>
 
@@ -112,17 +125,10 @@ export function ProfilePage() {
             disabled={logout.isPending}
             className="text-sm text-danger hover:underline disabled:opacity-60"
           >
-            {logout.isPending ? AUTH_MESSAGES.profile.loggingOut : AUTH_MESSAGES.profile.logout}
+            {logout.isPending ? t('auth.profile.loggingOut') : t('auth.profile.logout')}
           </button>
         </div>
       </div>
     </div>
   );
-}
-
-function extractErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return authErrorMessage(error.body.error);
-  }
-  return authErrorMessage(undefined);
 }

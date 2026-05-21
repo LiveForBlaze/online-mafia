@@ -46,16 +46,9 @@ function TopNav() {
           <NavLink
             to={ROUTE_PATH.HOME}
             end
-            className="flex items-center gap-2 shrink-0 text-fg hover:text-accent transition-colors"
-            aria-label="online-mafia"
+            className="shrink-0 text-sm sm:text-base font-bold tracking-tight text-fg hover:text-accent transition-colors"
           >
-            <img
-              src="/logo.png"
-              alt=""
-              className="h-8 w-8 sm:h-9 sm:w-9 object-contain"
-              aria-hidden="true"
-            />
-            <span className="text-sm sm:text-base font-bold tracking-tight">online-mafia</span>
+            online-mafia
           </NavLink>
 
           <nav className="hidden md:flex items-center gap-1">

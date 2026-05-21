@@ -1,15 +1,35 @@
 // Mutation hooks for lobby actions. Each invalidates the relevant TanStack Query keys
 // so the UI refreshes automatically after a successful action.
 
+import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import type { CreateLobbyInput, JoinLobbyInput, PreassignRoleInput } from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
 import { lobbyApi } from '@/features/lobby/api/lobby.api.js';
-import { lobbyErrorMessage } from '@/features/lobby/messages.js';
 
 import { LOBBY_QUERY_KEY } from './useLobbies.js';
+
+const LOBBY_ERROR_KEYS = new Set([
+  'lobby_not_found',
+  'lobby_not_open',
+  'lobby_full',
+  'judge_slot_taken',
+  'already_member',
+  'not_member',
+  'not_host',
+  'password_required',
+  'wrong_password',
+  'target_not_found',
+  'cannot_kick_host',
+  'seat_contention',
+  'role_cap_reached',
+  'invalid_input',
+  'unauthenticated',
+  'unknown',
+]);
 
 export function useCreateLobby() {
   const queryClient = useQueryClient();
@@ -92,10 +112,30 @@ export function useFillBots() {
   });
 }
 
-/** Extract a localized message from a lobby mutation error. */
-export function extractLobbyErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return lobbyErrorMessage(error.body.error);
-  }
-  return lobbyErrorMessage(undefined);
+/** Hook returning a function that resolves a lobby error code to a localized string. */
+export function useLobbyErrorMessage(): (code: string | undefined) => string {
+  const { t } = useTranslation();
+  return useCallback(
+    (code: string | undefined): string => {
+      if (code && LOBBY_ERROR_KEYS.has(code)) {
+        return t(`lobby.errors.${code}`);
+      }
+      return t('lobby.errors.unknown');
+    },
+    [t],
+  );
+}
+
+/** Hook returning a function that extracts a localized message from a lobby mutation error. */
+export function useExtractLobbyErrorMessage(): (error: unknown) => string {
+  const lobbyErrorMessage = useLobbyErrorMessage();
+  return useCallback(
+    (error: unknown): string => {
+      if (error instanceof ApiError) {
+        return lobbyErrorMessage(error.body.error);
+      }
+      return lobbyErrorMessage(undefined);
+    },
+    [lobbyErrorMessage],
+  );
 }

@@ -1,10 +1,11 @@
 // Grid of 10 player seats. Each seat shows either the seated player's nickname or
 // "free". Host gets a small badge; the current viewer gets a faint highlight.
 
+import { useTranslation } from 'react-i18next';
+
 import { GAME, ROLE, type LobbyMemberPublic, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 
 interface SeatGridProps {
@@ -73,14 +74,6 @@ interface SeatCardProps {
   isPreassignPending?: boolean;
 }
 
-const PREASSIGN_OPTIONS: { value: Role | ''; label: string }[] = [
-  { value: '', label: 'Случайно' },
-  { value: ROLE.CIVILIAN, label: 'Мирный' },
-  { value: ROLE.SHERIFF, label: 'Шериф' },
-  { value: ROLE.MAFIA, label: 'Мафия' },
-  { value: ROLE.DON, label: 'Дон' },
-];
-
 function SeatCard({
   seat,
   occupant,
@@ -91,7 +84,17 @@ function SeatCard({
   onPreassignRole,
   isPreassignPending,
 }: SeatCardProps) {
+  const { t } = useTranslation();
   const showRolePicker = Boolean(occupant && onPreassignRole);
+
+  const preassignOptions: { value: Role | ''; label: string }[] = [
+    { value: '', label: t('lobby.room.preassignRandom') },
+    { value: ROLE.CIVILIAN, label: t('game.role.civilian') },
+    { value: ROLE.SHERIFF, label: t('game.role.sheriff') },
+    { value: ROLE.MAFIA, label: t('game.role.mafia') },
+    { value: ROLE.DON, label: t('game.role.don') },
+  ];
+
   return (
     <div
       className={cn(
@@ -106,7 +109,7 @@ function SeatCard({
         <span className="text-base font-semibold text-fg tabular-nums">{seat}</span>
         {occupant?.isHost && (
           <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
-            {LOBBY_MESSAGES.room.hostBadge}
+            {t('lobby.room.hostBadge')}
           </span>
         )}
       </div>
@@ -131,8 +134,8 @@ function SeatCard({
                 type="button"
                 onClick={() => onKick(occupant.userId)}
                 disabled={isKickPending}
-                title={LOBBY_MESSAGES.room.kickTitle}
-                aria-label={LOBBY_MESSAGES.room.kickTitle}
+                title={t('lobby.room.kickTitle')}
+                aria-label={t('lobby.room.kickTitle')}
                 className={cn(
                   'ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
                   'text-muted hover:bg-bg hover:text-danger transition',
@@ -152,14 +155,14 @@ function SeatCard({
                 onPreassignRole(occupant.userId, v === '' ? null : (v as Role));
               }}
               disabled={isPreassignPending}
-              title="Назначить роль (dev)"
+              title={t('lobby.room.preassignTitle')}
               className={cn(
                 'mt-auto w-full rounded-sm border border-border bg-card-deep px-1.5 py-1',
                 'text-[11px] text-muted focus:outline-none focus:ring-2 focus:ring-accent',
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              {PREASSIGN_OPTIONS.map((opt) => (
+              {preassignOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -175,7 +178,7 @@ function SeatCard({
           >
             +
           </span>
-          <span className="text-sm">{LOBBY_MESSAGES.room.seatEmpty}</span>
+          <span className="text-sm">{t('lobby.room.seatEmpty')}</span>
         </div>
       )}
     </div>

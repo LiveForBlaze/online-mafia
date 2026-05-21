@@ -1,9 +1,10 @@
 // Card showing the judge slot above the player grid. Visually prominent because
 // the judge is the lobby host and the slot is irreplaceable.
 
+import { useTranslation } from 'react-i18next';
+
 import type { LobbyMemberPublic } from '@mafia/shared';
 
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 
 interface JudgeSlotProps {
@@ -15,6 +16,7 @@ interface JudgeSlotProps {
 }
 
 export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
+  const { t } = useTranslation();
   // The judge slot intentionally has no kick affordance: the judge is the lobby
   // host, the role is non-transferable, and leaving closes the lobby. We accept
   // canKick / onKick / isKickPending props for callsite symmetry with SeatGrid.
@@ -41,27 +43,23 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
 
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wider text-muted">
-            {LOBBY_MESSAGES.room.judgeUpper}
+            {t('lobby.room.judgeUpper')}
           </p>
           {judge ? (
             <p className="mt-0.5 text-sm font-medium text-fg truncate">
               {judge.nickname}
-              {isViewer && (
-                <span className="ml-2 text-xs text-muted">({LOBBY_MESSAGES.room.you})</span>
-              )}
+              {isViewer && <span className="ml-2 text-xs text-muted">({t('lobby.room.you')})</span>}
             </p>
           ) : (
-            <p className="mt-0.5 text-sm text-muted">{LOBBY_MESSAGES.room.judgeSlotEmpty}</p>
+            <p className="mt-0.5 text-sm text-muted">{t('lobby.room.judgeSlotEmpty')}</p>
           )}
-          <p className="mt-0.5 text-[11px] text-muted">
-            {LOBBY_MESSAGES.room.judgeNonTransferable}
-          </p>
+          <p className="mt-0.5 text-[11px] text-muted">{t('lobby.room.judgeNonTransferable')}</p>
         </div>
       </div>
 
       {judge && (
         <span className="shrink-0 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
-          {LOBBY_MESSAGES.room.hostBadge}
+          {t('lobby.room.hostBadge')}
         </span>
       )}
     </div>

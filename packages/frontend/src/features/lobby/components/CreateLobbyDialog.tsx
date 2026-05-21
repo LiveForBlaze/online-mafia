@@ -2,6 +2,7 @@
 // On success, calls onCreated with the resulting lobby id so the parent can navigate.
 
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   LOBBY,
@@ -16,10 +17,9 @@ import { Dialog } from '@/components/ui/Dialog.js';
 import { FormField } from '@/components/ui/FormField.js';
 import { PasswordField } from '@/components/ui/PasswordField.js';
 import {
-  extractLobbyErrorMessage,
   useCreateLobby,
+  useExtractLobbyErrorMessage,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
-import { LOBBY_MESSAGES } from '@/features/lobby/messages.js';
 
 interface CreateLobbyDialogProps {
   open: boolean;
@@ -28,11 +28,13 @@ interface CreateLobbyDialogProps {
 }
 
 export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState('');
 
   const create = useCreateLobby();
+  const extractLobbyErrorMessage = useExtractLobbyErrorMessage();
 
   function handleClose() {
     if (create.isPending) return;
@@ -67,22 +69,22 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
     <Dialog
       open={open}
       onClose={handleClose}
-      title={LOBBY_MESSAGES.create.title}
+      title={t('lobby.create.title')}
       footer={
         <>
           <Button variant="ghost" onClick={handleClose} disabled={create.isPending}>
-            {LOBBY_MESSAGES.create.cancel}
+            {t('lobby.create.cancel')}
           </Button>
           <Button type="submit" form="create-lobby-form" disabled={create.isPending}>
-            {create.isPending ? LOBBY_MESSAGES.create.submitting : LOBBY_MESSAGES.create.submit}
+            {create.isPending ? t('lobby.create.submitting') : t('lobby.create.submit')}
           </Button>
         </>
       }
     >
       <form id="create-lobby-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField
-          label={LOBBY_MESSAGES.create.name}
-          placeholder={LOBBY_MESSAGES.create.namePlaceholder}
+          label={t('lobby.create.name')}
+          placeholder={t('lobby.create.namePlaceholder')}
           required
           minLength={LOBBY.NAME_MIN_LENGTH}
           maxLength={LOBBY.NAME_MAX_LENGTH}
@@ -92,7 +94,7 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
         />
 
         <Checkbox
-          label={LOBBY_MESSAGES.create.isPrivate}
+          label={t('lobby.create.isPrivate')}
           checked={isPrivate}
           onChange={(event) => setIsPrivate(event.target.checked)}
           disabled={create.isPending}
@@ -101,7 +103,7 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
         {isPrivate && (
           <div>
             <PasswordField
-              label={LOBBY_MESSAGES.create.password}
+              label={t('lobby.create.password')}
               required
               minLength={LOBBY.PASSWORD_MIN_LENGTH}
               maxLength={LOBBY.PASSWORD_MAX_LENGTH}
@@ -109,11 +111,11 @@ export function CreateLobbyDialog({ open, onClose, onCreated }: CreateLobbyDialo
               onChange={(event) => setPassword(event.target.value)}
               disabled={create.isPending}
             />
-            <p className="mt-1 text-xs text-muted">{LOBBY_MESSAGES.create.passwordHint}</p>
+            <p className="mt-1 text-xs text-muted">{t('lobby.create.passwordHint')}</p>
           </div>
         )}
 
-        <p className="text-xs text-muted">{LOBBY_MESSAGES.create.judgeNotice}</p>
+        <p className="text-xs text-muted">{t('lobby.create.judgeNotice')}</p>
 
         {errorMessage && (
           <p role="alert" className="text-sm text-danger">

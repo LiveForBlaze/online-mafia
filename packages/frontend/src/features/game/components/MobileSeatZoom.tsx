@@ -6,13 +6,13 @@
 import { useEffect } from 'react';
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { useTranslation } from 'react-i18next';
 
 import type { GameParticipantPublic } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { GAME_MESSAGES } from '@/features/game/messages.js';
 
 interface MobileSeatZoomProps {
   participant: GameParticipantPublic;
@@ -29,6 +29,7 @@ export function MobileSeatZoom({
   judgeControls,
   onClose,
 }: MobileSeatZoomProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
@@ -49,7 +50,7 @@ export function MobileSeatZoom({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Закрыть"
+          aria-label={t('game.ui.close')}
           className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white"
         >
           ✕
@@ -64,7 +65,7 @@ export function MobileSeatZoom({
             </span>
             {voteCountAgainst !== undefined && voteCountAgainst > 0 && (
               <span className="rounded bg-warning/85 text-white px-2 py-1 text-sm font-semibold">
-                голосов: {voteCountAgainst}
+                {t('game.ui.votesCount', { count: voteCountAgainst })}
               </span>
             )}
           </div>
@@ -78,7 +79,7 @@ export function MobileSeatZoom({
               <div className="flex items-center gap-2 mt-0.5">
                 {participant.role && (
                   <span className="text-xs uppercase tracking-wider text-muted">
-                    {GAME_MESSAGES.role[participant.role]}
+                    {t(`game.role.${participant.role}`)}
                   </span>
                 )}
                 <span
@@ -87,7 +88,7 @@ export function MobileSeatZoom({
                     participant.foulsCount > 0 ? 'text-warning' : 'text-muted',
                   )}
                 >
-                  Фолы: {participant.foulsCount}
+                  {t('game.ui.foulsCount', { count: participant.foulsCount })}
                 </span>
               </div>
             </div>

@@ -3,6 +3,7 @@
 // a WebSocket-driven version later.
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 
 import type { Role } from '@mafia/shared';
@@ -15,17 +16,17 @@ import { LobbyRoom } from '@/features/lobby/components/LobbyRoom.js';
 import { useLobby } from '@/features/lobby/hooks/useLobby.js';
 import { useLobbyConnection } from '@/features/lobby/hooks/useLobbyConnection.js';
 import {
-  extractLobbyErrorMessage,
   useCloseLobby,
+  useExtractLobbyErrorMessage,
   useFillBots,
   useJoinLobby,
   useKickMember,
   useLeaveLobby,
+  useLobbyErrorMessage,
   usePreassignRole,
   useStartGame,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
-import { LOBBY_MESSAGES, lobbyErrorMessage } from '@/features/lobby/messages.js';
 import { ROUTE_PATH, gameRoomPath } from '@/routes/paths.js';
 
 // Identifier for the destructive intent the user is about to confirm. Holding the
@@ -33,6 +34,7 @@ import { ROUTE_PATH, gameRoomPath } from '@/routes/paths.js';
 type PendingConfirm = { kind: 'close' } | { kind: 'kick'; userId: string; nickname: string } | null;
 
 export function LobbyRoomPage() {
+  const { t } = useTranslation();
   const params = useParams<{ id: string }>();
   const lobbyId = params.id;
   const navigate = useNavigate();
@@ -47,6 +49,8 @@ export function LobbyRoomPage() {
   const fillBots = useFillBots();
   const preassign = usePreassignRole();
   const join = useJoinLobby();
+  const extractLobbyErrorMessage = useExtractLobbyErrorMessage();
+  const lobbyErrorMessage = useLobbyErrorMessage();
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
   const [showPrivatePrompt, setShowPrivatePrompt] = useState(false);
@@ -161,7 +165,7 @@ export function LobbyRoomPage() {
   if (lobbyQuery.isLoading) {
     return (
       <main className="min-h-screen p-6 flex items-center justify-center text-muted">
-        Загрузка лобби...
+        {t('common.lobby_loading')}
       </main>
     );
   }
@@ -177,7 +181,7 @@ export function LobbyRoomPage() {
             onClick={() => navigate(ROUTE_PATH.HOME)}
             className="text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg rounded"
           >
-            {LOBBY_MESSAGES.room.back}
+            {t('lobby.room.back')}
           </button>
         </div>
       </div>
@@ -186,6 +190,25 @@ export function LobbyRoomPage() {
 
   const lobby = lobbyQuery.data?.lobby;
   if (!lobby) return null;
+
+  const confirmTitle =
+    pendingConfirm?.kind === 'close'
+      ? t('confirm.closeLobbyTitle')
+      : pendingConfirm?.kind === 'kick'
+        ? t('confirm.kickPlayerTitle')
+        : '';
+  const confirmMessage =
+    pendingConfirm?.kind === 'close'
+      ? t('confirm.closeLobbyMessage')
+      : pendingConfirm?.kind === 'kick'
+        ? t('confirm.kickPlayerMessage', { nickname: pendingConfirm.nickname })
+        : '';
+  const confirmLabel =
+    pendingConfirm?.kind === 'close'
+      ? t('confirm.closeLobbyConfirm')
+      : pendingConfirm?.kind === 'kick'
+        ? t('confirm.kickPlayerConfirm')
+        : '';
 
   return (
     <>
@@ -214,15 +237,9 @@ export function LobbyRoomPage() {
       />
       <ConfirmDialog
         open={pendingConfirm !== null}
-        title={pendingConfirm?.kind === 'close' ? 'Закрыть лобби?' : 'Удалить игрока?'}
-        message={
-          pendingConfirm?.kind === 'close'
-            ? 'Лобби закроется для всех его участников. Действие необратимо.'
-            : pendingConfirm?.kind === 'kick'
-              ? `Игрок ${pendingConfirm.nickname} будет удалён из лобби.`
-              : ''
-        }
-        confirmLabel={pendingConfirm?.kind === 'close' ? 'Закрыть' : 'Удалить'}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmLabel={confirmLabel}
         destructive
         pending={close.isPending || kick.isPending}
         onConfirm={commitConfirm}

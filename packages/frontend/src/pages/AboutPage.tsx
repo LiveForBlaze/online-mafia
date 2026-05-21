@@ -1,54 +1,49 @@
 // "О проекте" — миссия и цель платформы. Намеренно держим страницу
 // content-first и без баннеров/кнопок: это сам по себе документ.
 
+import { useTranslation } from 'react-i18next';
+
 export function AboutPage() {
+  const { t } = useTranslation();
+  const practiceItems = t('about.practice.items', { returnObjects: true }) as string[];
+
   return (
     <div className="p-4 sm:p-6">
       <article className="mx-auto max-w-2xl space-y-8">
         <header className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">online-mafia</p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-fg">О проекте</h1>
-          <p className="text-base text-muted">
-            Открытая платформа для игры в спортивную мафию онлайн.
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
+            {t('about.kicker')}
           </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-fg">
+            {t('about.title')}
+          </h1>
+          <p className="text-base text-muted">{t('about.subtitle')}</p>
         </header>
 
-        <Section title="Цель">
-          <p>
-            Продвигать мафию как игру — её темп, психологию, командное мышление. Не как субкультуру
-            и не как «закрытый клуб», а как доступное хобби, в которое могут сыграть любые десять
-            человек, у которых есть браузер и желание провести вечер.
-          </p>
+        <Section title={t('about.goal.title')}>
+          <p>{t('about.goal.body')}</p>
         </Section>
 
-        <Section title="Миссия">
+        <Section title={t('about.mission.title')}>
           <p>
-            Быть нейтральной площадкой: <strong className="text-fg">вне политики</strong>,
-            <strong className="text-fg"> вне федераций</strong>, вне внутренних разборок
-            мафия-сообщества. Мы не выдаём рейтинг для титулов, не примыкаем ни к одной ассоциации,
-            не диктуем единственно «правильный» свод правил.
+            {t('about.mission.body1_prefix')}
+            <strong className="text-fg">{t('about.mission.body1_strong1')}</strong>
+            {t('about.mission.body1_middle')}
+            <strong className="text-fg">{t('about.mission.body1_strong2')}</strong>
+            {t('about.mission.body1_suffix')}
           </p>
-          <p>
-            Платформа — это инфраструктура, а не партия. Хосты ведут партии так, как им удобно;
-            клубы и турниры — следующий шаг, но даже там мы не становимся арбитром «как правильно
-            играть».
-          </p>
+          <p>{t('about.mission.body2')}</p>
         </Section>
 
-        <Section title="Что это значит на практике">
+        <Section title={t('about.practice.title')}>
           <ul className="list-disc pl-5 space-y-1.5 text-muted">
-            <li>Никаких обязательных аккаунтов с верификацией от федераций.</li>
-            <li>Базовые правила — классическая 10-местная мафия, но рулсеты подключаемые.</li>
-            <li>Открытый код, MIT-лицензия. Любой может развернуть свою копию.</li>
-            <li>Mainstream-стек: Node.js + React + WebRTC. Чтобы было кому развивать.</li>
+            {Array.isArray(practiceItems) &&
+              practiceItems.map((item, idx) => <li key={idx}>{item}</li>)}
           </ul>
         </Section>
 
-        <Section title="Статус">
-          <p>
-            Сейчас идёт бета. Возможны баги, изменения и временные правки. Финальной версии продукта
-            это пока не отражает — но базовый игровой цикл уже работает.
-          </p>
+        <Section title={t('about.status.title')}>
+          <p>{t('about.status.body')}</p>
         </Section>
       </article>
     </div>

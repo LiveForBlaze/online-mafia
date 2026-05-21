@@ -3,22 +3,24 @@
 // but the backend's zod schemas remain the source of truth.
 
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button.js';
 import { FormField } from '@/components/ui/FormField.js';
 import { PasswordField } from '@/components/ui/PasswordField.js';
-import { extractAuthErrorMessage, useRegister } from '@/features/auth/hooks/useAuth.js';
-import { AUTH_MESSAGES } from '@/features/auth/messages.js';
+import { useExtractAuthErrorMessage, useRegister } from '@/features/auth/hooks/useAuth.js';
 
 interface RegisterFormProps {
   onSuccess: () => void;
 }
 
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const register = useRegister();
+  const extractAuthErrorMessage = useExtractAuthErrorMessage();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +37,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <FormField
-        label={AUTH_MESSAGES.register.emailLabel}
+        label={t('auth.register.emailLabel')}
         type="email"
         autoComplete="email"
         required
@@ -46,7 +48,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       <div>
         <FormField
-          label={AUTH_MESSAGES.register.nicknameLabel}
+          label={t('auth.register.nicknameLabel')}
           type="text"
           autoComplete="username"
           required
@@ -56,12 +58,12 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           onChange={(event) => setNickname(event.target.value)}
           disabled={register.isPending}
         />
-        <p className="mt-1 text-xs text-muted">{AUTH_MESSAGES.register.nicknameHint}</p>
+        <p className="mt-1 text-xs text-muted">{t('auth.register.nicknameHint')}</p>
       </div>
 
       <div>
         <PasswordField
-          label={AUTH_MESSAGES.register.passwordLabel}
+          label={t('auth.register.passwordLabel')}
           autoComplete="new-password"
           required
           minLength={8}
@@ -69,7 +71,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           onChange={(event) => setPassword(event.target.value)}
           disabled={register.isPending}
         />
-        <p className="mt-1 text-xs text-muted">{AUTH_MESSAGES.register.passwordHint}</p>
+        <p className="mt-1 text-xs text-muted">{t('auth.register.passwordHint')}</p>
       </div>
 
       {errorMessage && (
@@ -79,7 +81,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       )}
 
       <Button type="submit" size="md" className="w-full" disabled={register.isPending}>
-        {register.isPending ? AUTH_MESSAGES.register.submitting : AUTH_MESSAGES.register.submit}
+        {register.isPending ? t('auth.register.submitting') : t('auth.register.submit')}
       </Button>
     </form>
   );

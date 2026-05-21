@@ -1,42 +1,86 @@
 // Tiny relative-time formatter for the lobby list.
-// Returns Russian strings like "только что", "3 мин назад", "2 ч назад", "вчера".
-// Intentionally dependency-free — we don't want to pull in a date library
-// just for a couple of human-readable strings.
+// Picks language from the i18next runtime. East-Slavic locales (ru/uk/be) use
+// pluralized catalog entries (one/few/many/other). English uses Intl.RelativeTimeFormat
+// because the rules are simple and we get the canonical strings for free.
+//
+// Intentionally dependency-free for the catalog path — we don't want to pull in
+// a date library for a couple of human-readable strings.
+
+import i18n from '@/i18n/index.js';
 
 const MINUTE = 60;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-export function formatRelativeTimeRu(iso: string, now: Date = new Date()): string {
+type SupportedLang = 'ru' | 'uk' | 'be' | 'en';
+
+function resolveLang(): SupportedLang {
+  const raw = i18n.resolvedLanguage ?? i18n.language ?? 'ru';
+  const lang = raw.split('-')[0]?.toLowerCase();
+  if (lang === 'uk' || lang === 'be' || lang === 'en') return lang;
+  return 'ru';
+}
+
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
   const created = new Date(iso).getTime();
   if (Number.isNaN(created)) return '';
 
+  const lang = resolveLang();
   const diffSec = Math.max(0, Math.floor((now.getTime() - created) / 1000));
 
-  if (diffSec < 30) return 'только что';
-  if (diffSec < MINUTE) return 'меньше минуты назад';
+  if (lang === 'en') return formatEn(diffSec);
+  return formatViaCatalog(diffSec);
+}
+
+// Catalog-driven formatter for ru / uk / be. The t() function picks the right
+// plural form (_one / _few / _many / _other) based on the active language's
+// CLDR plural rules.
+function formatViaCatalog(diffSec: number): string {
+  const t = i18n.t.bind(i18n);
+  if (diffSec < 30) return t('relative_time.just_now');
+  if (diffSec < MINUTE) return t('relative_time.less_than_minute');
 
   if (diffSec < HOUR) {
     const minutes = Math.floor(diffSec / MINUTE);
-    return `${minutes} ${pluralRu(minutes, ['минуту', 'минуты', 'минут'])} назад`;
+    return t('relative_time.minutes', { count: minutes });
   }
 
   if (diffSec < DAY) {
     const hours = Math.floor(diffSec / HOUR);
-    return `${hours} ${pluralRu(hours, ['час', 'часа', 'часов'])} назад`;
+    return t('relative_time.hours', { count: hours });
   }
 
   const days = Math.floor(diffSec / DAY);
-  if (days === 1) return 'вчера';
-  return `${days} ${pluralRu(days, ['день', 'дня', 'дней'])} назад`;
+  if (days === 1) return t('relative_time.yesterday');
+  return t('relative_time.days', { count: days });
 }
 
-// Russian plural form selector. `forms` is [one, few, many].
-function pluralRu(n: number, forms: [string, string, string]): string {
-  const abs = Math.abs(n) % 100;
-  const last = abs % 10;
-  if (abs > 10 && abs < 20) return forms[2];
-  if (last > 1 && last < 5) return forms[1];
-  if (last === 1) return forms[0];
-  return forms[2];
+// English path: Intl.RelativeTimeFormat handles plural agreement; we only
+// surface the catalog strings for the special-case labels ("just now", "yesterday").
+function formatEn(diffSec: number): string {
+  const t = i18n.t.bind(i18n);
+  if (diffSec < 30) return t('relative_time.just_now');
+  if (diffSec < MINUTE) return t('relative_time.less_than_minute');
+
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+  if (diffSec < HOUR) {
+    const minutes = Math.floor(diffSec / MINUTE);
+    return rtf.format(-minutes, 'minute');
+  }
+
+  if (diffSec < DAY) {
+    const hours = Math.floor(diffSec / HOUR);
+    return rtf.format(-hours, 'hour');
+  }
+
+  const days = Math.floor(diffSec / DAY);
+  // Intl handles "yesterday" via numeric: 'auto' on its own; we don't need
+  // the catalog shortcut here, but keep it for parity with the East-Slavic path.
+  if (days === 1) return t('relative_time.yesterday');
+  return rtf.format(-days, 'day');
 }
+
+// Backwards-compatible alias for existing callers. New code should use
+// formatRelativeTime() directly.
+export const formatRelativeTimeRu = formatRelativeTime;
