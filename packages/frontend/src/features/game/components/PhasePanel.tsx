@@ -35,6 +35,14 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
   }
 
   switch (state.phase) {
+    case GAME_PHASE.PLAYER_INTRODUCTION:
+      return (
+        <PanelShell>
+          <p className="text-fg">{t(`game.phase.${GAME_PHASE.PLAYER_INTRODUCTION}`)}.</p>
+          <p className="mt-1 text-sm text-muted">{t('game.ui.introHint')}</p>
+        </PanelShell>
+      );
+
     case GAME_PHASE.ROLE_DISTRIBUTION:
       return (
         <PanelShell>

@@ -225,7 +225,8 @@
       "night_sheriff": "Night — sheriff's check",
       "morning_announcement": "Morning — night results",
       "game_over": "Game over",
-      "day_lift_vote": "Lift all?"
+      "day_lift_vote": "Lift all?",
+      "player_introduction": "Player introductions"
     },
     "role": {
       "civilian": "Civilian",
@@ -321,7 +322,8 @@
       "voteRoundPromptShort": "Round {{current}}/{{total}}",
       "voteRoundTally": "Yes: {{count}}",
       "voteClosed": "Voting closed",
-      "voteSpaceHint": "Tip: Space = FOR"
+      "voteSpaceHint": "Tip: Space = FOR",
+      "introHint": "Mics and cameras open — say hi, get to know the table."
     },
     "errors": {
       "not_participant": "You're not in this game",

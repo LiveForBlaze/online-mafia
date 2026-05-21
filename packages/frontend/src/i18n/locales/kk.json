@@ -231,7 +231,8 @@
       "night_sheriff": "Ночь — проверка шерифа",
       "morning_announcement": "Утро — итоги ночи",
       "game_over": "Игра окончена",
-      "day_lift_vote": "Барлығын көтеру керек пе?"
+      "day_lift_vote": "Барлығын көтеру керек пе?",
+      "player_introduction": "Ойыншылармен танысу"
     },
     "role": {
       "civilian": "Мирный",
@@ -327,7 +328,8 @@
       "voteRoundPromptShort": "Раунд {{current}}/{{total}}",
       "voteRoundTally": "Дауыстар: {{count}}",
       "voteClosed": "Дауыс беру аяқталды",
-      "voteSpaceHint": "Кеңес: бос орын = «ИӘ»"
+      "voteSpaceHint": "Кеңес: бос орын = «ИӘ»",
+      "introHint": "Микрофондар мен камералар ашық — танысыңыздар, бір-бірлеріңмен сәлемдесіңдер."
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

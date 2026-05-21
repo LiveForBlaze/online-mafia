@@ -231,7 +231,8 @@
       "night_sheriff": "Ночь — проверка шерифа",
       "morning_announcement": "Утро — итоги ночи",
       "game_over": "Игра окончена",
-      "day_lift_vote": "Поднять всех?"
+      "day_lift_vote": "Поднять всех?",
+      "player_introduction": "Знакомство игроков"
     },
     "role": {
       "civilian": "Мирный",
@@ -327,7 +328,8 @@
       "voteRoundPromptShort": "Раунд {{current}}/{{total}}",
       "voteRoundTally": "Голосов «За»: {{count}}",
       "voteClosed": "Голосование завершено",
-      "voteSpaceHint": "Подсказка: пробел = «ЗА»"
+      "voteSpaceHint": "Подсказка: пробел = «ЗА»",
+      "introHint": "Микрофоны и камеры открыты — представьтесь, познакомьтесь со столом."
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

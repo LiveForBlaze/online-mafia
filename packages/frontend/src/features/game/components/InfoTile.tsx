@@ -90,6 +90,9 @@ function Body({
   }
 
   switch (state.phase) {
+    case GAME_PHASE.PLAYER_INTRODUCTION:
+      return <p className="text-sm text-muted">{t('game.ui.introHint')}</p>;
+
     case GAME_PHASE.ROLE_DISTRIBUTION:
       return (
         <div className="text-sm text-muted">

@@ -131,4 +131,6 @@ export function findByUserId(state: GameState, userId: string): GameParticipant 
   return state.participants.find((p) => p.userId === userId);
 }
 
-export const INITIAL_PHASE: GamePhase = GAME_PHASE.ROLE_DISTRIBUTION;
+// Games now open with the player-introduction phase so newcomers have a
+// moment to say hi on open mic before roles are dealt.
+export const INITIAL_PHASE: GamePhase = GAME_PHASE.PLAYER_INTRODUCTION;

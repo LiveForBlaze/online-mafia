@@ -74,6 +74,7 @@ export const teamSchema = z.enum([TEAM.RED, TEAM.BLACK]);
 export const roleSchema = z.enum([ROLE.CIVILIAN, ROLE.SHERIFF, ROLE.MAFIA, ROLE.DON]);
 export const phaseSchema = z.enum([
   GAME_PHASE.LOBBY,
+  GAME_PHASE.PLAYER_INTRODUCTION,
   GAME_PHASE.ROLE_DISTRIBUTION,
   GAME_PHASE.NIGHT_ZERO,
   GAME_PHASE.DAY_SPEECH,

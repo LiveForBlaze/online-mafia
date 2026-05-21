@@ -43,6 +43,8 @@ import { GAME_PHASE, type GamePhase } from './phases.js';
 
 export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   [GAME_PHASE.LOBBY]: 0,
+  // Open-mic intro phase — judge decides when everyone has said hi.
+  [GAME_PHASE.PLAYER_INTRODUCTION]: 0,
   [GAME_PHASE.ROLE_DISTRIBUTION]: 30,
   [GAME_PHASE.NIGHT_ZERO]: 30,
   // The day_speech timer is per-speaker, not for the whole day. It resets every

@@ -56,9 +56,18 @@ export interface MediaVisibilityArgs {
 }
 
 // Video projection: what the viewer SEES.
-// Night = no other live tiles for civilians/sheriff. Only NIGHT_ZERO (the
-// 1-minute "mafia meeting") lets the mafia team see each other on video;
-// NIGHT_MAFIA and the rest of the night are fully blacked out for everyone.
+//
+// Rules per the project owner:
+//   - Dead players: never visible
+//   - Judge camera: always visible (even at night, while the table is dark)
+//   - PLAYER_INTRODUCTION: everyone visible — open intros before roles
+//   - Day phases + MORNING_ANNOUNCEMENT: every alive player visible
+//   - ROLE_DISTRIBUTION: night-like (only judge), so players focus on their
+//     own card without being distracted by other faces
+//   - NIGHT_ZERO: mafia + don see each other (1-minute "знакомство мафии"),
+//     others see nothing
+//   - Other NIGHT_*: nothing visible to anyone except the judge
+//   - GAME_OVER: everyone visible (post-game review)
 export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
   const {
     phase,
@@ -70,16 +79,20 @@ export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
     targetUserId,
     targetRole,
     targetIsAlive,
+    targetIsJudge,
   } = args;
 
   if (!targetIsAlive) return false;
+  // Judge camera is always live to everyone — they're the one running the
+  // game and the table needs to see them, including during the night.
+  if (targetIsJudge) return true;
   if (targetUserId === viewerUserId) return true;
   if (viewerIsJudge) return true;
   if (!viewerIsAlive) return true;
   if (status === 'finished' || phase === GAME_PHASE.GAME_OVER) return true;
 
   if (
-    phase === GAME_PHASE.ROLE_DISTRIBUTION ||
+    phase === GAME_PHASE.PLAYER_INTRODUCTION ||
     phase === GAME_PHASE.MORNING_ANNOUNCEMENT ||
     DAY_PHASES.includes(phase)
   ) {
@@ -93,6 +106,8 @@ export function shouldShowParticipantMedia(args: MediaVisibilityArgs): boolean {
     return viewerIsMafiaTeam && targetIsMafiaTeam;
   }
 
+  // ROLE_DISTRIBUTION and the rest of the night phases: only the judge tile
+  // (handled above). Players see a dark table.
   return false;
 }
 
@@ -154,6 +169,9 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
   // Game over — open mic.
   if (status === 'finished' || phase === GAME_PHASE.GAME_OVER) return true;
 
+  // Open-mic introduction phase: every alive player is audible to everyone.
+  if (phase === GAME_PHASE.PLAYER_INTRODUCTION) return true;
+
   // Day phases: only the current speaker's minute is audible, and only until
   // their minute timer expires. After the deadline the mic is silenced until
   // the judge advances to the next speaker.
@@ -162,8 +180,10 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
     return !isDeadlinePast(phaseDeadline, now);
   }
 
-  // Night phases: the table is fully silent for players. The mafia sees each
-  // other on video (only on NIGHT_ZERO) and coordinates by gestures.
+  // Night phases (including ROLE_DISTRIBUTION which we treat as a night
+  // phase media-wise): the table is fully silent for players. The mafia
+  // see each other on video during NIGHT_ZERO but still coordinate by
+  // gestures — no audio.
   void viewerRole;
   void targetRole;
   return false;

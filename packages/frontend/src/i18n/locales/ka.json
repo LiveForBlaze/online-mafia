@@ -231,7 +231,8 @@
       "night_sheriff": "Ночь — проверка шерифа",
       "morning_announcement": "Утро — итоги ночи",
       "game_over": "Игра окончена",
-      "day_lift_vote": "ყველას მოწევა?"
+      "day_lift_vote": "ყველას მოწევა?",
+      "player_introduction": "მოთამაშეების გაცნობა"
     },
     "role": {
       "civilian": "Мирный",
@@ -327,7 +328,8 @@
       "voteRoundPromptShort": "რაუნდი {{current}}/{{total}}",
       "voteRoundTally": "ხმა: {{count}}",
       "voteClosed": "ხმის მიცემა დასრულდა",
-      "voteSpaceHint": "მინიშნება: Space = მხარდამჭერი"
+      "voteSpaceHint": "მინიშნება: Space = მხარდამჭერი",
+      "introHint": "მიკროფონები და კამერები ღიაა — წარადგინეთ თავი, გაიცანით სხვა მონაწილეები."
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

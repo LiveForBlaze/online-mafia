@@ -6,7 +6,15 @@ export const GAME_PHASE = {
   // The lobby phase, before the game has begun. Players are joining.
   LOBBY: 'lobby',
 
-  // Right after start: roles are dealt, players see their cards.
+  // Before any roles are revealed: players say hi to each other on open
+  // mic and open camera. The judge advances when introductions are done.
+  // Media-wise this is the only "open everything" phase apart from the
+  // post-game review.
+  PLAYER_INTRODUCTION: 'player_introduction',
+
+  // Right after introductions: roles are dealt, players see their cards.
+  // Media is locked down to judge-only during this phase — players are
+  // looking at their own role on screen, not at each other.
   ROLE_DISTRIBUTION: 'role_distribution',
 
   // The first night, when mafia and don see each other. No kills happen.

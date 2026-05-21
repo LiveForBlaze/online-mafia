@@ -231,7 +231,8 @@
       "night_sheriff": "Ноч — праверка шэрыфа",
       "morning_announcement": "Раніца — вынікі ночы",
       "game_over": "Гульня скончана",
-      "day_lift_vote": "Падняць усіх?"
+      "day_lift_vote": "Падняць усіх?",
+      "player_introduction": "Знаёмства гульцоў"
     },
     "role": {
       "civilian": "Мірны",
@@ -327,7 +328,8 @@
       "voteRoundPromptShort": "Раўнд {{current}}/{{total}}",
       "voteRoundTally": "Галасоў «За»: {{count}}",
       "voteClosed": "Галасаванне завершана",
-      "voteSpaceHint": "Падказка: прабел = «ЗА»"
+      "voteSpaceHint": "Падказка: прабел = «ЗА»",
+      "introHint": "Мікрафоны і камеры адкрытыя — прадстаўцеся, пазнаёмцеся са сталом."
     },
     "errors": {
       "not_participant": "Вас няма ў гэтай гульні",

@@ -215,6 +215,8 @@ export function findTiedSeats(state: GameState): number[] {
  */
 export function nextPhase(state: GameState): GamePhase {
   switch (state.phase) {
+    case GAME_PHASE.PLAYER_INTRODUCTION:
+      return GAME_PHASE.ROLE_DISTRIBUTION;
     case GAME_PHASE.ROLE_DISTRIBUTION:
       return GAME_PHASE.NIGHT_ZERO;
     case GAME_PHASE.NIGHT_ZERO:
@@ -1009,6 +1011,7 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
   const isMafiaTeam = viewer?.role === ROLE.MAFIA || viewer?.role === ROLE.DON;
   const isGameOver = state.status === 'finished';
   const isMorning = state.phase === GAME_PHASE.MORNING_ANNOUNCEMENT;
+  const isPlayerIntro = state.phase === GAME_PHASE.PLAYER_INTRODUCTION;
 
   const participants = state.participants.map((p) => ({
     userId: p.userId,
@@ -1018,7 +1021,9 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     seat: p.seat,
     isJudge: p.isJudge,
     isBot: p.isBot,
-    role: shouldRevealRole(p, viewer, isJudge, isMafiaTeam, isGameOver) ? p.role : null,
+    role: shouldRevealRole(p, viewer, isJudge, isMafiaTeam, isGameOver, isPlayerIntro)
+      ? p.role
+      : null,
     isAlive: p.isAlive,
     isRemoved: p.isRemoved,
     foulsCount: p.foulsCount,
@@ -1107,9 +1112,13 @@ function shouldRevealRole(
   isJudge: boolean,
   isMafiaTeam: boolean,
   isGameOver: boolean,
+  isPlayerIntro: boolean,
 ): boolean {
   if (isJudge) return true;
   if (isGameOver) return true;
+  // During the intro phase nobody knows their role yet — roles are dealt
+  // at the next phase transition. The judge gets the override above.
+  if (isPlayerIntro) return false;
   if (!viewer) return false;
   if (target.userId === viewer.userId) return true;
   if (isMafiaTeam && (target.role === ROLE.MAFIA || target.role === ROLE.DON)) return true;
