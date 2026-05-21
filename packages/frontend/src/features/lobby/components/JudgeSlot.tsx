@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import type { LobbyMemberPublic } from '@mafia/shared';
 
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface JudgeSlotProps {
   judge: LobbyMemberPublic | undefined;
@@ -50,7 +50,7 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
           {judge ? (
             <p className="mt-0.5 text-sm font-medium text-fg truncate">
               {judge.publicCode ? (
-                <Link to={publicUserPath(judge.publicCode)} className="hover:underline">
+                <Link to={userProfilePath(judge.publicCode)} className="hover:underline">
                   {judge.nickname}
                 </Link>
               ) : (

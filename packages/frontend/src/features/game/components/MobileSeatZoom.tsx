@@ -14,7 +14,7 @@ import type { GameParticipantPublic } from '@mafia/shared';
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface MobileSeatZoomProps {
   participant: GameParticipantPublic;
@@ -79,7 +79,7 @@ export function MobileSeatZoom({
             <div className="min-w-0">
               {participant.publicCode ? (
                 <Link
-                  to={publicUserPath(participant.publicCode)}
+                  to={userProfilePath(participant.publicCode)}
                   onClick={(event) => event.stopPropagation()}
                   className="block text-lg font-semibold text-fg truncate hover:underline"
                 >

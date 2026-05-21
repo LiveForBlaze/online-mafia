@@ -8,7 +8,7 @@ import { GAME, ROLE, type LobbyMemberPublic, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface SeatGridProps {
   members: LobbyMemberPublic[];
@@ -130,7 +130,7 @@ function SeatCard({
             </span>
             {occupant.publicCode ? (
               <Link
-                to={publicUserPath(occupant.publicCode)}
+                to={userProfilePath(occupant.publicCode)}
                 className="text-sm font-medium text-fg truncate min-w-0 hover:underline"
               >
                 {occupant.nickname}

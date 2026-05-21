@@ -12,7 +12,7 @@ import type { GameStateProjected } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface JudgeTileProps {
   state: GameStateProjected;
@@ -82,7 +82,7 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
         {judge.publicCode ? (
           <Link
-            to={publicUserPath(judge.publicCode)}
+            to={userProfilePath(judge.publicCode)}
             onClick={(event) => event.stopPropagation()}
             className="block text-sm font-medium text-white truncate hover:underline"
           >

@@ -5,7 +5,7 @@
 import { useNavigate } from 'react-router';
 
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
-import { ROUTE_PATH } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 export function UserChip() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export function UserChip() {
   return (
     <button
       type="button"
-      onClick={() => navigate(ROUTE_PATH.PROFILE)}
+      onClick={() => navigate(userProfilePath(user.publicCode))}
       title={user.nickname}
       className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1 text-sm hover:bg-bg transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
     >

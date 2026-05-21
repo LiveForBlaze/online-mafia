@@ -10,12 +10,11 @@ import { Navigate, Route, Routes } from 'react-router';
 import { MainLayout } from '@/components/layout/MainLayout.js';
 import { useHydrateCurrentUser } from '@/features/auth/hooks/useCurrentUser.js';
 import { LoginPage } from '@/features/auth/pages/LoginPage.js';
-import { ProfilePage } from '@/features/auth/pages/ProfilePage.js';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage.js';
 import { LobbyListPage } from '@/features/lobby/pages/LobbyListPage.js';
 import { LobbyRoomPage } from '@/features/lobby/pages/LobbyRoomPage.js';
 import { GamePage } from '@/features/game/pages/GamePage.js';
-import { PublicProfilePage } from '@/features/users/pages/PublicProfilePage.js';
+import { UserPage } from '@/features/users/pages/UserPage.js';
 import { AboutPage } from '@/pages/AboutPage.js';
 import { ClubsPage } from '@/pages/ClubsPage.js';
 import { RulesPage } from '@/pages/RulesPage.js';
@@ -40,13 +39,12 @@ export function App() {
         }
       >
         <Route path={ROUTE_PATH.HOME} element={<LobbyListPage />} />
-        <Route path={ROUTE_PATH.PROFILE} element={<ProfilePage />} />
+        <Route path={ROUTE_PATH.USER} element={<UserPage />} />
         <Route path={ROUTE_PATH.CLUBS} element={<ClubsPage />} />
         <Route path={ROUTE_PATH.TOURNAMENTS} element={<TournamentsPage />} />
         <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />
         <Route path={ROUTE_PATH.ABOUT} element={<AboutPage />} />
         <Route path={ROUTE_PATH.LOBBY_ROOM} element={<LobbyRoomPage />} />
-        <Route path={ROUTE_PATH.PUBLIC_USER} element={<PublicProfilePage />} />
       </Route>
 
       {/* Full-screen game page — no top nav. */}

@@ -15,7 +15,7 @@ import type { GameParticipantPublic } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface MobileSeatTileProps {
   seat: number;
@@ -89,13 +89,13 @@ export function MobileSeatTile({
                 tabIndex={0}
                 onClick={(event) => {
                   event.stopPropagation();
-                  navigate(publicUserPath(participant.publicCode as string));
+                  navigate(userProfilePath(participant.publicCode as string));
                 }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     event.stopPropagation();
-                    navigate(publicUserPath(participant.publicCode as string));
+                    navigate(userProfilePath(participant.publicCode as string));
                   }
                 }}
                 className="block text-[11px] font-medium text-white truncate hover:underline"

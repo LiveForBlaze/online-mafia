@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface SeatVideoTileProps {
   participant: GameParticipantPublic;
@@ -125,7 +125,7 @@ export function SeatVideoTile({
             </p>
             {participant.publicCode ? (
               <Link
-                to={publicUserPath(participant.publicCode)}
+                to={userProfilePath(participant.publicCode)}
                 // Don't trigger the surrounding zoom-on-click handler when the
                 // user is just trying to open the profile link.
                 onClick={(event) => event.stopPropagation()}

@@ -14,7 +14,7 @@ import type { LobbySummary } from '@mafia/shared';
 import { Button } from '@/components/ui/Button.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
-import { publicUserPath } from '@/routes/paths.js';
+import { userProfilePath } from '@/routes/paths.js';
 
 interface LobbyCardProps {
   lobby: LobbySummary;
@@ -68,7 +68,7 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
             <span>{t('lobby.card.hostPrefix')}</span>
             {lobby.hostPublicCode ? (
               <Link
-                to={publicUserPath(lobby.hostPublicCode)}
+                to={userProfilePath(lobby.hostPublicCode)}
                 // The card-wide click handler treats anything that bubbles up as
                 // a "join" intent. Stop the link click from reaching it so the
                 // navigation goes to the host profile, not into the lobby.
