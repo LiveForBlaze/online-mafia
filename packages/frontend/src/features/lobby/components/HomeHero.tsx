@@ -13,16 +13,7 @@ interface HomeHeroProps {
 export function HomeHero({ onCreateLobby }: HomeHeroProps) {
   const navigate = useNavigate();
   return (
-    <section
-      className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center py-6 sm:py-10"
-      style={{
-        // Page-level mood: darker at the very top, settling into the regular
-        // bg-bg by the bottom of the hero so the rest of the page reads
-        // normally. Matches the dim splash artwork above the fold.
-        backgroundImage:
-          'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)',
-      }}
-    >
+    <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center py-6 sm:py-10">
       <div className="space-y-5">
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[0.95] tracking-tight uppercase">
           <span className="block text-fg">Мафия</span>
