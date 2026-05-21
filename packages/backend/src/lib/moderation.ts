@@ -24,7 +24,14 @@ export type ModerationResult = { allowed: true } | { allowed: false; reason: str
 
 const MODEL = 'claude-haiku-4-5-20251001';
 const API_URL = 'https://api.anthropic.com/v1/messages';
-const TIMEOUT_MS = 3000;
+// 5s is long enough for a healthy Haiku call from EU → US Anthropic backend
+// while still bounding worst case for the user (lobby create / register
+// blocks on this round-trip).
+const TIMEOUT_MS = 5000;
+// Single retry covers transient TCP/TLS glitches and brief Anthropic 5xx
+// blips. We deliberately do NOT retry indefinitely — at some point we'd
+// rather fail open than make the user wait forever.
+const MAX_ATTEMPTS = 2;
 
 const SYSTEM_PROMPT = `You moderate short user-generated names for an online sport-mafia game platform. Players come from Russia, Ukraine, Belarus, Georgia, Kazakhstan, and elsewhere — names may be in any language or script.
 
@@ -63,11 +70,27 @@ export async function moderateName(
     return { allowed: true };
   }
 
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const outcome = await tryModerate(trimmed, kind, attempt);
+    if (outcome.kind === 'decided') return outcome.verdict;
+    // Transient failure — the original error was logged inside tryModerate.
+    // Retry once, then give up and fail open.
+  }
+  return { allowed: true };
+}
+
+type AttemptOutcome = { kind: 'decided'; verdict: ModerationResult } | { kind: 'transient' };
+
+async function tryModerate(
+  candidate: string,
+  kind: ModerationKind,
+  attempt: number,
+): Promise<AttemptOutcome> {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'x-api-key': env.ANTHROPIC_API_KEY,
+        'x-api-key': env.ANTHROPIC_API_KEY!,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
@@ -78,7 +101,7 @@ export async function moderateName(
         messages: [
           {
             role: 'user',
-            content: `Kind: ${kind}\nCandidate: ${JSON.stringify(trimmed)}`,
+            content: `Kind: ${kind}\nCandidate: ${JSON.stringify(candidate)}`,
           },
         ],
       }),
@@ -86,11 +109,15 @@ export async function moderateName(
     });
 
     if (!response.ok) {
+      // Retry 5xx (transient upstream), give up on 4xx (our bug — auth, bad
+      // request — retrying just wastes the budget).
+      const isTransient = response.status >= 500;
       logger.warn(
-        { kind, status: response.status },
-        'moderation: API returned non-2xx; allowing by default',
+        { kind, attempt, status: response.status, transient: isTransient },
+        'moderation: API returned non-2xx',
       );
-      return { allowed: true };
+      if (isTransient && attempt < MAX_ATTEMPTS) return { kind: 'transient' };
+      return { kind: 'decided', verdict: { allowed: true } };
     }
 
     const body = (await response.json()) as {
@@ -98,25 +125,33 @@ export async function moderateName(
     };
     const text = (body.content?.find((c) => c.type === 'text')?.text ?? '').trim();
     if (!text) {
-      logger.warn({ kind }, 'moderation: empty response; allowing by default');
-      return { allowed: true };
+      logger.warn({ kind, attempt }, 'moderation: empty response; allowing by default');
+      return { kind: 'decided', verdict: { allowed: true } };
     }
 
     const upper = text.toUpperCase();
-    if (upper.startsWith('ALLOW')) return { allowed: true };
+    if (upper.startsWith('ALLOW')) return { kind: 'decided', verdict: { allowed: true } };
     if (upper.startsWith('BLOCK')) {
       const reason =
         text
           .slice(5)
           .replace(/^[: ]+/, '')
           .trim() || 'inappropriate';
-      return { allowed: false, reason };
+      return { kind: 'decided', verdict: { allowed: false, reason } };
     }
 
-    logger.warn({ kind, text }, 'moderation: unexpected response shape; allowing by default');
-    return { allowed: true };
+    logger.warn({ kind, attempt, text }, 'moderation: unexpected response shape');
+    return { kind: 'decided', verdict: { allowed: true } };
   } catch (error) {
-    logger.warn({ kind, error }, 'moderation: request failed; allowing by default');
-    return { allowed: true };
+    // pino renders bare Error instances as `{}` because Error fields are
+    // non-enumerable. Project name/message/stack onto a plain object so log
+    // search isn't blind when something fails.
+    const errInfo =
+      error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : { value: String(error) };
+    logger.warn({ kind, attempt, err: errInfo }, 'moderation: request failed');
+    if (attempt < MAX_ATTEMPTS) return { kind: 'transient' };
+    return { kind: 'decided', verdict: { allowed: true } };
   }
 }
