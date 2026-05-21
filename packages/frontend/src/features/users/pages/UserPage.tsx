@@ -58,6 +58,7 @@ function OwnProfileSection() {
   const [savedRecently, setSavedRecently] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -92,7 +93,9 @@ function OwnProfileSection() {
       ? extractErrorMessage(updateProfile.error)
       : null;
   const deleteError = deleteAccount.isError ? extractErrorMessage(deleteAccount.error) : null;
-  const confirmMatches = confirmEmail.trim().toLowerCase() === user.email.trim().toLowerCase();
+  const emailMatches = confirmEmail.trim().toLowerCase() === user.email.trim().toLowerCase();
+  const passwordOk = !user.hasPassword || confirmPassword.length > 0;
+  const confirmMatches = emailMatches && passwordOk;
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,7 +133,10 @@ function OwnProfileSection() {
   function handleDeleteConfirm() {
     if (!confirmMatches) return;
     deleteAccount.mutate(
-      { confirmEmail: confirmEmail.trim() },
+      {
+        confirmEmail: confirmEmail.trim(),
+        ...(user!.hasPassword ? { password: confirmPassword } : {}),
+      },
       {
         onSuccess: () => {
           setDeleteOpen(false);
@@ -248,6 +254,7 @@ function OwnProfileSection() {
               type="button"
               onClick={() => {
                 setConfirmEmail('');
+                setConfirmPassword('');
                 deleteAccount.reset();
                 setDeleteOpen(true);
               }}
@@ -297,6 +304,16 @@ function OwnProfileSection() {
           onChange={(event) => setConfirmEmail(event.target.value)}
           disabled={deleteAccount.isPending}
         />
+        {user.hasPassword && (
+          <FormField
+            label={t('profile.delete_modal_password_label')}
+            type="password"
+            autoComplete="current-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            disabled={deleteAccount.isPending}
+          />
+        )}
         {deleteError && (
           <p role="alert" className="text-sm text-danger">
             {deleteError}

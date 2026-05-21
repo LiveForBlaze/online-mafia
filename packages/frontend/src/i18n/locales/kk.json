@@ -400,7 +400,8 @@
     "delete_modal_email_hint": "Аккаунтыңыздың email-і:",
     "delete_modal_email_label": "Email-ді растаңыз",
     "delete_modal_confirm": "Біржола жою",
-    "delete_modal_cancel": "Болдырмау"
+    "delete_modal_cancel": "Болдырмау",
+    "delete_modal_password_label": "Құпиясөзді растаңыз"
   },
   "public_profile": {
     "code_label": "Код",

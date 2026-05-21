@@ -10,6 +10,7 @@ import fp from 'fastify-plugin';
 import { Server as IOServer, type Socket as IOSocket } from 'socket.io';
 
 import { env } from '../config/env.js';
+import { prisma } from '../db/prisma.client.js';
 import { COOKIE_NAME } from '../modules/auth/auth.cookies.js';
 
 declare module 'fastify' {
@@ -22,6 +23,7 @@ declare module 'fastify' {
 export interface SocketUser {
   sub: string;
   nickname: string;
+  v: number;
 }
 
 declare module 'socket.io' {
@@ -58,20 +60,35 @@ export const socketioPlugin = fp(
       // Keep the default transports (polling + websocket) — Socket.IO falls back gracefully.
     });
 
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
       const cookies = parseCookieHeader(socket.handshake.headers.cookie);
       const token = cookies[COOKIE_NAME.SESSION];
       if (!token) {
         next(new Error('unauthenticated'));
         return;
       }
+      let payload: SocketUser;
       try {
-        const payload = app.jwt.verify<SocketUser>(token);
-        socket.data.user = payload;
-        next();
+        payload = app.jwt.verify<SocketUser>(token);
       } catch {
         next(new Error('invalid_token'));
+        return;
       }
+      // Same revocation gate as the HTTP authenticate decorator: compare the
+      // JWT's `v` against the DB row's tokenVersion. We only check at connect
+      // time — long-lived games run for ~60 minutes so a stricter per-event
+      // check would add a DB lookup per game action; if that gap matters later,
+      // add a periodic re-verify hook to disconnect stale sockets.
+      const dbUser = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { tokenVersion: true },
+      });
+      if (!dbUser || dbUser.tokenVersion !== payload.v) {
+        next(new Error('session_revoked'));
+        return;
+      }
+      socket.data.user = payload;
+      next();
     });
 
     app.decorate('io', io);

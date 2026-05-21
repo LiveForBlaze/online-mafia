@@ -46,6 +46,9 @@ export const authenticatedUserSchema = z.object({
   realName: z.string().nullable(),
   country: z.string().nullable(),
   clubName: z.string().nullable(),
+  // Whether the user has a local password (vs Google-only). Used by the
+  // delete-account dialog to decide whether to show the password field.
+  hasPassword: z.boolean(),
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 
@@ -68,9 +71,13 @@ export const publicUserProfileResponseSchema = z.object({
 export type PublicUserProfileResponse = z.infer<typeof publicUserProfileResponseSchema>;
 
 // Payload for DELETE /api/v1/auth/me. The user must retype their email to
-// confirm — the server enforces the match.
+// confirm and — if they have a password — re-enter it. Google-only users
+// without a local password skip the password field; for them the email
+// retype + valid session is the only confirmation. The server enforces the
+// rules; client-side validation is a UX nicety.
 export const deleteAccountInputSchema = z.object({
   confirmEmail: z.string().email(),
+  password: z.string().min(1).max(256).optional(),
 });
 export type DeleteAccountInput = z.infer<typeof deleteAccountInputSchema>;
 

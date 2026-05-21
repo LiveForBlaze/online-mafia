@@ -400,7 +400,8 @@
     "delete_modal_email_hint": "Email вашего аккаунта:",
     "delete_modal_email_label": "Подтвердите email",
     "delete_modal_confirm": "Удалить навсегда",
-    "delete_modal_cancel": "Отмена"
+    "delete_modal_cancel": "Отмена",
+    "delete_modal_password_label": "Подтвердите пароль"
   },
   "public_profile": {
     "code_label": "Код",

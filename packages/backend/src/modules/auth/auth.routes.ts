@@ -79,28 +79,53 @@ function authErrorToHttpStatus(code: AuthErrorCode): number {
   }
 }
 
+// Tight per-endpoint rate limits override the global 200/min for routes that
+// either burn CPU (argon2) or affect account integrity. Keyed by IP via
+// @fastify/rate-limit's default keyGenerator.
+const AUTH_RATE_LIMITS = {
+  // Login: enough for honest fat-finger retries, way too tight for credential
+  // stuffing.
+  login: { max: 10, timeWindow: '1 minute' },
+  // Registration: signup spam vector — keep this low.
+  register: { max: 5, timeWindow: '1 minute' },
+  // Google callback: legitimate hit pattern is one redirect per login. Allow
+  // some retry headroom for OAuth-flow weirdness without becoming a DoS vector.
+  googleCallback: { max: 20, timeWindow: '1 minute' },
+  // Account deletion: even with a stolen cookie an attacker shouldn't get many
+  // shots at the email-retype confirmation.
+  deleteAccount: { max: 5, timeWindow: '1 minute' },
+} as const;
+
 export const authRoutes: FastifyPluginAsync = async (app) => {
   // ---- Registration ----
-  app.post('/register', async (request, reply) => {
-    const parsed = registerInputSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply
-        .code(HTTP_STATUS.BAD_REQUEST)
-        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
-    }
+  app.post(
+    '/register',
+    { config: { rateLimit: AUTH_RATE_LIMITS.register } },
+    async (request, reply) => {
+      const parsed = registerInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
 
-    const result = await registerWithPassword(parsed.data);
-    if (!result.ok) {
-      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
-    }
+      const result = await registerWithPassword(parsed.data);
+      if (!result.ok) {
+        return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
 
-    const token = await reply.jwtSign({ sub: result.user.id, nickname: result.user.nickname });
-    setSessionCookie(reply, token);
-    return reply.code(HTTP_STATUS.CREATED).send({ user: toAuthenticatedUser(result.user) });
-  });
+      const token = await reply.jwtSign({
+        sub: result.user.id,
+        nickname: result.user.nickname,
+        v: result.user.tokenVersion,
+      });
+      setSessionCookie(reply, token);
+      return reply.code(HTTP_STATUS.CREATED).send({ user: toAuthenticatedUser(result.user) });
+    },
+  );
 
   // ---- Login ----
-  app.post('/login', async (request, reply) => {
+  app.post('/login', { config: { rateLimit: AUTH_RATE_LIMITS.login } }, async (request, reply) => {
     const parsed = loginInputSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply
@@ -113,7 +138,11 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
     }
 
-    const token = await reply.jwtSign({ sub: result.user.id, nickname: result.user.nickname });
+    const token = await reply.jwtSign({
+      sub: result.user.id,
+      nickname: result.user.nickname,
+      v: result.user.tokenVersion,
+    });
     setSessionCookie(reply, token);
     return reply.code(HTTP_STATUS.OK).send({ user: toAuthenticatedUser(result.user) });
   });
@@ -171,20 +200,31 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   // Body must contain { confirmEmail }: the user retypes their email to
   // confirm. The server validates the match. Account is anonymised, not
   // hard-deleted, because game history references it.
-  app.delete('/me', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const parsed = deleteAccountInputSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply
-        .code(HTTP_STATUS.BAD_REQUEST)
-        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
-    }
-    const result = await deleteOwnAccount(request.user.sub, parsed.data.confirmEmail);
-    if (!result.ok) {
-      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
-    }
-    clearSessionCookie(reply);
-    return reply.code(HTTP_STATUS.NO_CONTENT).send();
-  });
+  app.delete(
+    '/me',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: AUTH_RATE_LIMITS.deleteAccount },
+    },
+    async (request, reply) => {
+      const parsed = deleteAccountInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
+      const result = await deleteOwnAccount(
+        request.user.sub,
+        parsed.data.confirmEmail,
+        parsed.data.password,
+      );
+      if (!result.ok) {
+        return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      clearSessionCookie(reply);
+      return reply.code(HTTP_STATUS.NO_CONTENT).send();
+    },
+  );
 
   // ---- Google OAuth: start ----
   app.get('/google', async (_request, reply) => {
@@ -204,57 +244,64 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // ---- Google OAuth: callback ----
-  app.get('/google/callback', async (request, reply) => {
-    if (!isGoogleOAuthConfigured()) {
-      return reply.code(HTTP_STATUS.NOT_IMPLEMENTED).send({ error: 'google_oauth_not_configured' });
-    }
-
-    const query = request.query as { code?: string; state?: string; error?: string };
-    if (query.error) {
-      clearOAuthTempCookies(reply);
-      return reply.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(query.error)}`);
-    }
-
-    const expectedState = request.cookies[COOKIE_NAME.OAUTH_STATE];
-    const codeVerifier = request.cookies[COOKIE_NAME.OAUTH_CODE_VERIFIER];
-
-    if (!query.code || !query.state || !expectedState || !codeVerifier) {
-      clearOAuthTempCookies(reply);
-      return reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: 'oauth_missing_parameters' });
-    }
-    if (query.state !== expectedState) {
-      clearOAuthTempCookies(reply);
-      return reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: 'oauth_state_mismatch' });
-    }
-
-    try {
-      const google = createGoogleClient();
-      const tokens = await google.validateAuthorizationCode(query.code, codeVerifier);
-      const profile = await fetchGoogleUserInfo(tokens.accessToken());
-
-      const result = await findOrCreateUserFromGoogle(profile);
-      if (!result.ok) {
-        clearOAuthTempCookies(reply);
-        // Redirect back to /login with a typed error code so the UI can render
-        // a helpful message ("This email is already registered with a password —
-        // please log in with the password, verify your email, then link Google").
-        return reply.redirect(
-          `${env.FRONTEND_URL}/login?error=${encodeURIComponent(result.error)}`,
-        );
+  app.get(
+    '/google/callback',
+    { config: { rateLimit: AUTH_RATE_LIMITS.googleCallback } },
+    async (request, reply) => {
+      if (!isGoogleOAuthConfigured()) {
+        return reply
+          .code(HTTP_STATUS.NOT_IMPLEMENTED)
+          .send({ error: 'google_oauth_not_configured' });
       }
 
-      const token = await reply.jwtSign({
-        sub: result.user.id,
-        nickname: result.user.nickname,
-      });
-      clearOAuthTempCookies(reply);
-      setSessionCookie(reply, token);
+      const query = request.query as { code?: string; state?: string; error?: string };
+      if (query.error) {
+        clearOAuthTempCookies(reply);
+        return reply.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(query.error)}`);
+      }
 
-      return reply.redirect(env.FRONTEND_URL);
-    } catch (error) {
-      request.log.error({ error }, 'Google OAuth callback failed');
-      clearOAuthTempCookies(reply);
-      return reply.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
-    }
-  });
+      const expectedState = request.cookies[COOKIE_NAME.OAUTH_STATE];
+      const codeVerifier = request.cookies[COOKIE_NAME.OAUTH_CODE_VERIFIER];
+
+      if (!query.code || !query.state || !expectedState || !codeVerifier) {
+        clearOAuthTempCookies(reply);
+        return reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: 'oauth_missing_parameters' });
+      }
+      if (query.state !== expectedState) {
+        clearOAuthTempCookies(reply);
+        return reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: 'oauth_state_mismatch' });
+      }
+
+      try {
+        const google = createGoogleClient();
+        const tokens = await google.validateAuthorizationCode(query.code, codeVerifier);
+        const profile = await fetchGoogleUserInfo(tokens.accessToken());
+
+        const result = await findOrCreateUserFromGoogle(profile);
+        if (!result.ok) {
+          clearOAuthTempCookies(reply);
+          // Redirect back to /login with a typed error code so the UI can render
+          // a helpful message ("This email is already registered with a password —
+          // please log in with the password, verify your email, then link Google").
+          return reply.redirect(
+            `${env.FRONTEND_URL}/login?error=${encodeURIComponent(result.error)}`,
+          );
+        }
+
+        const token = await reply.jwtSign({
+          sub: result.user.id,
+          nickname: result.user.nickname,
+          v: result.user.tokenVersion,
+        });
+        clearOAuthTempCookies(reply);
+        setSessionCookie(reply, token);
+
+        return reply.redirect(env.FRONTEND_URL);
+      } catch (error) {
+        request.log.error({ error }, 'Google OAuth callback failed');
+        clearOAuthTempCookies(reply);
+        return reply.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+      }
+    },
+  );
 };

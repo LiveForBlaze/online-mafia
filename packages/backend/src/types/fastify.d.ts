@@ -16,7 +16,11 @@ declare module 'fastify' {
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { sub: string; nickname: string };
-    user: { sub: string; nickname: string };
+    // `v` mirrors User.tokenVersion at sign time. authenticate compares it to
+    // the DB row's tokenVersion on every request and rejects mismatches —
+    // that's how account-deletion (and future "log out everywhere") revokes
+    // outstanding JWTs even though they haven't expired yet.
+    payload: { sub: string; nickname: string; v: number };
+    user: { sub: string; nickname: string; v: number };
   }
 }

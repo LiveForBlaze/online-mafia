@@ -51,6 +51,7 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
     realName: user.realName ?? null,
     country: user.country ?? null,
     clubName: user.clubName ?? null,
+    hasPassword: Boolean(user.passwordHash),
   };
 }
 
@@ -166,11 +167,25 @@ export async function findUserByPublicCode(code: string): Promise<User | null> {
 // is rewritten to a sentinel, nickname becomes "[удалён]", role-bearing
 // columns are cleared, and tokenVersion is bumped to kill every live session.
 // Hosted lobbies are closed; lobby memberships removed.
-export async function deleteOwnAccount(userId: string, confirmEmail: string): Promise<AuthResult> {
+//
+// If the user has a password we additionally require it (the cookie alone is
+// not enough to authorise a destructive, irreversible action). Google-only
+// users have no password to check, so for them the email retype plus a
+// valid session remains the only proof.
+export async function deleteOwnAccount(
+  userId: string,
+  confirmEmail: string,
+  password: string | undefined,
+): Promise<AuthResult> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
   if (confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
     return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
+  }
+  if (user.passwordHash) {
+    if (!password) return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
+    const ok = await verifyPassword(user.passwordHash, password);
+    if (!ok) return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
   }
 
   const deletedMarker = `deleted-${userId}@deleted.local`;

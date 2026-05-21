@@ -382,7 +382,8 @@
     "delete_modal_email_hint": "Your account email:",
     "delete_modal_email_label": "Confirm email",
     "delete_modal_confirm": "Delete forever",
-    "delete_modal_cancel": "Cancel"
+    "delete_modal_cancel": "Cancel",
+    "delete_modal_password_label": "Confirm password"
   },
   "public_profile": {
     "code_label": "Code",

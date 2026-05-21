@@ -10,7 +10,8 @@ import fastifyJwt from '@fastify/jwt';
 import fp from 'fastify-plugin';
 
 import { env } from '../config/env.js';
-import { COOKIE_NAME } from '../modules/auth/auth.cookies.js';
+import { prisma } from '../db/prisma.client.js';
+import { COOKIE_NAME, clearSessionCookie } from '../modules/auth/auth.cookies.js';
 
 export const securityPlugin = fp(
   async (app) => {
@@ -28,11 +29,25 @@ export const securityPlugin = fp(
     });
 
     // preHandler used by routes that require a valid session.
+    //
+    // Two-step gate:
+    //   1) Verify the JWT signature & expiry (cheap, no DB).
+    //   2) Look up the user and require token.v === user.tokenVersion.
+    //      Account deletion and similar revocations bump tokenVersion, so
+    //      outstanding JWTs are killed even before they expire.
     app.decorate('authenticate', async (request, reply) => {
       try {
         await request.jwtVerify();
       } catch {
         return reply.code(401).send({ error: 'unauthenticated' });
+      }
+      const dbUser = await prisma.user.findUnique({
+        where: { id: request.user.sub },
+        select: { tokenVersion: true },
+      });
+      if (!dbUser || dbUser.tokenVersion !== request.user.v) {
+        clearSessionCookie(reply);
+        return reply.code(401).send({ error: 'session_revoked' });
       }
     });
   },
