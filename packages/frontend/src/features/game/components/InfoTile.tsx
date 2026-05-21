@@ -135,15 +135,36 @@ function Body({
         </div>
       );
 
-    case GAME_PHASE.DAY_VOTE: {
+    case GAME_PHASE.DAY_VOTE:
+    case GAME_PHASE.DAY_REVOTE: {
       const hasVoted =
         viewerSeat !== null &&
         Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
+      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
+      const tally = currentCandidate
+        ? Object.values(state.votes).filter((c) => c === currentCandidate).length
+        : 0;
+      const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
       return (
         <div className="space-y-2">
-          <p className="text-lg sm:text-xl font-semibold text-fg leading-tight">
-            {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
-          </p>
+          {!votingClosed && currentCandidate !== undefined ? (
+            <>
+              <p className="text-2xl sm:text-3xl font-extrabold text-warning leading-tight">
+                №{currentCandidate}
+              </p>
+              <p className="text-sm text-muted">
+                {t('game.ui.voteRoundPromptShort', {
+                  current: state.voteRoundIdx + 1,
+                  total: state.nominationSeats.length,
+                })}
+              </p>
+              <p className="text-xs font-mono text-muted">
+                {t('game.ui.voteRoundTally', { count: tally })}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
+          )}
           {viewerIsAlive && hasVoted && (
             <p className="text-base text-success">{t('game.ui.voted')}</p>
           )}

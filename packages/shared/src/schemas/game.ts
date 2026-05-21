@@ -142,6 +142,10 @@ export const gameStateProjectedSchema = z.object({
   nominationSeats: z.array(z.number().int()),
   // Map of voter seat → candidate seat for the current vote.
   votes: z.record(z.string(), z.number().int()),
+  // Index of the candidate currently being polled in the sequential vote
+  // (ФИИМ-style). Equal to nominationSeats.length once every round has
+  // closed and remaining voters have been auto-cast for the last candidate.
+  voteRoundIdx: z.number().int().nonnegative(),
 
   // Latest mafia target chosen this night.
   // Visible to mafia, don, judge during night; visible to everyone after morning announcement.

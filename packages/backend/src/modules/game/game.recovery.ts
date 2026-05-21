@@ -116,6 +116,7 @@ function replayState(
     currentSpeakerSeat: null,
     nominationSeats: [],
     votes: new Map(),
+    voteRoundIdx: 0,
     mafiaVotes: new Map(),
     pendingMafiaTargetSeat: null,
     sheriffCheck: null,

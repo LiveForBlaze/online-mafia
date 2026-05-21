@@ -121,6 +121,7 @@ export function GamePage() {
       viewerSeat,
       viewerUserId: user.id,
       viewerIsAlive,
+      viewerIsJudge,
       participantSeat: participant.seat!,
       participantIsAlive: participant.isAlive,
       participantUserId: participant.userId,

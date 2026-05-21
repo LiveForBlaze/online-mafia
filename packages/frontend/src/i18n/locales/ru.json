@@ -321,7 +321,12 @@
       "liftNo": "Нет",
       "liftMyVoteYes": "Вы проголосовали ЗА",
       "liftMyVoteNo": "Вы проголосовали ПРОТИВ",
-      "liftTally": "За: {{yes}}  Против: {{no}}"
+      "liftTally": "За: {{yes}}  Против: {{no}}",
+      "voteForButton": "ЗА",
+      "voteRoundPrompt": "Кто за № {{seat}}? ({{current}}/{{total}})",
+      "voteRoundPromptShort": "Раунд {{current}}/{{total}}",
+      "voteRoundTally": "Голосов «За»: {{count}}",
+      "voteClosed": "Голосование завершено"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

@@ -321,7 +321,12 @@
       "liftNo": "არა",
       "liftMyVoteYes": "თქვენ მიეცი ხმა ZA",
       "liftMyVoteNo": "თქვენ მიეცი ხმა ПРОТИВ",
-      "liftTally": "კი: {{yes}}  არა: {{no}}"
+      "liftTally": "კი: {{yes}}  არა: {{no}}",
+      "voteForButton": "მხარდამჭერი",
+      "voteRoundPrompt": "ვინ არის №{{seat}}-ის წინააღმდეგ? ({{current}}/{{total}})",
+      "voteRoundPromptShort": "რაუნდი {{current}}/{{total}}",
+      "voteRoundTally": "ხმა: {{count}}",
+      "voteClosed": "ხმის მიცემა დასრულდა"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

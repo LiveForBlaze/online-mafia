@@ -78,11 +78,32 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
       );
 
     case GAME_PHASE.DAY_VOTE:
-    case GAME_PHASE.DAY_REVOTE:
+    case GAME_PHASE.DAY_REVOTE: {
+      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
+      const tally = currentCandidate
+        ? Object.values(state.votes).filter((c) => c === currentCandidate).length
+        : 0;
+      const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
       return (
         <PanelShell>
           <p className="text-fg">{t(`game.phase.${state.phase}`)}.</p>
-          <p className="mt-1 text-sm text-muted">
+          {votingClosed ? (
+            <p className="mt-1 text-sm text-muted">{t('game.ui.voteClosed')}</p>
+          ) : currentCandidate !== undefined ? (
+            <>
+              <p className="mt-1 text-base font-semibold text-warning">
+                {t('game.ui.voteRoundPrompt', {
+                  seat: currentCandidate,
+                  current: state.voteRoundIdx + 1,
+                  total: state.nominationSeats.length,
+                })}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {t('game.ui.voteRoundTally', { count: tally })}
+              </p>
+            </>
+          ) : null}
+          <p className="mt-1 text-xs text-muted">
             {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
           </p>
           {viewerIsAlive && hasVoted(state, viewerSeat) && (
@@ -90,6 +111,7 @@ export function PhasePanel({ state, viewerRole, viewerSeat, viewerIsAlive }: Pha
           )}
         </PanelShell>
       );
+    }
 
     case GAME_PHASE.DAY_SHOOTOUT:
       return (
@@ -393,6 +415,7 @@ export function actionForSeatInCurrentPhase(args: {
   viewerSeat: number | null;
   viewerUserId: string;
   viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
   participantSeat: number;
   participantIsAlive: boolean;
   participantUserId: string;
@@ -404,16 +427,31 @@ export function actionForSeatInCurrentPhase(args: {
     viewerSeat,
     viewerUserId,
     viewerIsAlive,
+    viewerIsJudge,
     participantSeat,
     participantIsAlive,
     participantUserId,
   } = args;
-  if (!viewerIsAlive || !participantIsAlive) return null;
-  if (participantUserId === viewerUserId) return null;
+  // Judge is never alive in the player sense but can still issue actions —
+  // skip the alive gate for them. The judge also doesn't have a seat / user
+  // tile to "self-target", so the self-target guard is fine to skip.
+  if (!viewerIsJudge) {
+    if (!viewerIsAlive || !participantIsAlive) return null;
+    if (participantUserId === viewerUserId) return null;
+  } else if (!participantIsAlive) {
+    return null;
+  }
 
   switch (state.phase) {
     case GAME_PHASE.DAY_SPEECH:
-      if (viewerSeat !== state.currentSpeakerSeat) return null;
+      // Nomination is judge-driven. The speaker says "выставляю №X" out
+      // loud, the judge clicks the corresponding tile. Hidden from players;
+      // only shown to the judge while there's an active speaker and the
+      // target isn't already nominated / isn't the speaker themselves.
+      if (!viewerIsJudge) return null;
+      if (state.currentSpeakerSeat === null) return null;
+      if (state.farewellSeat !== null) return null;
+      if (participantSeat === state.currentSpeakerSeat) return null;
       if (state.nominationSeats.includes(participantSeat)) return null;
       return {
         label: t('game.ui.nominateButton'),
@@ -422,16 +460,22 @@ export function actionForSeatInCurrentPhase(args: {
       };
 
     case GAME_PHASE.DAY_VOTE:
-    case GAME_PHASE.DAY_REVOTE:
-      // Both rounds share the same vote affordance — nominationSeats is
-      // pinned to tiedSeats at the DAY_VOTE→DAY_SHOOTOUT transition, so the
-      // existing includes() check restricts revote candidates correctly.
-      if (!state.nominationSeats.includes(participantSeat)) return null;
+    case GAME_PHASE.DAY_REVOTE: {
+      // Sequential voting: only the candidate of the current round shows a
+      // "ЗА" button to alive non-judge voters who haven't voted yet.
+      if (viewerIsJudge) return null;
+      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
+      if (currentCandidate === undefined) return null;
+      if (participantSeat !== currentCandidate) return null;
       if (viewerSeat !== null && hasVoted(state, viewerSeat)) return null;
+      // A voter can't vote for themselves — hide the button when their own
+      // seat is the current candidate.
+      if (viewerSeat === currentCandidate) return null;
       return {
-        label: t('game.ui.voteFor', { seat: participantSeat }),
+        label: t('game.ui.voteForButton'),
         onClick: () => emitGameAction(CLIENT_EVENT.CAST_VOTE, { candidateSeat: participantSeat }),
       };
+    }
 
     case GAME_PHASE.NIGHT_MAFIA:
       if (viewerRole !== ROLE.MAFIA && viewerRole !== ROLE.DON) return null;

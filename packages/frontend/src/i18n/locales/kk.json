@@ -321,7 +321,12 @@
       "liftNo": "Жоқ",
       "liftMyVoteYes": "Сіз ИӘ деп дауыс бердіңіз",
       "liftMyVoteNo": "Сіз ЖОҚ деп дауыс бердіңіз",
-      "liftTally": "Иә: {{yes}}  Жоқ: {{no}}"
+      "liftTally": "Иә: {{yes}}  Жоқ: {{no}}",
+      "voteForButton": "ИӘ",
+      "voteRoundPrompt": "Кім №{{seat}}-ге қарсы? ({{current}}/{{total}})",
+      "voteRoundPromptShort": "Раунд {{current}}/{{total}}",
+      "voteRoundTally": "Дауыстар: {{count}}",
+      "voteClosed": "Дауыс беру аяқталды"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

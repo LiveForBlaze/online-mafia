@@ -267,27 +267,37 @@ export function nextPhase(state: GameState): GamePhase {
 
 // ---- Action handlers (pure) ----
 
+// Nomination is judge-driven: the speaker says "выставляю №X" aloud and the
+// judge clicks the corresponding seat. The nomination is attributed to the
+// current speaker semantically (audit-logged against the judge actor) and a
+// new entry is appended to nominationSeats.
+//
+// Constraints inherited from the speaker context:
+//   - phase must be DAY_SPEECH
+//   - there must be an active non-farewell speaker (farewell speakers can't
+//     nominate from the grave, so the judge can't either while they're on)
+//   - target must be alive, non-judge, not already nominated, and not the
+//     current speaker (you can't nominate yourself)
 export function applyNominate(
   state: GameState,
   actorUserId: string,
   targetSeat: number,
 ): EngineResult<GameState> {
   if (state.phase !== GAME_PHASE.DAY_SPEECH) return fail(ENGINE_ERROR.WRONG_PHASE);
-  // The farewell speaker (a night-killed player) can speak but cannot
-  // nominate — they're out of the game.
   if (state.farewellSeat !== null) return fail(ENGINE_ERROR.NOT_YOUR_TURN);
+  if (state.currentSpeakerSeat === null) return fail(ENGINE_ERROR.NOT_YOUR_TURN);
 
   const actor = findByUserId(state, actorUserId);
-  if (!actor || actor.isJudge || !actor.isAlive) return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
-  if (actor.seat !== state.currentSpeakerSeat) return fail(ENGINE_ERROR.NOT_YOUR_TURN);
+  if (!actor || !actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
 
   const target = findBySeat(state, targetSeat);
   if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
+  if (target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
   if (!target.isAlive || target.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
   if (state.nominationSeats.includes(targetSeat)) return fail(ENGINE_ERROR.ALREADY_NOMINATED);
-  // A player cannot nominate themselves — would lead to a pathological state where
-  // they're the only candidate and can't vote for themselves either.
-  if (target.userId === actorUserId) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
+  // Speaker can't nominate themselves — same rule as before, just rephrased
+  // since the actor is now the judge.
+  if (targetSeat === state.currentSpeakerSeat) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
 
   return ok({ ...state, nominationSeats: [...state.nominationSeats, targetSeat] });
 }
@@ -297,11 +307,19 @@ export function applyCastVote(
   actorUserId: string,
   candidateSeat: number,
 ): EngineResult<GameState> {
-  if (state.phase !== GAME_PHASE.DAY_VOTE) return fail(ENGINE_ERROR.WRONG_PHASE);
+  if (state.phase !== GAME_PHASE.DAY_VOTE && state.phase !== GAME_PHASE.DAY_REVOTE) {
+    return fail(ENGINE_ERROR.WRONG_PHASE);
+  }
+  // Sequential voting: only the candidate of the current round accepts a
+  // vote. Players who try to vote for any other nominated seat (or click
+  // late after their round has passed) get rejected — they cannot save
+  // their ballot for a different candidate.
+  const currentRoundCandidate = state.nominationSeats[state.voteRoundIdx];
+  if (currentRoundCandidate === undefined) return fail(ENGINE_ERROR.WRONG_PHASE);
+  if (candidateSeat !== currentRoundCandidate) return fail(ENGINE_ERROR.NOT_YOUR_TURN);
 
   const actor = findByUserId(state, actorUserId);
   if (!actor || actor.isJudge || !actor.isAlive) return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
-  if (!state.nominationSeats.includes(candidateSeat)) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
   if (actor.seat === candidateSeat) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
   if (state.votes.has(actor.seat!)) return fail(ENGINE_ERROR.ALREADY_VOTED);
 
@@ -608,6 +626,13 @@ export function applyAdvancePhase(state: GameState): GameState {
     return { ...next, phase: GAME_PHASE.GAME_OVER, status: 'finished', winner };
   }
 
+  // Entering any voting phase: reset the round counter so the first ballot
+  // is for nominationSeats[0]. Applies to both the initial DAY_VOTE and the
+  // tie-break DAY_REVOTE.
+  if (phase === GAME_PHASE.DAY_VOTE || phase === GAME_PHASE.DAY_REVOTE) {
+    next = { ...next, voteRoundIdx: 0 };
+  }
+
   // Entering day_speech: if a player was killed last night, they get the
   // farewell minute first. Otherwise pick the rotation-based starting seat.
   if (phase === GAME_PHASE.DAY_SPEECH) {
@@ -702,6 +727,48 @@ export function applyNextSpeaker(state: GameState): {
         { ...state, shootoutSpeakerIdx: nextIdx, currentSpeakerSeat: nextSeat },
         GAME_PHASE.DAY_SHOOTOUT,
       ),
+      speechesDone: false,
+    };
+  }
+
+  // Sequential voting rounds (DAY_VOTE / DAY_REVOTE). Each call advances to
+  // the next candidate in nominationSeats. When the judge calls this on the
+  // LAST round, the engine auto-casts every remaining alive voter for that
+  // last candidate (classic ФИИМ "те кто не проголосовал = за последнего"),
+  // then signals speechesDone=true. The judge then calls applyAdvancePhase
+  // to resolve the tally.
+  if (state.phase === GAME_PHASE.DAY_VOTE || state.phase === GAME_PHASE.DAY_REVOTE) {
+    const lastRoundIdx = state.nominationSeats.length - 1;
+    if (lastRoundIdx < 0) {
+      // No nominations → no rounds. Should be impossible given the engine
+      // routes DAY_SPEECH → DAY_VOTE only when nominations exist, but stay
+      // defensive.
+      return { state, speechesDone: true };
+    }
+    if (state.voteRoundIdx > lastRoundIdx) {
+      // Already past the end — nothing more to do here.
+      return { state, speechesDone: true };
+    }
+    if (state.voteRoundIdx === lastRoundIdx) {
+      // Closing the final round: pin everyone else's ballot to this candidate.
+      const lastCandidate = state.nominationSeats[lastRoundIdx]!;
+      const newVotes = new Map(state.votes);
+      for (const p of alivePlayers(state)) {
+        if (p.seat === null) continue;
+        if (newVotes.has(p.seat)) continue;
+        // A voter cannot be auto-cast for themselves — they stay an abstention.
+        if (p.seat === lastCandidate) continue;
+        newVotes.set(p.seat, lastCandidate);
+      }
+      return {
+        state: { ...state, votes: newVotes, voteRoundIdx: state.voteRoundIdx + 1 },
+        speechesDone: true,
+      };
+    }
+    // Mid-vote: move to the next candidate's round and refresh the per-round
+    // countdown.
+    return {
+      state: withFreshDeadline({ ...state, voteRoundIdx: state.voteRoundIdx + 1 }, state.phase),
       speechesDone: false,
     };
   }
@@ -985,6 +1052,7 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     currentSpeakerSeat: state.currentSpeakerSeat,
     nominationSeats: state.nominationSeats,
     votes: Object.fromEntries([...state.votes].map(([k, v]) => [String(k), v])),
+    voteRoundIdx: state.voteRoundIdx,
     pendingMafiaTargetSeat: showMafiaTarget ? state.pendingMafiaTargetSeat : null,
     lastNightVictimSeat: state.lastNightVictimSeat,
     // Drop the field once it has expired so clients don't have to do timer

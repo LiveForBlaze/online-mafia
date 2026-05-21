@@ -42,6 +42,12 @@ export interface GameState {
   currentSpeakerSeat: number | null;
   nominationSeats: number[];
   votes: Map<number, number>; // voter seat → candidate seat
+  // ФИИМ-style sequential voting: each candidate from nominationSeats is
+  // polled in order, one round at a time. voteRoundIdx is the index of the
+  // candidate being voted on RIGHT NOW; when the judge advances past the
+  // last round the engine auto-casts every remaining alive voter for the
+  // last candidate. Reset to 0 on every DAY_VOTE / DAY_REVOTE entry.
+  voteRoundIdx: number;
 
   // Night-time transient state. Cleared at the end of each morning.
   //

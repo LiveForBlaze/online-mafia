@@ -76,6 +76,7 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     currentSpeakerSeat: 1,
     nominationSeats: [],
     votes: new Map(),
+    voteRoundIdx: 0,
     mafiaVotes: new Map(),
     pendingMafiaTargetSeat: null,
     sheriffCheck: null,
@@ -154,11 +155,19 @@ describe('checkWinner', () => {
   });
 });
 
-describe('applyNominate', () => {
-  it('refuses self-nomination', () => {
+describe('applyNominate (judge-driven)', () => {
+  it('refuses non-judge actor', () => {
+    // Players talk; the judge clicks. A direct nominate call from a player
+    // is rejected — only the judge can record nominations.
     const state = buildState({ currentSpeakerSeat: 1 });
-    // Player 1 (user-1) tries to nominate seat 1
-    const result = applyNominate(state, 'user-1', 1);
+    const result = applyNominate(state, 'user-1', 2);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  });
+
+  it('refuses nominating the current speaker (self-nomination)', () => {
+    const state = buildState({ currentSpeakerSeat: 1 });
+    const result = applyNominate(state, 'user-judge', 1);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.CANNOT_TARGET_SELF);
   });
@@ -170,19 +179,26 @@ describe('applyNominate', () => {
         p.seat === 5 ? { ...p, isAlive: false } : p,
       ),
     });
-    const result = applyNominate(state, 'user-1', 5);
+    const result = applyNominate(state, 'user-judge', 5);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.TARGET_NOT_LIVE);
   });
 
   it('refuses outside of day_speech', () => {
     const state = buildState({ phase: GAME_PHASE.DAY_VOTE });
-    const result = applyNominate(state, 'user-1', 2);
+    const result = applyNominate(state, 'user-judge', 2);
     expect(result.ok).toBe(false);
+  });
+
+  it('records a nomination on the judge action', () => {
+    const state = buildState({ currentSpeakerSeat: 1 });
+    const result = applyNominate(state, 'user-judge', 5);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.nominationSeats).toEqual([5]);
   });
 });
 
-describe('applyCastVote', () => {
+describe('applyCastVote (sequential rounds)', () => {
   it('refuses double voting from the same seat', () => {
     const state = buildState({
       phase: GAME_PHASE.DAY_VOTE,
@@ -192,6 +208,70 @@ describe('applyCastVote', () => {
     const result = applyCastVote(state, 'user-1', 3);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.ALREADY_VOTED);
+  });
+
+  it('only accepts a vote for the current round candidate', () => {
+    // voteRoundIdx=0 → only seat 3 (nominationSeats[0]) is being voted on.
+    // Trying to vote for seat 5 (which is round 1) is rejected.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5],
+      voteRoundIdx: 0,
+    });
+    const result = applyCastVote(state, 'user-1', 5);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_YOUR_TURN);
+  });
+
+  it('applyNextSpeaker advances to the next vote round mid-vote', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5, 7],
+      voteRoundIdx: 0,
+      votes: new Map([[1, 3]]),
+    });
+    const advanced = applyNextSpeaker(state);
+    expect(advanced.state.voteRoundIdx).toBe(1);
+    expect(advanced.speechesDone).toBe(false);
+    // Existing votes stay — voter at seat 1 already locked for seat 3.
+    expect(advanced.state.votes.get(1)).toBe(3);
+  });
+
+  it('applyNextSpeaker auto-casts remaining voters to the LAST candidate', () => {
+    // Three candidates [3, 5, 7], we're on the last round, only seat 1 has
+    // voted (for 3). Everyone else alive (excluding seat 7 itself, who'd
+    // be self-voting) gets auto-pinned to seat 7.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5, 7],
+      voteRoundIdx: 2,
+      votes: new Map([[1, 3]]),
+    });
+    const advanced = applyNextSpeaker(state);
+    expect(advanced.speechesDone).toBe(true);
+    expect(advanced.state.voteRoundIdx).toBe(3); // past end
+    // seat 1 keeps their original vote
+    expect(advanced.state.votes.get(1)).toBe(3);
+    // seats 2-6, 8-10 are auto-cast for seat 7 (excluding 7 itself who'd be
+    // voting for themselves)
+    for (const seat of [2, 3, 4, 5, 6, 8, 9, 10]) {
+      expect(advanced.state.votes.get(seat)).toBe(7);
+    }
+    // Seat 7 (the last candidate) is not in votes — they're not auto-cast
+    // for themselves and they hadn't voted manually.
+    expect(advanced.state.votes.has(7)).toBe(false);
+  });
+
+  it('also works for DAY_REVOTE (sequential)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_REVOTE,
+      nominationSeats: [3, 5],
+      tiedSeats: [3, 5],
+      voteRoundIdx: 0,
+    });
+    const r = applyCastVote(state, 'user-1', 3);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.votes.get(1)).toBe(3);
   });
 });
 

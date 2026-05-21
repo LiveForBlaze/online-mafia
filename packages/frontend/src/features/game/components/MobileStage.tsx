@@ -129,11 +129,29 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       const hasVoted =
         viewerSeat !== null &&
         Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
+      const currentCandidate = state.nominationSeats[state.voteRoundIdx];
+      const tally = currentCandidate
+        ? Object.values(state.votes).filter((c) => c === currentCandidate).length
+        : 0;
+      const votingClosed = state.voteRoundIdx >= state.nominationSeats.length;
       return (
         <div className="flex items-baseline gap-2 flex-wrap">
-          <p className="text-sm text-fg">
-            {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
-          </p>
+          {!votingClosed && currentCandidate !== undefined ? (
+            <p className="text-base font-bold text-warning">
+              {t('game.ui.voteRoundPrompt', {
+                seat: currentCandidate,
+                current: state.voteRoundIdx + 1,
+                total: state.nominationSeats.length,
+              })}
+            </p>
+          ) : (
+            <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
+          )}
+          {!votingClosed && currentCandidate !== undefined && (
+            <p className="text-xs font-mono text-muted">
+              {t('game.ui.voteRoundTally', { count: tally })}
+            </p>
+          )}
           {viewerIsAlive && hasVoted && (
             <p className="text-xs text-success">{t('game.ui.voted')}</p>
           )}

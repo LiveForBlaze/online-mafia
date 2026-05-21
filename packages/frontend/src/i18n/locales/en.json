@@ -315,7 +315,12 @@
       "liftNo": "No",
       "liftMyVoteYes": "You voted YES",
       "liftMyVoteNo": "You voted NO",
-      "liftTally": "Yes: {{yes}}  No: {{no}}"
+      "liftTally": "Yes: {{yes}}  No: {{no}}",
+      "voteForButton": "FOR",
+      "voteRoundPrompt": "Vote against №{{seat}}? ({{current}}/{{total}})",
+      "voteRoundPromptShort": "Round {{current}}/{{total}}",
+      "voteRoundTally": "Yes: {{count}}",
+      "voteClosed": "Voting closed"
     },
     "errors": {
       "not_participant": "You're not in this game",
