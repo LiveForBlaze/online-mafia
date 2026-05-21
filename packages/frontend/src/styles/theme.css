@@ -8,10 +8,13 @@
  */
 
 @theme {
-  /* Brand */
-  --color-accent: oklch(0.36 0.14 20); /* wine red */
+  /* Brand. Vivid red matched to the splash artwork — the network dots and
+     connection lines on the world map sit around #d4263a. Lifted from the
+     previous dim wine so accent elements (CTA buttons, role badges, splash
+     vignette) read as the same colour family as the hero. */
+  --color-accent: oklch(0.55 0.22 22);
   --color-accent-fg: oklch(0.98 0 0);
-  --color-team-red: oklch(0.36 0.14 20);
+  --color-team-red: oklch(0.55 0.22 22);
   --color-team-black: oklch(0.25 0.02 270);
 
   /* Surface. The page background is deep dark — it matches the dim splash
