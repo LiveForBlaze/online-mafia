@@ -84,7 +84,8 @@
       "invalid_input": "Check the form: email must be valid, password at least 8 characters, nickname 2-24 characters",
       "unauthenticated": "Your session has expired. Sign in again.",
       "network": "Connection error. Please try again.",
-      "unknown": "Something went wrong"
+      "unknown": "Something went wrong",
+      "nickname_rejected": "This nickname didn't pass moderation. Please pick another."
     }
   },
   "lobby": {
@@ -204,7 +205,8 @@
       "role_cap_reached": "No more slots for this role (max 1 sheriff / 1 don / 2 mafia).",
       "invalid_input": "Check the input values",
       "unauthenticated": "Sign in again",
-      "unknown": "Something went wrong"
+      "unknown": "Something went wrong",
+      "lobby_name_rejected": "This lobby name didn't pass moderation. Please pick another."
     }
   },
   "game": {

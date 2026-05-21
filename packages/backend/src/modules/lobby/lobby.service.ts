@@ -22,6 +22,7 @@ import {
 } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { moderateName } from '../../lib/moderation.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { endActiveGameForLobby, removeUserFromActiveGameForLobby } from '../game/game.service.js';
 
@@ -50,6 +51,13 @@ export async function createLobby(
   hostId: string,
   input: CreateLobbyInput,
 ): Promise<ServiceResult<LobbyDetails>> {
+  // AI-moderate the name before we touch the DB. Cheap (~$0.0003 per call) and
+  // fails open if the moderation service is down — see lib/moderation.ts.
+  const verdict = await moderateName(input.name, 'lobby');
+  if (!verdict.allowed) {
+    return fail(LOBBY_ERROR.NAME_REJECTED);
+  }
+
   const passwordHash = input.password ? await hashPassword(input.password) : null;
   const hostAsJudge = input.hostRole === MEMBER_ROLE.JUDGE;
 

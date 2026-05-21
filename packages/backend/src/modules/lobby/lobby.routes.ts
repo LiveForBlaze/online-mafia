@@ -60,6 +60,8 @@ function lobbyErrorToHttpStatus(code: LobbyErrorCode): number {
     case LOBBY_ERROR.NOT_MEMBER:
     case LOBBY_ERROR.CANNOT_KICK_HOST:
       return HTTP_STATUS.FORBIDDEN;
+    case LOBBY_ERROR.NAME_REJECTED:
+      return HTTP_STATUS.BAD_REQUEST;
     case LOBBY_ERROR.PASSWORD_REQUIRED:
     case LOBBY_ERROR.WRONG_PASSWORD:
     case LOBBY_ERROR.NOT_OPEN:
@@ -72,21 +74,41 @@ function lobbyErrorToHttpStatus(code: LobbyErrorCode): number {
   }
 }
 
+// Anti-bot / anti-spam cap: a single user may create at most 50 lobbies per
+// 24-hour window. The keyGenerator returns the authenticated user's id so the
+// limit is per-account, not per-IP — sharing a household NAT shouldn't matter.
+// Falls back to the IP if the request somehow reaches the handler without an
+// authenticated user (it shouldn't — preHandler ensures auth — but defence in
+// depth).
+const LOBBY_CREATE_RATE_LIMIT = {
+  max: 50,
+  timeWindow: '1 day',
+  keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
+    request.user?.sub ?? request.ip,
+} as const;
+
 export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Create lobby ----
-  app.post('/', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const parsed = createLobbyInputSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply
-        .code(HTTP_STATUS.BAD_REQUEST)
-        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
-    }
-    const result = await createLobby(request.user.sub, parsed.data);
-    if (!result.ok) {
-      return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
-    }
-    return reply.code(HTTP_STATUS.CREATED).send({ lobby: result.data });
-  });
+  app.post(
+    '/',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: LOBBY_CREATE_RATE_LIMIT },
+    },
+    async (request, reply) => {
+      const parsed = createLobbyInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
+      const result = await createLobby(request.user.sub, parsed.data);
+      if (!result.ok) {
+        return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      return reply.code(HTTP_STATUS.CREATED).send({ lobby: result.data });
+    },
+  );
 
   // ---- List public lobbies ----
   app.get('/', { preHandler: [app.authenticate] }, async (request, reply) => {

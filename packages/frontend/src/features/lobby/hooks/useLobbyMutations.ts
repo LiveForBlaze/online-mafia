@@ -26,6 +26,7 @@ const LOBBY_ERROR_KEYS = new Set([
   'cannot_kick_host',
   'seat_contention',
   'role_cap_reached',
+  'lobby_name_rejected',
   'invalid_input',
   'unauthenticated',
   'unknown',

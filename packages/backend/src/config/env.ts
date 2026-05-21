@@ -39,6 +39,14 @@ const envSchema = z.object({
 
   // URL of the frontend, used to redirect users after OAuth flow.
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+
+  // Anthropic API key for AI moderation of user-generated names (lobbies,
+  // nicknames). Optional — if absent, moderation is skipped and a warning is
+  // logged. We deliberately fail OPEN rather than blocking name creation when
+  // the moderation service is unreachable: a few offensive names slipping
+  // through is preferable to the whole signup/lobby-create flow breaking when
+  // Anthropic has an incident.
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

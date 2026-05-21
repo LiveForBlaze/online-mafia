@@ -16,6 +16,7 @@ export const LOBBY_ERROR = {
   CANNOT_KICK_HOST: 'cannot_kick_host',
   SEAT_CONTENTION: 'seat_contention',
   ROLE_CAP_REACHED: 'role_cap_reached',
+  NAME_REJECTED: 'lobby_name_rejected',
 } as const;
 
 export type LobbyErrorCode = (typeof LOBBY_ERROR)[keyof typeof LOBBY_ERROR];

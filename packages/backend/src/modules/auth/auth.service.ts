@@ -15,6 +15,7 @@ import type {
 import type { User } from '@prisma/client';
 
 import { prisma } from '../../db/prisma.client.js';
+import { moderateName } from '../../lib/moderation.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
 
 import type { GoogleUserInfo } from './google.js';
@@ -23,6 +24,7 @@ import type { GoogleUserInfo } from './google.js';
 export const AUTH_ERROR = {
   EMAIL_TAKEN: 'email_taken',
   NICKNAME_TAKEN: 'nickname_taken',
+  NICKNAME_REJECTED: 'nickname_rejected',
   INVALID_CREDENTIALS: 'invalid_credentials',
   PASSWORD_NOT_SET: 'password_not_set',
   OAUTH_LINK_REFUSED: 'oauth_link_refused',
@@ -105,6 +107,11 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
   });
   if (emailTaken) return { ok: false, error: AUTH_ERROR.EMAIL_TAKEN };
 
+  // AI-moderate the nickname before we hash the password — argon2 is the most
+  // expensive step here, no point burning it on a name we're about to reject.
+  const verdict = await moderateName(normalizedNickname, 'nickname');
+  if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
+
   const passwordHash = await hashPassword(input.password);
   const publicCode = await allocatePublicCode();
 
@@ -122,6 +129,10 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
 
 export async function updateNickname(userId: string, nickname: string): Promise<AuthResult> {
   const normalized = nickname.trim();
+  // Same AI-moderation gate as registration. Users can still change to any
+  // name we don't object to, but they can't repaint themselves with a slur.
+  const verdict = await moderateName(normalized, 'nickname');
+  if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
   // Nicknames are no longer unique — no collision check needed.
   const updated = await prisma.user.update({
     where: { id: userId },
@@ -282,10 +293,26 @@ export async function findOrCreateUserFromGoogle(
     return { ok: true, user: updated };
   }
 
+  // Google supplied the user's display name. We still moderate it because
+  // Google names aren't curated — but unlike password registration, we don't
+  // want to block account creation entirely if the name is rejected. Fall
+  // back to the email's local-part (also moderated), and finally to a
+  // neutral placeholder. The user can rename themselves afterwards.
+  const googleName = profile.name?.trim();
+  const emailPrefix = normalizedEmail.split('@')[0] ?? 'user';
+  let nickname: string;
+  if (googleName && (await moderateName(googleName, 'nickname')).allowed) {
+    nickname = googleName;
+  } else if ((await moderateName(emailPrefix, 'nickname')).allowed) {
+    nickname = emailPrefix;
+  } else {
+    nickname = 'player';
+  }
+
   const created = await prisma.user.create({
     data: {
       email: normalizedEmail,
-      nickname: profile.name ?? normalizedEmail.split('@')[0] ?? 'user',
+      nickname,
       publicCode: await allocatePublicCode(),
       googleId: profile.sub,
       avatarUrl: profile.picture ?? null,
