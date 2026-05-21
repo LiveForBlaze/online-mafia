@@ -1,6 +1,5 @@
 // Landing-style hero for the lobby list page. Big two-tone title, subtitle,
-// primary + secondary CTAs, and an abstract globe-dots illustration on the
-// right (placeholder until a real splash image gets dropped in).
+// primary + secondary CTAs, and the splash artwork on the right.
 
 import { useNavigate } from 'react-router';
 
@@ -35,50 +34,25 @@ export function HomeHero({ onCreateLobby }: HomeHeroProps) {
       </div>
 
       <div className="hidden md:flex justify-end">
-        <HeroIllustration />
+        <SplashImage />
       </div>
     </section>
   );
 }
 
-// Placeholder splash — concentric dot-grid in accent colour. Reads as "a world
-// of players" without committing to any particular artwork. Replace by a real
-// PNG/SVG once available.
-function HeroIllustration() {
+// The splash sits in /public so it's served straight by the static file server
+// — no Vite import needed. A soft mask fades the edges into the page bg so
+// the hard rectangular crop doesn't read.
+function SplashImage() {
   return (
-    <div className="relative w-[360px] h-[360px]">
-      <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full" aria-hidden="true">
-        <defs>
-          <radialGradient id="globeGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="oklch(0.36 0.14 20)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="oklch(0.36 0.14 20)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <circle cx="200" cy="200" r="180" fill="url(#globeGlow)" />
-        {/* Concentric dot rings — sparse, fading outward. */}
-        {[60, 100, 140, 180].map((r, ringIdx) => (
-          <g key={r} opacity={1 - ringIdx * 0.18}>
-            {Array.from({ length: 24 }, (_, i) => {
-              const a = (i / 24) * Math.PI * 2;
-              const x = 200 + Math.cos(a) * r;
-              const y = 200 + Math.sin(a) * r;
-              return <circle key={i} cx={x} cy={y} r="2.2" fill="oklch(0.55 0.18 22)" />;
-            })}
-          </g>
-        ))}
-        {/* Centre M monogram placeholder — gets replaced by a real logo later. */}
-        <text
-          x="200"
-          y="220"
-          textAnchor="middle"
-          fontSize="80"
-          fontWeight="900"
-          fill="oklch(0.95 0 0)"
-          fontFamily="system-ui, sans-serif"
-        >
-          M
-        </text>
-      </svg>
-    </div>
+    <div
+      className="relative w-[420px] max-w-full aspect-[16/9] bg-no-repeat bg-center bg-cover"
+      style={{
+        backgroundImage: 'url(/splash-hero.png)',
+        maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 92%)',
+        WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 92%)',
+      }}
+      aria-hidden="true"
+    />
   );
 }
