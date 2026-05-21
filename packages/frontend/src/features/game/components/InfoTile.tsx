@@ -115,8 +115,15 @@ function Body({
       return (
         <div className="space-y-2">
           {state.currentSpeakerSeat !== null && (
-            <p className="text-xl sm:text-2xl font-bold text-fg leading-tight">
-              {GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
+            <p
+              className={cn(
+                'text-xl sm:text-2xl font-bold leading-tight',
+                state.farewellSeat !== null ? 'text-warning' : 'text-fg',
+              )}
+            >
+              {state.farewellSeat !== null
+                ? GAME_MESSAGES.ui.farewellSpeaker(state.currentSpeakerSeat)
+                : GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
             </p>
           )}
           {state.nominationSeats.length > 0 && (

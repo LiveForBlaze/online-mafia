@@ -53,6 +53,12 @@ export interface GameState {
   // specific player for the duration.
   outOfTurnSpeaker: { userId: string; until: number } | null;
 
+  // Farewell minute. When a player is killed at night, the next day starts
+  // with their last word — they're dead but still audible and visible to
+  // everyone, can speak but cannot nominate. Cleared after that one speaker
+  // turn is over and the regular speech round begins.
+  farewellSeat: number | null;
+
   winner: Team | null;
 
   // Monotonic event sequence (mirrors GameEvent.seq in the database).

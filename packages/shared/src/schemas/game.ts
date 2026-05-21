@@ -141,6 +141,12 @@ export const gameStateProjectedSchema = z.object({
     })
     .nullable(),
 
+  // Seat of the player giving their farewell minute (last word from the
+  // grave). Set at the start of day N+1 when the player was killed at
+  // night N. Cleared once their minute ends and the regular speech round
+  // begins. Their audio is allowed even though they're dead.
+  farewellSeat: z.number().int().nullable(),
+
   // Filled in once the game ends.
   winner: teamSchema.nullable(),
 });

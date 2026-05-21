@@ -73,6 +73,8 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     sheriffCheck: null,
     donCheck: null,
     lastNightVictimSeat: null,
+    outOfTurnSpeaker: null,
+    farewellSeat: null,
     winner: null,
     nextEventSeq: 0,
     ...overrides,

@@ -218,6 +218,9 @@ export function applyNominate(
   targetSeat: number,
 ): EngineResult<GameState> {
   if (state.phase !== GAME_PHASE.DAY_SPEECH) return fail(ENGINE_ERROR.WRONG_PHASE);
+  // The farewell speaker (a night-killed player) can speak but cannot
+  // nominate — they're out of the game.
+  if (state.farewellSeat !== null) return fail(ENGINE_ERROR.NOT_YOUR_TURN);
 
   const actor = findByUserId(state, actorUserId);
   if (!actor || actor.isJudge || !actor.isAlive) return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
@@ -384,21 +387,42 @@ export function applyAdvancePhase(state: GameState): GameState {
     return { ...next, phase: GAME_PHASE.GAME_OVER, status: 'finished', winner };
   }
 
-  // Entering day_speech: pick the first speaker (lowest-seat living player).
+  // Entering day_speech: if a player was killed last night, they get the
+  // farewell minute first. Otherwise pick the rotation-based starting seat.
   if (phase === GAME_PHASE.DAY_SPEECH) {
-    const startSeat = firstAliveSeatAfterMorning(next);
-    next = {
-      ...next,
-      currentSpeakerSeat: startSeat,
-    };
+    const victim = state.lastNightVictimSeat;
+    if (victim !== null) {
+      next = {
+        ...next,
+        farewellSeat: victim,
+        currentSpeakerSeat: victim,
+      };
+    } else {
+      const startSeat = dayStartSeat(next);
+      next = {
+        ...next,
+        farewellSeat: null,
+        currentSpeakerSeat: startSeat,
+      };
+    }
   }
 
   return withFreshDeadline({ ...next, phase }, phase);
 }
 
-function firstAliveSeatAfterMorning(state: GameState): number | null {
-  const alive = alivePlayers(state).sort((a, b) => (a.seat ?? 0) - (b.seat ?? 0));
-  return alive[0]?.seat ?? null;
+// Each new day starts one seat later than the previous one — day 1 begins
+// at seat 1, day 2 at seat 2, …, day 10 at seat 10, day 11 at seat 1.
+// If that nominal seat is dead/removed, walk clockwise to the next alive
+// seat. Returns null if nobody is left.
+function dayStartSeat(state: GameState): number | null {
+  const nominal = ((state.dayNumber - 1) % 10) + 1;
+  const alive = alivePlayers(state);
+  if (alive.length === 0) return null;
+  for (let offset = 0; offset < 10; offset += 1) {
+    const seat = ((nominal - 1 + offset) % 10) + 1;
+    if (alive.some((p) => p.seat === seat)) return seat;
+  }
+  return null;
 }
 
 /**
@@ -411,6 +435,24 @@ export function applyNextSpeaker(state: GameState): {
 } {
   if (state.phase !== GAME_PHASE.DAY_SPEECH || state.currentSpeakerSeat === null) {
     return { state, speechesDone: false };
+  }
+
+  // Farewell turn ends → consume it and hand the floor to the day's nominal
+  // starting seat. The farewell speaker is dead, so they don't get a
+  // hasSpokenThisDay flag (alive-player filter already excludes them).
+  if (state.farewellSeat === state.currentSpeakerSeat) {
+    const startSeat = dayStartSeat(state);
+    const cleared: GameState = { ...state, farewellSeat: null };
+    if (startSeat === null) {
+      return { state: { ...cleared, currentSpeakerSeat: null }, speechesDone: true };
+    }
+    return {
+      state: withFreshDeadline(
+        { ...cleared, currentSpeakerSeat: startSeat },
+        GAME_PHASE.DAY_SPEECH,
+      ),
+      speechesDone: false,
+    };
   }
 
   // Mark the current speaker as having spoken.
@@ -567,6 +609,7 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
       state.outOfTurnSpeaker && state.outOfTurnSpeaker.until > Date.now()
         ? state.outOfTurnSpeaker
         : null,
+    farewellSeat: state.farewellSeat,
     myCheckResult: myCheck,
     winner: state.winner,
   };

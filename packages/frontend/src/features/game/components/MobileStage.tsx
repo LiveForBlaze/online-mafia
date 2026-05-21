@@ -105,8 +105,15 @@ function StageBody({ state, viewerRole, viewerSeat, viewerIsAlive }: MobileStage
       return (
         <div className="flex items-baseline gap-2 flex-wrap">
           {state.currentSpeakerSeat !== null && (
-            <p className="text-base font-bold text-fg">
-              {GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
+            <p
+              className={cn(
+                'text-base font-bold',
+                state.farewellSeat !== null ? 'text-warning' : 'text-fg',
+              )}
+            >
+              {state.farewellSeat !== null
+                ? GAME_MESSAGES.ui.farewellSpeaker(state.currentSpeakerSeat)
+                : GAME_MESSAGES.ui.currentSpeaker(state.currentSpeakerSeat)}
             </p>
           )}
           {state.nominationSeats.length > 0 && (

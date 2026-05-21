@@ -32,6 +32,7 @@ export const GAME_MESSAGES = {
   ui: {
     day: (n: number) => `День ${n}`,
     currentSpeaker: (seat: number) => `Говорит игрок №${seat}`,
+    farewellSpeaker: (seat: number) => `Прощальное слово №${seat}`,
     yourRole: 'Ваша роль',
     yourTeammates: 'Ваша команда',
     nominateButton: 'Выставить',

@@ -174,6 +174,7 @@ export async function createGameFromLobby(
     donCheck: null,
     lastNightVictimSeat: null,
     outOfTurnSpeaker: null,
+    farewellSeat: null,
     winner: null,
     nextEventSeq: 1,
   };
