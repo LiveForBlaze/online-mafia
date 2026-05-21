@@ -6,6 +6,8 @@
 
 import {
   DEFAULT_PHASE_DURATION_SEC,
+  FOUL_MUTE_THRESHOLD,
+  FOUL_REMOVE_THRESHOLD,
   GAME_PHASE,
   ROLE,
   ROLE_COUNTS,
@@ -54,6 +56,8 @@ export const ENGINE_ERROR = {
   ALREADY_NOMINATED: 'already_nominated',
   ALREADY_VOTED: 'already_voted',
   ALREADY_CHECKED: 'already_checked',
+  ALREADY_GUESSED: 'already_guessed',
+  INVALID_GUESS: 'invalid_guess',
   GAME_OVER: 'game_over',
   CANNOT_TARGET_SELF: 'cannot_target_self',
   NO_NOMINATIONS_TO_VOTE: 'no_nominations_to_vote',
@@ -139,7 +143,13 @@ export function checkWinner(state: GameState): Team | null {
  * from the given start seat. Returns null if everybody has spoken.
  */
 export function nextSpeakerSeat(state: GameState, startSeat: number): number | null {
-  const alive = alivePlayers(state).filter((p) => !p.hasSpokenThisDay);
+  // Muted players (3+ fouls) are skipped entirely in the speech rotation —
+  // they've lost their right to speak per classic ФИИМ. They still occupy a
+  // seat and can vote when day_vote rolls around, but won't be handed the
+  // microphone here.
+  const alive = alivePlayers(state).filter(
+    (p) => !p.hasSpokenThisDay && p.foulsCount < FOUL_MUTE_THRESHOLD,
+  );
   if (alive.length === 0) return null;
   // Sort by seat starting at startSeat, wrapping around.
   const sorted = [...alive].sort((a, b) => {
@@ -178,6 +188,25 @@ export function resolveVote(state: GameState): number | null {
   return isTie ? null : topSeat;
 }
 
+/**
+ * Return the seats that share the top vote count when at least two candidates
+ * are tied. An empty array means "no tie to break" — either someone won, or
+ * the vote was empty/single-candidate (no shootout needed).
+ */
+export function findTiedSeats(state: GameState): number[] {
+  const tally = new Map<number, number>();
+  for (const [, candidateSeat] of state.votes) {
+    tally.set(candidateSeat, (tally.get(candidateSeat) ?? 0) + 1);
+  }
+  if (tally.size < 2) return [];
+  let max = -1;
+  for (const count of tally.values()) if (count > max) max = count;
+  if (max < 1) return [];
+  const tied: number[] = [];
+  for (const [seat, count] of tally) if (count === max) tied.push(seat);
+  return tied.length >= 2 ? tied.sort((a, b) => a - b) : [];
+}
+
 // ---- Phase transitions ----
 
 /**
@@ -194,7 +223,23 @@ export function nextPhase(state: GameState): GamePhase {
       // Speeches end → vote if there are nominations, else go to night.
       return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE : GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.DAY_VOTE:
-      // After vote resolution we always proceed to night.
+      // After vote resolution one of three outcomes is in `state`:
+      //   - lastWordSeats non-empty → clear winner, route to last word
+      //   - tiedSeats non-empty     → tie of 2+, enter the shootout
+      //   - neither                 → no votes or no winner with no tie, night
+      if (state.lastWordSeats.length > 0) return GAME_PHASE.DAY_LAST_WORD;
+      if (state.tiedSeats.length >= 2) return GAME_PHASE.DAY_SHOOTOUT;
+      return GAME_PHASE.NIGHT_MAFIA;
+    case GAME_PHASE.DAY_SHOOTOUT:
+      // After tied players have spoken, the table revotes — only on the
+      // tied seats.
+      return GAME_PHASE.DAY_REVOTE;
+    case GAME_PHASE.DAY_REVOTE:
+      // Mirror of DAY_VOTE, except a second tie just goes to night (V0 omits
+      // the "поднять всех" lift-all branch — see commit notes).
+      if (state.lastWordSeats.length > 0) return GAME_PHASE.DAY_LAST_WORD;
+      return GAME_PHASE.NIGHT_MAFIA;
+    case GAME_PHASE.DAY_LAST_WORD:
       return GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.NIGHT_MAFIA:
       return GAME_PHASE.NIGHT_DON;
@@ -373,9 +418,84 @@ export function applyAdvancePhase(state: GameState): GameState {
   if (state.phase === GAME_PHASE.DAY_VOTE) {
     const eliminatedSeat = resolveVote(state);
     if (eliminatedSeat !== null) {
+      // Clear winner — kill + queue last word, fall through to clearing
+      // nominations / votes below. nextPhase will route to DAY_LAST_WORD.
       next = killSeat(next, eliminatedSeat);
+      next = {
+        ...next,
+        lastWordSeats: [eliminatedSeat],
+        lastWordIdx: 0,
+        currentSpeakerSeat: eliminatedSeat,
+        votes: new Map(),
+        nominationSeats: [],
+      };
+    } else {
+      const tied = findTiedSeats(state);
+      if (tied.length >= 2) {
+        // Tie of 2+ → set up the shootout. The tied seats become the only
+        // legal candidates for the upcoming revote, and the first tied seat
+        // takes the floor for a short speech.
+        next = {
+          ...next,
+          tiedSeats: tied,
+          shootoutSpeakerIdx: 0,
+          currentSpeakerSeat: tied[0]!,
+          // applyCastVote keys off nominationSeats; pin it to the tied list
+          // so revote candidacy is enforced without a separate check.
+          nominationSeats: tied,
+          votes: new Map(),
+        };
+      } else {
+        // No votes / single candidate / no tie of 2+ — straight to night.
+        next = { ...next, votes: new Map(), nominationSeats: [] };
+      }
     }
-    next = { ...next, votes: new Map(), nominationSeats: [] };
+  }
+
+  if (state.phase === GAME_PHASE.DAY_SHOOTOUT) {
+    // Tied players have all spoken; revote opens. tiedSeats stays so the
+    // UI keeps highlighting who's still in contention; nominationSeats was
+    // already pinned at DAY_VOTE→DAY_SHOOTOUT transition so applyCastVote
+    // restricts candidates correctly.
+    next = {
+      ...next,
+      currentSpeakerSeat: null,
+      shootoutSpeakerIdx: 0,
+    };
+  }
+
+  if (state.phase === GAME_PHASE.DAY_REVOTE) {
+    const eliminatedSeat = resolveVote(state);
+    if (eliminatedSeat !== null) {
+      // Revote produced a winner. Same flow as DAY_VOTE single-winner case.
+      next = killSeat(next, eliminatedSeat);
+      next = {
+        ...next,
+        lastWordSeats: [eliminatedSeat],
+        lastWordIdx: 0,
+        currentSpeakerSeat: eliminatedSeat,
+      };
+    }
+    // Either way (winner or repeated tie), the tie-break trail is consumed.
+    // V0 omits the "поднять всех" branch — a second tie just goes to night.
+    next = {
+      ...next,
+      votes: new Map(),
+      nominationSeats: [],
+      tiedSeats: [],
+      shootoutSpeakerIdx: 0,
+    };
+  }
+
+  if (state.phase === GAME_PHASE.DAY_LAST_WORD) {
+    // Exiting last-word: drop the queue and the speaker pointer so the
+    // night phases see a clean slate.
+    next = {
+      ...next,
+      lastWordSeats: [],
+      lastWordIdx: 0,
+      currentSpeakerSeat: null,
+    };
   }
 
   if (state.phase === GAME_PHASE.DAY_SPEECH) {
@@ -478,11 +598,50 @@ function dayStartSeat(state: GameState): number | null {
 /**
  * Advance the day_speech phase to the next living non-spoken player.
  * Returns the updated state and whether the round of speeches is now complete.
+ *
+ * Also handles DAY_LAST_WORD: walks the lastWordSeats queue one at a time.
+ * On the common single-victim case the queue has one entry and applyNextSpeaker
+ * exhausts it in one call; multi-victim eliminations (lift-all scenario)
+ * play through the queue in seat order before the judge ends the phase.
  */
 export function applyNextSpeaker(state: GameState): {
   state: GameState;
   speechesDone: boolean;
 } {
+  if (state.phase === GAME_PHASE.DAY_LAST_WORD) {
+    const nextIdx = state.lastWordIdx + 1;
+    if (nextIdx >= state.lastWordSeats.length) {
+      // Queue exhausted — leave currentSpeakerSeat alone, the judge will
+      // call applyAdvancePhase to exit the phase.
+      return { state, speechesDone: true };
+    }
+    const nextSeat = state.lastWordSeats[nextIdx]!;
+    return {
+      state: withFreshDeadline(
+        { ...state, lastWordIdx: nextIdx, currentSpeakerSeat: nextSeat },
+        GAME_PHASE.DAY_LAST_WORD,
+      ),
+      speechesDone: false,
+    };
+  }
+
+  if (state.phase === GAME_PHASE.DAY_SHOOTOUT) {
+    const nextIdx = state.shootoutSpeakerIdx + 1;
+    if (nextIdx >= state.tiedSeats.length) {
+      // All tied seats have spoken. Judge calls applyAdvancePhase to exit
+      // to DAY_REVOTE.
+      return { state, speechesDone: true };
+    }
+    const nextSeat = state.tiedSeats[nextIdx]!;
+    return {
+      state: withFreshDeadline(
+        { ...state, shootoutSpeakerIdx: nextIdx, currentSpeakerSeat: nextSeat },
+        GAME_PHASE.DAY_SHOOTOUT,
+      ),
+      speechesDone: false,
+    };
+  }
+
   if (state.phase !== GAME_PHASE.DAY_SPEECH || state.currentSpeakerSeat === null) {
     return { state, speechesDone: false };
   }
@@ -530,12 +689,19 @@ export function applyNextSpeaker(state: GameState): {
 export function applyJudgeFoul(state: GameState, targetUserId: string): EngineResult<GameState> {
   const target = findByUserId(state, targetUserId);
   if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
-  return ok({
+  const newFouls = target.foulsCount + 1;
+  const withFoul: GameState = {
     ...state,
     participants: state.participants.map((p) =>
-      p.userId === targetUserId ? { ...p, foulsCount: p.foulsCount + 1 } : p,
+      p.userId === targetUserId ? { ...p, foulsCount: newFouls } : p,
     ),
-  });
+  };
+  // 4th foul = technical loss — same outcome as a manual judge remove,
+  // including the votes/nominations cleanup and the win-condition check.
+  if (newFouls >= FOUL_REMOVE_THRESHOLD) {
+    return applyJudgeRemove(withFoul, targetUserId);
+  }
+  return ok(withFoul);
 }
 
 // Player presses "Сказать под фол" — they accept a foul on themselves and
@@ -550,13 +716,21 @@ export function applyOutOfTurn(state: GameState, userId: string): EngineResult<G
   if (!actor || actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   if (!actor.isAlive || actor.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
 
-  return ok({
+  const newFouls = actor.foulsCount + 1;
+  const next: GameState = {
     ...state,
     participants: state.participants.map((p) =>
-      p.userId === userId ? { ...p, foulsCount: p.foulsCount + 1 } : p,
+      p.userId === userId ? { ...p, foulsCount: newFouls } : p,
     ),
     outOfTurnSpeaker: { userId, until: Date.now() + OUT_OF_TURN_WINDOW_MS },
-  });
+  };
+  // Asking for the floor while sitting on 3 fouls is the path to a technical
+  // loss — you get the 4th foul and you're out. The audio window we just set
+  // is harmless on a removed participant (projection filters them out).
+  if (newFouls >= FOUL_REMOVE_THRESHOLD) {
+    return applyJudgeRemove(next, userId);
+  }
+  return ok(next);
 }
 
 // Judge presses the red "Выйти из игры" — the entire game is ended. The lobby
@@ -568,6 +742,51 @@ export function applyJudgeEndGame(state: GameState): EngineResult<GameState> {
     status: 'finished',
     phase: GAME_PHASE.GAME_OVER,
     winner: null,
+  });
+}
+
+// "Best move" — the player giving last word names 1–3 seats they think are
+// black. Recorded on the state; scoring happens elsewhere (future stats
+// module reads bestMoveGuesses after the game ends). The constraints below
+// mirror what the UI ought to enforce, but the engine validates anyway so a
+// hacked client can't drop garbage into the audit log.
+export function applyBestMoveGuess(
+  state: GameState,
+  actorUserId: string,
+  guessedSeats: number[],
+): EngineResult<GameState> {
+  if (state.phase !== GAME_PHASE.DAY_LAST_WORD) return fail(ENGINE_ERROR.WRONG_PHASE);
+
+  const actor = findByUserId(state, actorUserId);
+  if (!actor || actor.isJudge) return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
+
+  // Only the player currently holding the last-word floor may submit.
+  const currentLastWordSeat = state.lastWordSeats[state.lastWordIdx] ?? null;
+  if (currentLastWordSeat === null || actor.seat !== currentLastWordSeat) {
+    return fail(ENGINE_ERROR.NOT_YOUR_TURN);
+  }
+
+  // One guess per elimination — no overwriting on a second submission.
+  if (state.bestMoveGuesses.some((g) => g.byUserId === actorUserId)) {
+    return fail(ENGINE_ERROR.ALREADY_GUESSED);
+  }
+
+  // 1–3 unique seats, all alive non-self, all valid seat numbers.
+  if (guessedSeats.length < 1 || guessedSeats.length > 3) {
+    return fail(ENGINE_ERROR.INVALID_GUESS);
+  }
+  const unique = new Set(guessedSeats);
+  if (unique.size !== guessedSeats.length) return fail(ENGINE_ERROR.INVALID_GUESS);
+  for (const seat of guessedSeats) {
+    if (seat === actor.seat) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
+    const target = findBySeat(state, seat);
+    if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
+    if (!target.isAlive || target.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
+  }
+
+  return ok({
+    ...state,
+    bestMoveGuesses: [...state.bestMoveGuesses, { byUserId: actorUserId, guessedSeats }],
   });
 }
 
@@ -692,6 +911,13 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
         ? state.outOfTurnSpeaker
         : null,
     farewellSeat: state.farewellSeat,
+    // Active last-word speaker (dead from a day-vote elimination) — distinct
+    // from farewellSeat (overnight kill speaking the next morning). Media
+    // visibility hooks grant audio to whichever of the two is set.
+    lastWordSeat: state.lastWordSeats[state.lastWordIdx] ?? null,
+    // Tied candidates during DAY_SHOOTOUT / DAY_REVOTE so the UI can
+    // highlight who's in contention.
+    tiedSeats: state.tiedSeats,
     myCheckResult: myCheck,
     winner: state.winner,
   };

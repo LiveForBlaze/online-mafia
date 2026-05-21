@@ -42,6 +42,7 @@ function useMediaArgs(targetUserId: string, now: number): MediaVisibilityArgs | 
     now,
     outOfTurnSpeaker: state.outOfTurnSpeaker,
     farewellSeat: state.farewellSeat ?? null,
+    lastWordSeat: state.lastWordSeat ?? null,
   };
 }
 

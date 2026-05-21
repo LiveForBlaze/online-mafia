@@ -49,6 +49,10 @@ export interface MediaVisibilityArgs {
   // the next day. They are dead (`targetIsAlive=false`) yet should still be
   // audible during their farewell, so the audio rule needs to know about it.
   farewellSeat: number | null;
+  // Last-word speaker — a player just eliminated by the day vote. Same
+  // dead-but-audible semantic as farewellSeat, distinct field so the UI
+  // can label the two situations differently if it wants to.
+  lastWordSeat: number | null;
 }
 
 // Video projection: what the viewer SEES.
@@ -114,6 +118,7 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
     now,
     outOfTurnSpeaker,
     farewellSeat,
+    lastWordSeat,
   } = args;
 
   // Speak-to-yourself is never useful and produces feedback — drop own audio.
@@ -131,6 +136,12 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
   // Farewell speaker (a night-killed player giving their last word at the
   // start of the next day) is audible to everyone — even though they're dead.
   if (farewellSeat !== null && targetSeat === farewellSeat) {
+    return !isDeadlinePast(phaseDeadline, now);
+  }
+
+  // Last-word speaker (just eliminated by day vote, speaking immediately
+  // before night). Same dead-but-audible logic as farewell.
+  if (lastWordSeat !== null && targetSeat === lastWordSeat) {
     return !isDeadlinePast(phaseDeadline, now);
   }
 

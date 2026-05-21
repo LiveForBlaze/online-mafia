@@ -19,6 +19,7 @@ import { syncMediaPermissions } from './game.media-permissions.js';
 
 import {
   applyAdvancePhase,
+  applyBestMoveGuess,
   applyCastVote,
   applyDonCheck,
   applyJudgeEndGame,
@@ -66,6 +67,9 @@ export const GAME_EVENT_TYPE = {
   PLAYER_KILLED_AT_NIGHT: 'player_killed_at_night',
   FOUL_ISSUED: 'foul_issued',
   PLAYER_REMOVED: 'player_removed',
+  // Лучший Ход (best-move guess) cast by an eliminated player during their
+  // last word. Payload: { byUserId, guessedSeats: number[] }.
+  BEST_MOVE_GUESSED: 'best_move_guessed',
   GAME_ENDED: 'game_ended',
 } as const;
 
@@ -177,6 +181,11 @@ export async function createGameFromLobby(
     lastNightVictimSeat: null,
     outOfTurnSpeaker: null,
     farewellSeat: null,
+    lastWordSeats: [],
+    lastWordIdx: 0,
+    tiedSeats: [],
+    shootoutSpeakerIdx: 0,
+    bestMoveGuesses: [],
     winner: null,
     nextEventSeq: 1,
   };
@@ -718,6 +727,28 @@ export async function judgeIssueFoul(
 
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_ISSUED, ctx.userId, { targetUserId });
+    return ok(await commit(next));
+  });
+}
+
+// "Best move" (Лучший Ход) — the player giving last word submits 1–3 seats
+// they think are the mafia team. Recorded for a future stats / tournament
+// module; the engine doesn't score it at game-end yet.
+export async function castBestMoveGuess(
+  ctx: ActionContext,
+  guessedSeats: number[],
+): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+
+    const engineResult = applyBestMoveGuess(loaded.data.state, ctx.userId, guessedSeats);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.BEST_MOVE_GUESSED, ctx.userId, {
+      guessedSeats,
+    });
     return ok(await commit(next));
   });
 }

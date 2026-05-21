@@ -11,11 +11,15 @@ import { GAME_PHASE, ROLE, TEAM } from '@mafia/shared';
 import {
   ENGINE_ERROR,
   applyAdvancePhase,
+  applyBestMoveGuess,
   applyCastVote,
   applyDonCheck,
+  applyJudgeFoul,
   applyJudgeRemove,
   applyMafiaTarget,
   applyNominate,
+  applyNextSpeaker,
+  applyOutOfTurn,
   applySheriffCheck,
   assignRoles,
   checkWinner,
@@ -78,6 +82,11 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     lastNightVictimSeat: null,
     outOfTurnSpeaker: null,
     farewellSeat: null,
+    lastWordSeats: [],
+    lastWordIdx: 0,
+    tiedSeats: [],
+    shootoutSpeakerIdx: 0,
+    bestMoveGuesses: [],
     winner: null,
     nextEventSeq: 0,
     ...overrides,
@@ -458,5 +467,270 @@ describe('applyJudgeRemove cleanup', () => {
     expect(result.data.mafiaVotes.has(9)).toBe(false);
     expect(result.data.mafiaVotes.get(8)).toBe(1);
     expect(result.data.mafiaVotes.get(10)).toBe(1);
+  });
+});
+
+describe('tie-break flow (shootout → revote)', () => {
+  function tiedDayVoteState(): GameState {
+    return buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      currentSpeakerSeat: null,
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 3],
+        [2, 5],
+      ]),
+    });
+  }
+
+  it('routes a 2-way tie to DAY_SHOOTOUT with first tied as speaker', () => {
+    const next = applyAdvancePhase(tiedDayVoteState());
+    expect(next.phase).toBe(GAME_PHASE.DAY_SHOOTOUT);
+    expect(next.tiedSeats).toEqual([3, 5]);
+    expect(next.shootoutSpeakerIdx).toBe(0);
+    expect(next.currentSpeakerSeat).toBe(3);
+    // nominationSeats is pinned to the tied list so the revote uses these
+    // candidates via the existing applyCastVote check.
+    expect(next.nominationSeats).toEqual([3, 5]);
+    // Both tied players are still alive — the shootout doesn't kill anyone.
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
+  });
+
+  it('advances through tied speakers in shootout via applyNextSpeaker', () => {
+    const shootout = applyAdvancePhase(tiedDayVoteState());
+    expect(shootout.currentSpeakerSeat).toBe(3);
+    const second = applyNextSpeaker(shootout);
+    expect(second.state.currentSpeakerSeat).toBe(5);
+    expect(second.speechesDone).toBe(false);
+    const done = applyNextSpeaker(second.state);
+    expect(done.speechesDone).toBe(true);
+  });
+
+  it('shootout → revote clears the speaker slot but keeps tiedSeats', () => {
+    const shootout = applyAdvancePhase(tiedDayVoteState());
+    // Walk through both speakers, then advance phase.
+    const after1 = applyNextSpeaker(shootout).state;
+    const after2 = applyNextSpeaker(after1).state;
+    const revote = applyAdvancePhase(after2);
+    expect(revote.phase).toBe(GAME_PHASE.DAY_REVOTE);
+    expect(revote.tiedSeats).toEqual([3, 5]);
+    expect(revote.currentSpeakerSeat).toBe(null);
+  });
+
+  it('revote with a clear winner eliminates them and goes to last word', () => {
+    const revote = buildState({
+      phase: GAME_PHASE.DAY_REVOTE,
+      currentSpeakerSeat: null,
+      tiedSeats: [3, 5],
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 3],
+        [2, 3],
+        [4, 5],
+      ]),
+    });
+    const next = applyAdvancePhase(revote);
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(next.lastWordSeats).toEqual([3]);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+    // Tie-break trail is cleaned up.
+    expect(next.tiedSeats).toEqual([]);
+  });
+
+  it('revote that ties again goes straight to night (V0 — no lift-all)', () => {
+    const revote = buildState({
+      phase: GAME_PHASE.DAY_REVOTE,
+      currentSpeakerSeat: null,
+      tiedSeats: [3, 5],
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 3],
+        [2, 5],
+      ]),
+    });
+    const next = applyAdvancePhase(revote);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.lastWordSeats).toEqual([]);
+    expect(next.tiedSeats).toEqual([]);
+    // Nobody died — both tied players survive the day.
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
+  });
+});
+
+describe('day_last_word after vote elimination', () => {
+  it('routes day_vote with a winner into day_last_word', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 3],
+        [2, 3],
+        [4, 5],
+      ]),
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    // Eliminated player is dead but holds the floor as the last-word speaker.
+    expect(next.currentSpeakerSeat).toBe(3);
+    expect(next.lastWordSeats).toEqual([3]);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+  });
+
+  it('routes day_vote with no votes straight to night', () => {
+    // No votes at all and only one (or zero) nominations — no winner, no
+    // tie-of-2+ either. Engine should bypass DAY_LAST_WORD and DAY_SHOOTOUT
+    // and head straight to night.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      currentSpeakerSeat: null,
+      nominationSeats: [3],
+      votes: new Map(),
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.lastWordSeats).toEqual([]);
+    expect(next.tiedSeats).toEqual([]);
+    expect(next.currentSpeakerSeat).toBe(null);
+  });
+
+  it('exits day_last_word into night_mafia and clears the queue', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_LAST_WORD,
+      lastWordSeats: [3],
+      lastWordIdx: 0,
+      currentSpeakerSeat: 3,
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.lastWordSeats).toEqual([]);
+    expect(next.currentSpeakerSeat).toBe(null);
+  });
+});
+
+describe('applyBestMoveGuess (LH)', () => {
+  function lastWordState(): GameState {
+    return buildState({
+      phase: GAME_PHASE.DAY_LAST_WORD,
+      lastWordSeats: [3],
+      lastWordIdx: 0,
+      currentSpeakerSeat: 3,
+      participants: buildState().participants.map((p) =>
+        // Seat 3 is the eliminated player giving last word — dead.
+        p.seat === 3 ? { ...p, isAlive: false } : p,
+      ),
+    });
+  }
+
+  it('records a valid 1–3 seat guess from the current last-word speaker', () => {
+    const result = applyBestMoveGuess(lastWordState(), 'user-3', [8, 9, 10]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.bestMoveGuesses).toEqual([{ byUserId: 'user-3', guessedSeats: [8, 9, 10] }]);
+  });
+
+  it('rejects a guess from someone who is not the last-word speaker', () => {
+    const result = applyBestMoveGuess(lastWordState(), 'user-1', [8, 9, 10]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_YOUR_TURN);
+  });
+
+  it('rejects a second guess from the same speaker', () => {
+    const first = applyBestMoveGuess(lastWordState(), 'user-3', [8, 9, 10]);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const second = applyBestMoveGuess(first.data, 'user-3', [1, 2, 4]);
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.error).toBe(ENGINE_ERROR.ALREADY_GUESSED);
+  });
+
+  it('rejects an empty or oversized guess list', () => {
+    const empty = applyBestMoveGuess(lastWordState(), 'user-3', []);
+    expect(empty.ok).toBe(false);
+    if (!empty.ok) expect(empty.error).toBe(ENGINE_ERROR.INVALID_GUESS);
+
+    const tooMany = applyBestMoveGuess(lastWordState(), 'user-3', [1, 2, 4, 5]);
+    expect(tooMany.ok).toBe(false);
+    if (!tooMany.ok) expect(tooMany.error).toBe(ENGINE_ERROR.INVALID_GUESS);
+  });
+
+  it('rejects a guess containing duplicate seats', () => {
+    const result = applyBestMoveGuess(lastWordState(), 'user-3', [8, 8, 9]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.INVALID_GUESS);
+  });
+
+  it('rejects a guess outside of DAY_LAST_WORD', () => {
+    const state = buildState({ phase: GAME_PHASE.DAY_VOTE });
+    const result = applyBestMoveGuess(state, 'user-1', [8, 9]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+  });
+});
+
+describe('foul effects', () => {
+  it('3 fouls mutes a player — skipped in the speech rotation', () => {
+    // Seat 1 sits on 3 fouls. Day-speech rotation starts there but should
+    // hand the floor to the next un-muted, un-spoken alive player (seat 2).
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      currentSpeakerSeat: 1,
+      participants: buildState().participants.map((p) =>
+        p.seat === 1 ? { ...p, foulsCount: 3 } : p,
+      ),
+    });
+    // Force the rotation by marking seat 1 as having "spoken" (they didn't —
+    // they were skipped), then ask for the next speaker. The cleaner check
+    // is to call applyNextSpeaker from seat 1 and see that seat 2 picks up.
+    const advanced = applyNextSpeaker(state);
+    // Seat 1 was the "current" speaker so applyNextSpeaker marks them
+    // hasSpokenThisDay; the next pick must skip anyone muted. With our setup
+    // only seat 1 is muted, so the next speaker is seat 2.
+    expect(advanced.state.currentSpeakerSeat).toBe(2);
+  });
+
+  it('4th foul auto-removes the player', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      participants: buildState().participants.map((p) =>
+        p.seat === 1 ? { ...p, foulsCount: 3 } : p,
+      ),
+    });
+    const result = applyJudgeFoul(state, 'user-1');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const seat1 = result.data.participants.find((p) => p.seat === 1);
+    expect(seat1?.foulsCount).toBe(4);
+    expect(seat1?.isRemoved).toBe(true);
+    expect(seat1?.isAlive).toBe(false);
+  });
+
+  it('out-of-turn that crosses the 4-foul line also auto-removes', () => {
+    // User-1 sits on 3 fouls. Pressing "say out of turn" makes it 4 — they
+    // get the foul AND are technically removed. The audio window we open
+    // is moot since the projection filter will silence them.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      participants: buildState().participants.map((p) =>
+        p.seat === 1 ? { ...p, foulsCount: 3 } : p,
+      ),
+    });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const seat1 = result.data.participants.find((p) => p.seat === 1);
+    expect(seat1?.isRemoved).toBe(true);
+  });
+
+  it('foul below the threshold leaves the player playing', () => {
+    const state = buildState({ phase: GAME_PHASE.DAY_SPEECH });
+    const result = applyJudgeFoul(state, 'user-1');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const seat1 = result.data.participants.find((p) => p.seat === 1);
+    expect(seat1?.foulsCount).toBe(1);
+    expect(seat1?.isAlive).toBe(true);
+    expect(seat1?.isRemoved).toBe(false);
   });
 });

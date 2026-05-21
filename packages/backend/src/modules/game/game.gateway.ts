@@ -14,6 +14,7 @@ import type { Socket } from 'socket.io';
 import {
   CLIENT_EVENT,
   SERVER_EVENT,
+  bestMoveGuessPayloadSchema,
   castVotePayloadSchema,
   donCheckPayloadSchema,
   judgeFoulPayloadSchema,
@@ -28,6 +29,7 @@ import { attachIO, broadcastGameState, gameRoomName } from './game.broadcast.js'
 import { projectFor } from './game.engine.js';
 import { getGame } from './game.registry.js';
 import {
+  castBestMoveGuess,
   castVote,
   checkAsDon,
   checkAsSheriff,
@@ -153,6 +155,13 @@ export function registerGameGateway(app: FastifyInstance): void {
       CLIENT_EVENT.JUDGE_REMOVE_PLAYER,
       withSchema(socket, judgeRemovePayloadSchema, (data) =>
         judgeRemovePlayer({ gameId: getGameIdFromSocket(socket), userId }, data.targetUserId),
+      ),
+    );
+
+    socket.on(
+      CLIENT_EVENT.BEST_MOVE_GUESS,
+      withSchema(socket, bestMoveGuessPayloadSchema, (data) =>
+        castBestMoveGuess({ gameId: getGameIdFromSocket(socket), userId }, data.guessedSeats),
       ),
     );
 

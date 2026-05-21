@@ -18,6 +18,7 @@ import { prisma } from '../../db/prisma.client.js';
 
 import {
   applyAdvancePhase,
+  applyBestMoveGuess,
   applyCastVote,
   applyDonCheck,
   applyJudgeFoul,
@@ -121,6 +122,11 @@ function replayState(
     lastNightVictimSeat: null,
     outOfTurnSpeaker: null,
     farewellSeat: null,
+    lastWordSeats: [],
+    lastWordIdx: 0,
+    tiedSeats: [],
+    shootoutSpeakerIdx: 0,
+    bestMoveGuesses: [],
     winner: null,
     nextEventSeq: 0,
   };
@@ -200,6 +206,14 @@ function applyEvent(state: GameState, event: EventLike): GameState {
       return r.ok ? r.data : state;
     }
 
+    case GAME_EVENT_TYPE.BEST_MOVE_GUESSED: {
+      if (!event.actorId) return state;
+      const seats = extractSeatList(event.payload, 'guessedSeats');
+      if (seats.length === 0) return state;
+      const r = applyBestMoveGuess(state, event.actorId, seats);
+      return r.ok ? r.data : state;
+    }
+
     case GAME_EVENT_TYPE.GAME_ENDED:
       // The winning team and the `finished` status were already set by the
       // phase transition that ended the game; this event is purely audit.
@@ -216,6 +230,16 @@ function extractSeat(payload: Prisma.JsonValue, field: string): number | null {
     if (typeof value === 'number') return value;
   }
   return null;
+}
+
+function extractSeatList(payload: Prisma.JsonValue, field: string): number[] {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const value = (payload as Record<string, unknown>)[field];
+    if (Array.isArray(value)) {
+      return value.filter((v): v is number => typeof v === 'number');
+    }
+  }
+  return [];
 }
 
 function extractString(payload: Prisma.JsonValue, field: string): string | null {

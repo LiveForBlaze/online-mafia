@@ -71,6 +71,33 @@ export interface GameState {
   // turn is over and the regular speech round begins.
   farewellSeat: number | null;
 
+  // Last word given immediately after a day-vote elimination (and after a
+  // shoot-all multi-elimination, when that ruleset path is on). The queue
+  // exists so a multi-victim elimination plays out one speaker at a time;
+  // for the common single-winner case there's exactly one seat in the list.
+  // applyAdvancePhase enters DAY_LAST_WORD when this list is non-empty and
+  // exits to NIGHT_MAFIA when the index walks past the end.
+  lastWordSeats: number[];
+  lastWordIdx: number;
+
+  // Tie-break trail. Filled when the first vote ends in a tie of 2+ seats:
+  // each gets a short shootout speech (DAY_SHOOTOUT) and then they're the
+  // only legal candidates for the revote (DAY_REVOTE). Cleared once the
+  // tie-break path resolves (either someone wins on the revote, or it ties
+  // again and we head to night with no kill — the V0 simplification of the
+  // ФИИМ "поднять всех" branch).
+  tiedSeats: number[];
+  // Index into tiedSeats during DAY_SHOOTOUT. Each call to applyNextSpeaker
+  // hands the floor to the next tied seat.
+  shootoutSpeakerIdx: number;
+
+  // "Best move" (Лучший Ход) guesses made by eliminated players during their
+  // last word. One entry per eliminated player; they nominate 1–3 seats they
+  // think are the mafia team. Scored by a future stats / tournament module
+  // — the engine only records the raw guess here. Persisted with the game
+  // state so it survives recovery.
+  bestMoveGuesses: { byUserId: string; guessedSeats: number[] }[];
+
   winner: Team | null;
 
   // Monotonic event sequence (mirrors GameEvent.seq in the database).

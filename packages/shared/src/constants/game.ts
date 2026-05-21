@@ -11,6 +11,14 @@ export const GAME = {
   LAST_SEAT: 10,
 } as const;
 
+// Foul thresholds per classic ФИИМ:
+//   3 fouls → player loses the right to speak for the rest of the game
+//     (skipped in the speech rotation and cannot nominate, since nomination
+//     requires being the current speaker). They retain the right to vote.
+//   4 fouls → technical loss — treated identically to a judge removal.
+export const FOUL_MUTE_THRESHOLD = 3;
+export const FOUL_REMOVE_THRESHOLD = 4;
+
 export const ROLE_COUNTS = {
   CIVILIAN: 6,
   SHERIFF: 1,

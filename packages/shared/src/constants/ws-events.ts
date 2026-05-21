@@ -58,6 +58,11 @@ export const CLIENT_EVENT = {
 
   // Player accepts a foul on themselves to speak out of turn (5s window).
   SAY_OUT_OF_TURN: 'client:say_out_of_turn',
+
+  // "Best move" / Лучший Ход — the player giving last word after a day-vote
+  // elimination names up to 3 seats they think are the mafia team. Only the
+  // current last-word speaker can submit, exactly once per elimination.
+  BEST_MOVE_GUESS: 'client:best_move_guess',
 } as const;
 
 export type ClientEventName = (typeof CLIENT_EVENT)[keyof typeof CLIENT_EVENT];

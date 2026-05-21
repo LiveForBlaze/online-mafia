@@ -46,6 +46,14 @@ export type JudgeRemovePayload = z.infer<typeof judgeRemovePayloadSchema>;
 // Judge advances the phase; the engine decides what the next phase is.
 export const judgeAdvancePayloadSchema = z.object({}).optional();
 
+// "Best move" / Лучший Ход: the eliminated player names 1–3 seats they
+// suspect of being the mafia team. Stored on the game state so a future
+// stats / tournament module can score it after the game ends.
+export const bestMoveGuessPayloadSchema = z.object({
+  guessedSeats: z.array(seatNumberSchema).min(1).max(3),
+});
+export type BestMoveGuessPayload = z.infer<typeof bestMoveGuessPayloadSchema>;
+
 // ---- Projected game state (sent server → client) ----
 //
 // The server holds the full state — including everyone's role — but each client receives
@@ -150,6 +158,16 @@ export const gameStateProjectedSchema = z.object({
   // night N. Cleared once their minute ends and the regular speech round
   // begins. Their audio is allowed even though they're dead.
   farewellSeat: z.number().int().nullable(),
+
+  // Active last-word speaker — a player just eliminated by the day vote
+  // (or, when the lift-all path is on, one of the players eliminated by
+  // shoot-all). They're dead but allowed to speak. Null outside of
+  // DAY_LAST_WORD or when the queue is exhausted.
+  lastWordSeat: z.number().int().nullable(),
+
+  // Tied candidates during the shootout / revote sequence. Empty outside
+  // of DAY_SHOOTOUT and DAY_REVOTE.
+  tiedSeats: z.array(z.number().int()),
 
   // Filled in once the game ends.
   winner: teamSchema.nullable(),
