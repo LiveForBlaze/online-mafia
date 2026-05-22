@@ -21,6 +21,7 @@ import { MediaRoom } from '@/features/game/components/MediaRoom.js';
 import { MobileSeatZoom } from '@/features/game/components/MobileSeatZoom.js';
 import { MobileStage } from '@/features/game/components/MobileStage.js';
 import { PhaseHeader } from '@/features/game/components/PhaseHeader.js';
+import { RoleCardPickerDialog } from '@/features/game/components/RoleCardPickerDialog.js';
 import { RotateDeviceOverlay } from '@/features/game/components/RotateDeviceOverlay.js';
 import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePanel.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
@@ -236,6 +237,12 @@ export function GamePage() {
       {viewerIsJudge && (
         <GameLogDialog gameId={gameId} open={showLog} onClose={() => setShowLog(false)} />
       )}
+      <RoleCardPickerDialog
+        state={state}
+        viewerSeat={viewerSeat}
+        viewerRole={viewerRole}
+        viewerIsJudge={viewerIsJudge}
+      />
       <RotateDeviceOverlay />
     </MediaRoom>
   );

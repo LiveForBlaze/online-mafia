@@ -9,7 +9,7 @@
 // authoritative history (event log) and the source of truth on reload.
 
 import { Prisma } from '@prisma/client';
-import { LOBBY, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
+import { GAME_PHASE, LOBBY, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
 import { withLock } from '../../lib/mutex.js';
@@ -30,6 +30,7 @@ import {
   applyNextSpeaker,
   applyNominate,
   applyOutOfTurn,
+  applyRoleCardPick,
   applySheriffCheck,
   assignRoles,
   projectFor,
@@ -73,6 +74,11 @@ export const GAME_EVENT_TYPE = {
   BEST_MOVE_GUESSED: 'best_move_guessed',
   // Yes/no ballot during DAY_LIFT_VOTE. Payload: { yes: boolean }.
   LIFT_ALL_VOTED: 'lift_all_voted',
+  // A player clicked one of the face-down cards in ROLE_DISTRIBUTION.
+  // Payload: { cardIndex: number, seat: number, auto: boolean } — `auto`
+  // marks server-side timeout picks so the audit log can distinguish them
+  // from real clicks.
+  ROLE_CARD_PICKED: 'role_card_picked',
   GAME_ENDED: 'game_ended',
 } as const;
 
@@ -197,6 +203,8 @@ export async function createGameFromLobby(
     shootoutSpeakerIdx: 0,
     liftAllVotes: new Map(),
     bestMoveGuesses: [],
+    roleCardPickerSeat: null,
+    roleCardsPicked: [],
     winner: null,
     nextEventSeq: 1,
   };
@@ -660,6 +668,80 @@ export async function checkAsSheriff(
   });
 }
 
+// ---- ROLE_DISTRIBUTION card pick ----
+
+// Per-game auto-pick timer. The picker has 10 seconds; if they don't click,
+// the server picks the first available card for them so the queue can move.
+const PICK_TIMEOUT_MS = 10_000;
+const pickTimers = new Map<string, NodeJS.Timeout>();
+
+function clearPickTimer(gameId: string): void {
+  const t = pickTimers.get(gameId);
+  if (t) {
+    clearTimeout(t);
+    pickTimers.delete(gameId);
+  }
+}
+
+/** Schedule the auto-pick fallback for the seat that's currently picking.
+ *  Re-scheduling is idempotent: each call cancels the previous timer first. */
+export function schedulePickTimer(gameId: string, expectedPickerSeat: number): void {
+  clearPickTimer(gameId);
+  const t = setTimeout(() => {
+    void autoPickRoleCard(gameId, expectedPickerSeat);
+  }, PICK_TIMEOUT_MS);
+  pickTimers.set(gameId, t);
+}
+
+async function autoPickRoleCard(gameId: string, expectedPickerSeat: number): Promise<void> {
+  const state = getGame(gameId);
+  if (!state) return;
+  if (state.phase !== GAME_PHASE.ROLE_DISTRIBUTION) return;
+  if (state.roleCardPickerSeat !== expectedPickerSeat) return;
+  const picker = state.participants.find((p) => p.seat === expectedPickerSeat);
+  if (!picker) return;
+  const taken = new Set(state.roleCardsPicked);
+  let cardIndex = -1;
+  for (let i = 0; i < 10; i += 1) {
+    if (!taken.has(i)) {
+      cardIndex = i;
+      break;
+    }
+  }
+  if (cardIndex === -1) return;
+  await pickRoleCard({ gameId, userId: picker.userId }, cardIndex, true);
+}
+
+export async function pickRoleCard(
+  ctx: ActionContext,
+  cardIndex: number,
+  auto = false,
+): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+
+    const engineResult = applyRoleCardPick(loaded.data.state, ctx.userId, cardIndex);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    const seat = loaded.data.state.roleCardPickerSeat;
+    next = await persistEvent(next, GAME_EVENT_TYPE.ROLE_CARD_PICKED, ctx.userId, {
+      cardIndex,
+      seat,
+      auto,
+    });
+    const committed = await commit(next);
+    // Restart the timer for the next picker, or clear it when picks are done.
+    if (committed.roleCardPickerSeat !== null) {
+      schedulePickTimer(ctx.gameId, committed.roleCardPickerSeat);
+    } else {
+      clearPickTimer(ctx.gameId);
+    }
+    return ok(committed);
+  });
+}
+
 // ---- Judge actions ----
 
 export async function judgeAdvancePhase(ctx: ActionContext): Promise<ServiceResult<GameState>> {
@@ -688,6 +770,14 @@ export async function judgeAdvancePhase(ctx: ActionContext): Promise<ServiceResu
     }
     const committed = await commit(withEvent);
     void syncMediaPermissions(committed);
+    // Entering ROLE_DISTRIBUTION arms the per-pick timer for seat 1; leaving
+    // it clears any leftover timer (defensive — the engine cleared the
+    // picker, but the timer is per-game registry state).
+    if (committed.phase === GAME_PHASE.ROLE_DISTRIBUTION && committed.roleCardPickerSeat !== null) {
+      schedulePickTimer(ctx.gameId, committed.roleCardPickerSeat);
+    } else if (before.phase === GAME_PHASE.ROLE_DISTRIBUTION) {
+      clearPickTimer(ctx.gameId);
+    }
     return ok(committed);
   });
 }

@@ -116,6 +116,17 @@ export interface GameState {
 
   winner: Team | null;
 
+  // ROLE_DISTRIBUTION card-pick illusion. Each player clicks one of 10
+  // face-down cards in seat order; the role they get is the one already
+  // pre-rolled for their seat by assignRoles() — the click only times the
+  // reveal and removes a visual card from the wall. Picker rotates seat 1
+  // → seat 2 → … → seat 10. When everyone has picked, roleCardPickerSeat
+  // becomes null and the judge can advance the phase.
+  // roleCardsPicked holds the card indices picked so far in pick order, so
+  // position 0 == seat 1's card, position 1 == seat 2's, etc.
+  roleCardPickerSeat: number | null;
+  roleCardsPicked: number[];
+
   // Monotonic event sequence (mirrors GameEvent.seq in the database).
   nextEventSeq: number;
 }

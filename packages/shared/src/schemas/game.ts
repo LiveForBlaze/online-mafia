@@ -56,6 +56,11 @@ export type BestMoveGuessPayload = z.infer<typeof bestMoveGuessPayloadSchema>;
 
 // "Lift all" — yes/no vote on whether to kill every player tied after the
 // revote also tied. Cast once per voter; majority of cast ballots wins.
+export const roleCardPickPayloadSchema = z.object({
+  cardIndex: z.number().int().min(0).max(9),
+});
+export type RoleCardPickPayload = z.infer<typeof roleCardPickPayloadSchema>;
+
 export const liftAllVotePayloadSchema = z.object({
   yes: z.boolean(),
 });
@@ -210,6 +215,16 @@ export const gameStateProjectedSchema = z.object({
   }),
   // The viewer's own lift-all vote, null if not cast or not eligible.
   myLiftAllVote: z.boolean().nullable(),
+
+  // ROLE_DISTRIBUTION card-pick state.
+  // roleCardPickerSeat: whose turn to pick (null once everyone is done).
+  // roleCardsPicked: card indices already removed from the wall, in pick
+  //   order. Position 0 is seat 1's card, position 1 is seat 2's, etc.
+  // myRoleCardIndex: the card the current viewer themselves picked, so the
+  //   modal can keep that card flipped face-up.
+  roleCardPickerSeat: z.number().int().min(1).max(10).nullable(),
+  roleCardsPicked: z.array(z.number().int().min(0).max(9)),
+  myRoleCardIndex: z.number().int().min(0).max(9).nullable(),
 
   // Filled in once the game ends.
   winner: teamSchema.nullable(),

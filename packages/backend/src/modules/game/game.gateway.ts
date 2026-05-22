@@ -22,6 +22,7 @@ import {
   liftAllVotePayloadSchema,
   mafiaTargetPayloadSchema,
   nominatePayloadSchema,
+  roleCardPickPayloadSchema,
   sheriffCheckPayloadSchema,
 } from '@mafia/shared';
 import { z } from 'zod';
@@ -43,6 +44,7 @@ import {
   judgeRemovePlayer,
   leaveGameAsParticipant,
   nominatePlayer,
+  pickRoleCard,
   sayOutOfTurn,
   type ServiceResult,
 } from './game.service.js';
@@ -125,6 +127,12 @@ export function registerGameGateway(app: FastifyInstance): void {
       CLIENT_EVENT.SHERIFF_CHECK,
       withSchema(socket, sheriffCheckPayloadSchema, (data) =>
         checkAsSheriff({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.ROLE_CARD_PICK,
+      withSchema(socket, roleCardPickPayloadSchema, (data) =>
+        pickRoleCard({ gameId: getGameIdFromSocket(socket), userId }, data.cardIndex),
       ),
     );
 

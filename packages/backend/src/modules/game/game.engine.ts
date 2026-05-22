@@ -57,10 +57,13 @@ export const ENGINE_ERROR = {
   ALREADY_VOTED: 'already_voted',
   ALREADY_CHECKED: 'already_checked',
   ALREADY_GUESSED: 'already_guessed',
+  ALREADY_PICKED: 'already_picked',
+  CARD_TAKEN: 'card_taken',
   INVALID_GUESS: 'invalid_guess',
   GAME_OVER: 'game_over',
   CANNOT_TARGET_SELF: 'cannot_target_self',
   NO_NOMINATIONS_TO_VOTE: 'no_nominations_to_vote',
+  PICK_IN_PROGRESS: 'pick_in_progress',
 } as const;
 export type EngineErrorCode = (typeof ENGINE_ERROR)[keyof typeof ENGINE_ERROR];
 
@@ -454,9 +457,66 @@ export function applySheriffCheck(
   });
 }
 
+// ---- ROLE_DISTRIBUTION card pick ----
+//
+// Picking is purely cosmetic — each player's role was already rolled by
+// assignRoles() at game start. The click selects which one of the remaining
+// face-down cards on the visual wall is removed.
+
+export function applyRoleCardPick(
+  state: GameState,
+  actorUserId: string,
+  cardIndex: number,
+): EngineResult<GameState> {
+  if (state.phase !== GAME_PHASE.ROLE_DISTRIBUTION) return fail(ENGINE_ERROR.WRONG_PHASE);
+  if (cardIndex < 0 || cardIndex > 9) return fail(ENGINE_ERROR.CARD_TAKEN);
+  if (state.roleCardsPicked.includes(cardIndex)) return fail(ENGINE_ERROR.CARD_TAKEN);
+
+  const actor = findByUserId(state, actorUserId);
+  if (!actor || actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  if (actor.seat === null) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  if (state.roleCardPickerSeat !== actor.seat) return fail(ENGINE_ERROR.NOT_YOUR_TURN);
+
+  const newPicked = [...state.roleCardsPicked, cardIndex];
+  const nextPicker = nextRoleCardPicker(state, actor.seat);
+  const next: GameState = {
+    ...state,
+    roleCardsPicked: newPicked,
+    roleCardPickerSeat: nextPicker,
+  };
+  // Restart the per-pick timer for the next player. When picks are done
+  // (nextPicker === null) we leave phaseDeadline alone — the judge still
+  // owns the JUDGE_ADVANCE_PHASE click.
+  return ok(nextPicker !== null ? withFreshDeadline(next, GAME_PHASE.ROLE_DISTRIBUTION) : next);
+}
+
+function nextRoleCardPicker(state: GameState, fromSeat: number): number | null {
+  for (let seat = fromSeat + 1; seat <= 10; seat += 1) {
+    const p = state.participants.find((x) => x.seat === seat);
+    if (p && !p.isRemoved) return seat;
+  }
+  return null;
+}
+
+function firstRoleCardPicker(state: GameState): number | null {
+  for (let seat = 1; seat <= 10; seat += 1) {
+    const p = state.participants.find((x) => x.seat === seat);
+    if (p && !p.isRemoved) return seat;
+  }
+  return null;
+}
+
 // ---- Judge-driven transitions ----
 
 export function applyAdvancePhase(state: GameState): GameState {
+  // Block leaving ROLE_DISTRIBUTION while players are still picking — judge
+  // can't skip past the reveal modal. Returning state unchanged keeps the
+  // call idempotent; the gateway surfaces no error because in practice the
+  // judge's button is disabled until picks finish.
+  if (state.phase === GAME_PHASE.ROLE_DISTRIBUTION && state.roleCardPickerSeat !== null) {
+    return state;
+  }
+
   // Resolve side-effects of the *current* phase before transitioning.
   let next: GameState = { ...state };
 
@@ -651,6 +711,22 @@ export function applyAdvancePhase(state: GameState): GameState {
   // tie-break DAY_REVOTE.
   if (phase === GAME_PHASE.DAY_VOTE || phase === GAME_PHASE.DAY_REVOTE) {
     next = { ...next, voteRoundIdx: 0 };
+  }
+
+  // Entering ROLE_DISTRIBUTION: seed the card-pick state. First eligible
+  // seat takes the floor; the 10-second per-pick timer starts via the
+  // withFreshDeadline call at the bottom.
+  if (phase === GAME_PHASE.ROLE_DISTRIBUTION && state.phase !== GAME_PHASE.ROLE_DISTRIBUTION) {
+    next = {
+      ...next,
+      roleCardPickerSeat: firstRoleCardPicker(next),
+      roleCardsPicked: [],
+    };
+  }
+  // Leaving ROLE_DISTRIBUTION: scrub the picker state so it doesn't leak
+  // into the projection during NIGHT_ZERO.
+  if (state.phase === GAME_PHASE.ROLE_DISTRIBUTION && phase !== GAME_PHASE.ROLE_DISTRIBUTION) {
+    next = { ...next, roleCardPickerSeat: null };
   }
 
   // Entering day_speech: if a player was killed last night, they get the
@@ -1045,7 +1121,7 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     seat: p.seat,
     isJudge: p.isJudge,
     isBot: p.isBot,
-    role: shouldRevealRole(p, viewer, isJudge, isMafiaTeam, isGameOver, isPlayerIntro)
+    role: shouldRevealRole(p, viewer, isJudge, isMafiaTeam, isGameOver, isPlayerIntro, state)
       ? p.role
       : null,
     isAlive: p.isAlive,
@@ -1130,6 +1206,17 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     myLiftAllVote:
       viewer && viewer.seat !== null ? (state.liftAllVotes.get(viewer.seat) ?? null) : null,
     myCheckResult: myCheck,
+    // ROLE_DISTRIBUTION card-pick state. roleCardPickerSeat tells everyone
+    // whose turn it is; roleCardsPicked lists indices already removed from
+    // the wall so the modal can dim/remove them. myRoleCardIndex is the
+    // card the viewer themselves picked (or null until they have) so the
+    // UI can highlight their flipped card.
+    roleCardPickerSeat: state.roleCardPickerSeat,
+    roleCardsPicked: state.roleCardsPicked,
+    myRoleCardIndex:
+      viewer && viewer.seat !== null && state.roleCardsPicked.length >= viewer.seat
+        ? (state.roleCardsPicked[viewer.seat - 1] ?? null)
+        : null,
     winner: state.winner,
   };
 }
@@ -1156,6 +1243,7 @@ function shouldRevealRole(
   isMafiaTeam: boolean,
   isGameOver: boolean,
   isPlayerIntro: boolean,
+  state?: GameState,
 ): boolean {
   if (isJudge) return true;
   if (isGameOver) return true;
@@ -1163,6 +1251,14 @@ function shouldRevealRole(
   // at the next phase transition. The judge gets the override above.
   if (isPlayerIntro) return false;
   if (!viewer) return false;
+  // ROLE_DISTRIBUTION: own role is revealed only after the player has picked
+  // their card (seats pick in order, so position i in roleCardsPicked is
+  // seat i+1's pick). Until then the viewer's modal shows face-down cards.
+  if (state && state.phase === GAME_PHASE.ROLE_DISTRIBUTION) {
+    if (target.userId !== viewer.userId) return false;
+    if (viewer.seat === null) return false;
+    return state.roleCardsPicked.length >= viewer.seat;
+  }
   if (target.userId === viewer.userId) return true;
   if (isMafiaTeam && (target.role === ROLE.MAFIA || target.role === ROLE.DON)) return true;
   return false;

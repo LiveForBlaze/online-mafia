@@ -28,11 +28,13 @@ import {
   applyMafiaTarget,
   applyNextSpeaker,
   applyNominate,
+  applyRoleCardPick,
   applySheriffCheck,
 } from './game.engine.js';
+import { GAME_PHASE } from '@mafia/shared';
 import { syncMediaPermissions } from './game.media-permissions.js';
 import { registerGame } from './game.registry.js';
-import { GAME_EVENT_TYPE } from './game.service.js';
+import { GAME_EVENT_TYPE, schedulePickTimer } from './game.service.js';
 import { INITIAL_PHASE, type GameParticipant, type GameState } from './game.state.js';
 
 interface EventLike {
@@ -91,6 +93,11 @@ export async function recoverActiveGames(): Promise<void> {
       if (state.status === 'finished') return;
       registerGame(state);
       void syncMediaPermissions(state);
+      // If the game was mid-pick when the server died, resume the per-pick
+      // timer for whoever's seat is on the floor so the queue keeps moving.
+      if (state.phase === GAME_PHASE.ROLE_DISTRIBUTION && state.roleCardPickerSeat !== null) {
+        schedulePickTimer(state.id, state.roleCardPickerSeat);
+      }
     }),
   );
 
@@ -135,6 +142,8 @@ function replayState(
     shootoutSpeakerIdx: 0,
     liftAllVotes: new Map(),
     bestMoveGuesses: [],
+    roleCardPickerSeat: null,
+    roleCardsPicked: [],
     winner: null,
     nextEventSeq: 0,
   };
@@ -219,6 +228,14 @@ function applyEvent(state: GameState, event: EventLike): GameState {
       const yes = extractBoolean(event.payload, 'yes');
       if (yes === null) return state;
       const r = applyLiftAllVote(state, event.actorId, yes);
+      return r.ok ? r.data : state;
+    }
+
+    case GAME_EVENT_TYPE.ROLE_CARD_PICKED: {
+      if (!event.actorId) return state;
+      const cardIndex = extractSeat(event.payload, 'cardIndex');
+      if (cardIndex === null) return state;
+      const r = applyRoleCardPick(state, event.actorId, cardIndex);
       return r.ok ? r.data : state;
     }
 

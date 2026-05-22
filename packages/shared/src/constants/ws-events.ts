@@ -48,6 +48,12 @@ export const CLIENT_EVENT = {
   LOBBY_START_GAME: 'client:lobby_start_game',
   LOBBY_CHAT_SEND: 'client:lobby_chat_send',
 
+  // ROLE_DISTRIBUTION: player clicks one of the 10 face-down cards on the
+  // wall to "reveal" their role. The role itself was already pre-rolled by
+  // assignRoles — the click only controls timing and which visual card
+  // disappears from the wall.
+  ROLE_CARD_PICK: 'client:role_card_pick',
+
   // Game actions by players
   CAST_VOTE: 'client:cast_vote',
   NOMINATE_PLAYER: 'client:nominate_player',

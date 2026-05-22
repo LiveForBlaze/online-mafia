@@ -357,6 +357,15 @@
       "already_nominated": "That player is already nominated",
       "cannot_target_self": "You can't vote against yourself",
       "unknown": "Something went wrong"
+    },
+    "cardPicker": {
+      "title": "Pick your card",
+      "yourTurn": "Your turn — pick a card",
+      "waitingFor": "Player №{{seat}} is picking their card",
+      "finishedWaitJudge": "Everyone picked — waiting for the judge",
+      "yourRoleLabel": "Your role",
+      "hint": "You have 10 seconds to choose. If you don't, the first available card opens.",
+      "cardLabel": "Card №{{n}}"
     }
   },
   "about": {
