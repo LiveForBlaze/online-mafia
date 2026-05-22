@@ -46,15 +46,17 @@ export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   // Open-mic intro phase — judge decides when everyone has said hi.
   [GAME_PHASE.PLAYER_INTRODUCTION]: 0,
   [GAME_PHASE.ROLE_DISTRIBUTION]: 30,
-  [GAME_PHASE.NIGHT_ZERO]: 30,
+  // Mafia + don use this minute to introduce themselves and agree on the
+  // first-night strategy. Camera is on (mafia-team only); audio is closed,
+  // so they coordinate by gestures.
+  [GAME_PHASE.NIGHT_ZERO]: 60,
   // The day_speech timer is per-speaker, not for the whole day. It resets every
   // time the judge advances to the next speaker.
   [GAME_PHASE.DAY_SPEECH]: 60,
-  // Per-round timer for the sequential vote: judge says "три-четыре" and
-  // moves to the next candidate. 5s is the visual deadline; judge can
-  // advance earlier or later via JUDGE_ADVANCE_SPEAKER.
-  [GAME_PHASE.DAY_VOTE]: 5,
-  [GAME_PHASE.DAY_REVOTE]: 5,
+  // Per-candidate window during the sequential vote: judge says "кто за
+  // игрока N" and counts hands for 3 seconds before moving to the next.
+  [GAME_PHASE.DAY_VOTE]: 3,
+  [GAME_PHASE.DAY_REVOTE]: 3,
   [GAME_PHASE.DAY_SHOOTOUT]: 60,
   [GAME_PHASE.DAY_LIFT_VOTE]: 30,
   [GAME_PHASE.DAY_LAST_WORD]: 60,

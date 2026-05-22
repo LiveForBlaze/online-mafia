@@ -65,10 +65,12 @@ export function LobbyRoom({
   const playersNeeded = totalPlayerSeats - playerCount;
   const judgeMissing = !judge;
   const allSeatsFilled = allPlayerSeatsFilled && !judgeMissing;
-  // Every member's "Готов" must be true before the host can start. Bots are
-  // seeded ready=true so they don't block the gate.
-  const allReady = lobby.members.length > 0 && lobby.members.every((m) => m.isReady);
-  const notReadyCount = lobby.members.filter((m) => !m.isReady).length;
+  // Every PLAYER must be ready before the host can start. The judge is the
+  // one pressing "Start", so they're implicitly ready and not counted here —
+  // we'd never gate the host on a flag they own anyway.
+  const playerMembers = lobby.members.filter((m) => !m.isJudge);
+  const allReady = playerMembers.length > 0 && playerMembers.every((m) => m.isReady);
+  const notReadyCount = playerMembers.filter((m) => !m.isReady).length;
   const startEnabled = allSeatsFilled && allReady;
   const statusMessage = !allPlayerSeatsFilled
     ? t('lobby.room.waitingFor', { n: playersNeeded })
@@ -80,6 +82,9 @@ export function LobbyRoom({
 
   const viewerMember = lobby.members.find((m) => m.userId === currentUserId);
   const viewerIsReady = viewerMember?.isReady ?? false;
+  // Judges don't toggle "ready" — they're the ones starting. Hide the
+  // button for them so the layout doesn't dangle an unusable control.
+  const showReadyButton = Boolean(viewerMember) && !viewerMember?.isJudge;
 
   const progressPct = Math.min(
     100,
@@ -150,7 +155,7 @@ export function LobbyRoom({
                   showing it again here would be noise. */}
               {!judge && <p className="text-xs text-danger">{t('lobby.room.judgeAbsent')}</p>}
             </div>
-            {viewerMember && (
+            {showReadyButton && (
               // items-center on mobile keeps the column centred under the bar;
               // items-start on sm+ anchors the caption to the button's left
               // edge so they read as one visual unit.

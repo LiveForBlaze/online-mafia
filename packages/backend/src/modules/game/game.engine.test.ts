@@ -666,13 +666,16 @@ describe('lift-all vote', () => {
     if (!after.ok) expect(after.error).toBe(ENGINE_ERROR.ALREADY_VOTED);
   });
 
-  it('majority yes kills every tied seat and queues them all for last word', () => {
-    // 3 yes vs 1 no — majority lifts seats 3 and 5.
+  it('strict majority of alive (>50%) kills every tied seat and queues them all for last word', () => {
+    // 10 players alive in the default buildState — need 6+ yes votes to pass.
     const state = liftVoteState([
       [1, true],
       [2, true],
       [4, true],
-      [6, false],
+      [6, true],
+      [7, true],
+      [8, true],
+      [9, false],
     ]);
     const next = applyAdvancePhase(state);
     expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
@@ -681,9 +684,23 @@ describe('lift-all vote', () => {
     expect(next.currentSpeakerSeat).toBe(3);
     expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
     expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(false);
-    // Lift-vote trail is consumed.
     expect(next.tiedSeats).toEqual([]);
     expect(next.liftAllVotes.size).toBe(0);
+  });
+
+  it('exactly 50% yes is NOT enough to lift', () => {
+    // 5 yes / 5 silent with 10 alive — strictly less than 50%, no kill.
+    const state = liftVoteState([
+      [1, true],
+      [2, true],
+      [4, true],
+      [6, true],
+      [7, true],
+    ]);
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
   });
 
   it('majority no (or tie) spares everyone and exits to night', () => {
@@ -709,10 +726,14 @@ describe('lift-all vote', () => {
   });
 
   it('walks the multi-victim last-word queue via applyNextSpeaker', () => {
+    // 6 yes / 10 alive → passes the >50% gate.
     const state = liftVoteState([
       [1, true],
       [2, true],
       [4, true],
+      [6, true],
+      [7, true],
+      [8, true],
     ]);
     const last = applyAdvancePhase(state);
     expect(last.currentSpeakerSeat).toBe(3);

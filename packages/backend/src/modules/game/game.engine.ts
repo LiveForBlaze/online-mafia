@@ -555,16 +555,18 @@ export function applyAdvancePhase(state: GameState): GameState {
   }
 
   if (state.phase === GAME_PHASE.DAY_LIFT_VOTE) {
-    // Resolve the yes/no ballot. Simple majority of cast ballots — abstentions
-    // and a 50/50 split both fall on the side of "no one dies", which is
-    // the conservative outcome that matches most ФИИМ judges in practice.
+    // Resolve the yes/no ballot per classic ФИИМ: "lift all" passes only if
+    // YES votes exceed half of the alive players (not half of cast ballots).
+    // Abstentions therefore count as NO — a quiet table protects the tied
+    // seats. Examples (10-player table, all alive): 5 yes → fails (=50%),
+    // 6 yes → passes. 5 yes out of 8 alive → passes (62.5%).
     let yes = 0;
-    let no = 0;
     for (const v of next.liftAllVotes.values()) {
       if (v) yes += 1;
-      else no += 1;
     }
-    if (yes > no && next.tiedSeats.length > 0) {
+    const aliveCount = alivePlayers(next).length;
+    const passes = yes * 2 > aliveCount;
+    if (passes && next.tiedSeats.length > 0) {
       // Kill everyone in the tie and queue them all for the last-word phase
       // in seat order. lastWordSeats is consumed one speaker at a time by
       // applyNextSpeaker, so this naturally walks the entire list.
@@ -1077,9 +1079,19 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     phaseDeadline: state.phaseDeadline?.toISOString() ?? null,
     participants,
     currentSpeakerSeat: state.currentSpeakerSeat,
-    nominationSeats: state.nominationSeats,
+    // During the sequential vote (DAY_VOTE / DAY_REVOTE) the players don't
+    // see the full nomination list — the judge calls names aloud and they
+    // only react to the candidate of the current round. Project a single-
+    // element list with the current candidate and pin voteRoundIdx=0 so
+    // their UI naturally shows just "voting for №X". Judge always sees
+    // the full picture for orchestration.
+    nominationSeats: hideNominationList(state, isJudge)
+      ? state.nominationSeats[state.voteRoundIdx] !== undefined
+        ? [state.nominationSeats[state.voteRoundIdx]!]
+        : []
+      : state.nominationSeats,
     votes: Object.fromEntries([...state.votes].map(([k, v]) => [String(k), v])),
-    voteRoundIdx: state.voteRoundIdx,
+    voteRoundIdx: hideNominationList(state, isJudge) ? 0 : state.voteRoundIdx,
     // Whether the current speaker has already had a nomination called.
     // UI uses this to hide the judge's "Выставить" buttons once one click
     // has landed for that speech — one nomination per speech per ФИИМ.
@@ -1120,6 +1132,11 @@ export function projectFor(state: GameState, viewerUserId: string): GameStatePro
     myCheckResult: myCheck,
     winner: state.winner,
   };
+}
+
+function hideNominationList(state: GameState, isJudge: boolean): boolean {
+  if (isJudge) return false;
+  return state.phase === GAME_PHASE.DAY_VOTE || state.phase === GAME_PHASE.DAY_REVOTE;
 }
 
 function liftAllTally(state: GameState): { yes: number; no: number } {
