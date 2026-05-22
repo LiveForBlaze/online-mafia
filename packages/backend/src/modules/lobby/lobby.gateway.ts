@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { prisma } from '../../db/prisma.client.js';
 
-import { attachIO, lobbyRoomName } from './lobby.broadcast.js';
+import { attachIO, broadcastLobbyUpdate, lobbyRoomName } from './lobby.broadcast.js';
 import { appendLobbyChatMessage, getLobbyChatHistory } from './lobby.chat.js';
 
 const lobbyJoinPayloadSchema = z.object({
@@ -40,11 +40,23 @@ export function registerLobbyGateway(app: FastifyInstance): void {
       // A non-member could otherwise listen to a private lobby's roster updates.
       const member = await prisma.lobbyMember.findUnique({
         where: { lobbyId_userId: { lobbyId: parsed.data.lobbyId, userId } },
-        select: { userId: true },
+        select: { userId: true, isReady: true },
       });
       if (!member) {
         ack?.({ ok: false, error: 'not_member' });
         return;
+      }
+      // Returning to the lobby (fresh page mount or socket reconnect) always
+      // drops the player back to "not ready". The "Готов" flag is a deliberate
+      // act, not a sticky preference — if the player walked off to change
+      // their avatar, the host shouldn't be able to start the game without
+      // them clicking confirm again.
+      if (member.isReady) {
+        await prisma.lobbyMember.update({
+          where: { lobbyId_userId: { lobbyId: parsed.data.lobbyId, userId } },
+          data: { isReady: false },
+        });
+        void broadcastLobbyUpdate(parsed.data.lobbyId);
       }
       await socket.join(lobbyRoomName(parsed.data.lobbyId));
       // Replay the current chat buffer to the joiner so they don't land on

@@ -151,7 +151,10 @@ export function LobbyRoom({
               {!judge && <p className="text-xs text-danger">{t('lobby.room.judgeAbsent')}</p>}
             </div>
             {viewerMember && (
-              <div className="flex shrink-0 flex-col items-center gap-1.5 sm:items-end">
+              // items-center on mobile keeps the column centred under the bar;
+              // items-start on sm+ anchors the caption to the button's left
+              // edge so they read as one visual unit.
+              <div className="flex shrink-0 flex-col items-center gap-1.5 sm:items-start">
                 <p className="text-xs text-muted">
                   {allSeatsFilled
                     ? viewerIsReady
