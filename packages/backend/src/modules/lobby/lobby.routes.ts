@@ -9,6 +9,7 @@ import {
   joinLobbyInputSchema,
   kickMemberInputSchema,
   preassignRoleInputSchema,
+  setReadyInputSchema,
 } from '@mafia/shared';
 
 import {
@@ -22,6 +23,7 @@ import {
   listPublicLobbies,
   listUserActiveLobbies,
   preassignRole,
+  setReady,
 } from './lobby.service.js';
 import { LOBBY_ERROR, type LobbyErrorCode } from './lobby.errors.js';
 import { fillLobbyWithBots } from './lobby.bots.js';
@@ -237,6 +239,25 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
         parsed.data.userId,
         parsed.data.role,
       );
+      if (!result.ok) {
+        return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      return reply.send({ lobby: result.data });
+    },
+  );
+
+  // ---- Toggle the caller's own "Готов" flag ----
+  app.post<{ Params: { id: string } }>(
+    '/:id/ready',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = setReadyInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
+      const result = await setReady(request.params.id, request.user.sub, parsed.data.ready);
       if (!result.ok) {
         return reply.code(lobbyErrorToHttpStatus(result.error)).send({ error: result.error });
       }

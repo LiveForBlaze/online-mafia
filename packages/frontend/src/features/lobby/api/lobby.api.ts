@@ -26,6 +26,7 @@ const path = {
   preassignRole: (id: string) => `${LOBBY_BASE}/${id}/preassign-role`,
   start: (id: string) => `${LOBBY_BASE}/${id}/start`,
   fillBots: (id: string) => `${LOBBY_BASE}/${id}/fill-bots`,
+  ready: (id: string) => `${LOBBY_BASE}/${id}/ready`,
 } as const;
 
 export const lobbyApi = {
@@ -44,4 +45,6 @@ export const lobbyApi = {
     apiClient.post<LobbyDetailsResponse>(path.preassignRole(id), input),
   start: (id: string) => apiClient.post<{ gameId: string }>(path.start(id)),
   fillBots: (id: string) => apiClient.post<{ added: number }>(path.fillBots(id)),
+  setReady: (id: string, ready: boolean) =>
+    apiClient.post<LobbyDetailsResponse>(path.ready(id), { ready }),
 };

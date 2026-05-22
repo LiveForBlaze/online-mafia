@@ -82,6 +82,7 @@ export function toLobbyMemberPublic(
     isJudge: member.isJudge,
     isHost: member.user.id === hostId,
     isBot: member.user.isBot,
+    isReady: member.isReady,
     // Pre-assigned roles are a host-only dev affordance — never leak them to
     // other players (knowing your role before role distribution would break
     // the game).

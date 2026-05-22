@@ -194,7 +194,11 @@
       "seatsProgress": "Месцы: {{current}} / {{total}}",
       "membersChip": "{{current}} / {{max}} гульцоў",
       "preassignTitle": "Прызначыць ролю (dev)",
-      "preassignRandom": "Выпадкова"
+      "preassignRandom": "Выпадкова",
+      "markReady": "Гатовы",
+      "markNotReady": "Не гатовы",
+      "readyLabel": "Гатовы",
+      "waitingReady": "Чакаем гатоўнасці: {{n}}"
     },
     "errors": {
       "lobby_not_found": "Лобі не знойдзена",

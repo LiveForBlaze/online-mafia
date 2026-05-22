@@ -132,6 +132,9 @@ export async function fillLobbyWithBots(
           userId: bot.id,
           seat,
           isJudge: false,
+          // Bots have no UI — flip them ready immediately so they're not
+          // the reason the host's start button stays disabled.
+          isReady: true,
         },
       });
       added += 1;

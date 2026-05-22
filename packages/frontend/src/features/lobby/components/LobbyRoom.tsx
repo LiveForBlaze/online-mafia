@@ -24,12 +24,14 @@ interface LobbyRoomProps {
   onStart: () => void;
   onFillBots: () => void;
   onPreassignRole?: (userId: string, role: Role | null) => void;
+  onToggleReady: (ready: boolean) => void;
   isLeavePending?: boolean;
   isClosePending?: boolean;
   isKickPending?: boolean;
   isStartPending?: boolean;
   isFillBotsPending?: boolean;
   isPreassignPending?: boolean;
+  isReadyPending?: boolean;
   errorMessage?: string | null;
 }
 
@@ -42,12 +44,14 @@ export function LobbyRoom({
   onStart,
   onFillBots,
   onPreassignRole,
+  onToggleReady,
   isLeavePending,
   isClosePending,
   isKickPending,
   isStartPending,
   isFillBotsPending,
   isPreassignPending,
+  isReadyPending,
   errorMessage,
 }: LobbyRoomProps) {
   const { t } = useTranslation();
@@ -61,11 +65,21 @@ export function LobbyRoom({
   const playersNeeded = totalPlayerSeats - playerCount;
   const judgeMissing = !judge;
   const allSeatsFilled = allPlayerSeatsFilled && !judgeMissing;
-  const statusMessage = allSeatsFilled
-    ? t('lobby.room.ready')
-    : !allPlayerSeatsFilled
-      ? t('lobby.room.waitingFor', { n: playersNeeded })
-      : t('lobby.room.needJudge');
+  // Every member's "Готов" must be true before the host can start. Bots are
+  // seeded ready=true so they don't block the gate.
+  const allReady = lobby.members.length > 0 && lobby.members.every((m) => m.isReady);
+  const notReadyCount = lobby.members.filter((m) => !m.isReady).length;
+  const startEnabled = allSeatsFilled && allReady;
+  const statusMessage = !allPlayerSeatsFilled
+    ? t('lobby.room.waitingFor', { n: playersNeeded })
+    : judgeMissing
+      ? t('lobby.room.needJudge')
+      : !allReady
+        ? t('lobby.room.waitingReady', { n: notReadyCount })
+        : t('lobby.room.ready');
+
+  const viewerMember = lobby.members.find((m) => m.userId === currentUserId);
+  const viewerIsReady = viewerMember?.isReady ?? false;
 
   const progressPct = Math.min(
     100,
@@ -136,12 +150,24 @@ export function LobbyRoom({
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
+            {/* "Готов" toggle — everyone (including the host) must flip
+                their flag before the host's start button activates. */}
+            {viewerMember && (
+              <Button
+                variant={viewerIsReady ? 'secondary' : 'primary'}
+                onClick={() => onToggleReady(!viewerIsReady)}
+                disabled={isReadyPending}
+                className={viewerIsReady ? '' : 'bg-success hover:bg-success/90 text-white'}
+              >
+                {viewerIsReady ? t('lobby.room.markNotReady') : t('lobby.room.markReady')}
+              </Button>
+            )}
             {isHost && (
               <>
                 <Button
                   onClick={onStart}
-                  disabled={!allSeatsFilled || isStartPending}
-                  title={!allSeatsFilled ? statusMessage : undefined}
+                  disabled={!startEnabled || isStartPending}
+                  title={!startEnabled ? statusMessage : undefined}
                 >
                   {t('lobby.room.startGame')}
                 </Button>

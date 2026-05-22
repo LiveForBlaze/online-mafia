@@ -97,6 +97,8 @@ export async function createGameFromLobby(
 
   const judge = lobby.members.find((m) => m.isJudge);
   if (!judge) return fail(GAME_ERROR.LOBBY_NOT_READY);
+  // Every human must have flipped "Готов"; bots are seeded ready=true.
+  if (!lobby.members.every((m) => m.isReady)) return fail(GAME_ERROR.LOBBY_NOT_READY);
 
   const initialParticipants: GameParticipant[] = lobby.members.map((m) => ({
     userId: m.user.id,

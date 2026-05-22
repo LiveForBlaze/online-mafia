@@ -270,6 +270,47 @@ export async function leaveLobby(
   return ok({ closed: false });
 }
 
+// Flip the caller's "Готов" flag. Used by the lobby room toggle button —
+// host can start the game only when every member's flag is true (bots
+// included, but they're seeded ready=true on insert).
+export async function setReady(
+  lobbyId: string,
+  userId: string,
+  ready: boolean,
+): Promise<ServiceResult<LobbyDetails>> {
+  const member = await prisma.lobbyMember.findUnique({
+    where: { lobbyId_userId: { lobbyId, userId } },
+    select: { userId: true },
+  });
+  if (!member) return fail(LOBBY_ERROR.NOT_MEMBER);
+
+  await prisma.lobbyMember.update({
+    where: { lobbyId_userId: { lobbyId, userId } },
+    data: { isReady: ready },
+  });
+
+  void broadcastLobbyUpdate(lobbyId);
+  // Mirror the response shape of other mutations so the caller can swap the
+  // returned lobby into the React Query cache without a follow-up refetch.
+  const updated = await prisma.lobby.findUnique({
+    where: { id: lobbyId },
+    include: {
+      host: { select: { id: true, nickname: true, publicCode: true } },
+      game: { select: { id: true } },
+      members: {
+        include: {
+          user: {
+            select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+          },
+        },
+        orderBy: [{ isJudge: 'desc' }, { seat: 'asc' }],
+      },
+    },
+  });
+  if (!updated) return fail(LOBBY_ERROR.NOT_FOUND);
+  return ok(toLobbyDetails(updated, userId));
+}
+
 export async function closeLobby(
   lobbyId: string,
   userId: string,

@@ -194,7 +194,11 @@
       "seatsProgress": "Місця: {{current}} / {{total}}",
       "membersChip": "{{current}} / {{max}} гравців",
       "preassignTitle": "Призначити роль (dev)",
-      "preassignRandom": "Випадково"
+      "preassignRandom": "Випадково",
+      "markReady": "Готовий",
+      "markNotReady": "Не готовий",
+      "readyLabel": "Готовий",
+      "waitingReady": "Чекаємо готовності: {{n}}"
     },
     "errors": {
       "lobby_not_found": "Лобі не знайдено",

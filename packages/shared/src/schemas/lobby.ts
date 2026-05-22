@@ -61,6 +61,13 @@ export const preassignRoleInputSchema = z.object({
 });
 export type PreassignRoleInput = z.infer<typeof preassignRoleInputSchema>;
 
+// Payload for POST /api/v1/lobby/:id/ready. Toggles the caller's own
+// "Готов" flag.
+export const setReadyInputSchema = z.object({
+  ready: z.boolean(),
+});
+export type SetReadyInput = z.infer<typeof setReadyInputSchema>;
+
 // ---- Responses ----
 
 export const lobbyMemberPublicSchema = z.object({
@@ -75,6 +82,9 @@ export const lobbyMemberPublicSchema = z.object({
   isHost: z.boolean(),
   // True for auto-controlled test bots. The client renders a small bot badge.
   isBot: z.boolean(),
+  // "Готов" toggle. Bots auto-ready on insert. The host can start the game
+  // only when every member's flag is true.
+  isReady: z.boolean(),
   // Host-only dev/test affordance: a role the host has pre-assigned to this
   // seat. The engine honors it on game start instead of randomizing. Only
   // populated in responses sent to the host — null for everyone else.

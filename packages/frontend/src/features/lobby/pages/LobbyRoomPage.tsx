@@ -24,6 +24,7 @@ import {
   useLeaveLobby,
   useLobbyErrorMessage,
   usePreassignRole,
+  useSetReady,
   useStartGame,
 } from '@/features/lobby/hooks/useLobbyMutations.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
@@ -48,6 +49,7 @@ export function LobbyRoomPage() {
   const start = useStartGame();
   const fillBots = useFillBots();
   const preassign = usePreassignRole();
+  const setReady = useSetReady();
   const join = useJoinLobby();
   const extractLobbyErrorMessage = useExtractLobbyErrorMessage();
   const lobbyErrorMessage = useLobbyErrorMessage();
@@ -221,12 +223,17 @@ export function LobbyRoomPage() {
         onStart={handleStart}
         onFillBots={handleFillBots}
         onPreassignRole={handlePreassignRole}
+        onToggleReady={(ready) => {
+          if (!lobbyId) return;
+          setReady.mutate({ lobbyId, ready });
+        }}
         isLeavePending={leave.isPending}
         isClosePending={close.isPending}
         isKickPending={kick.isPending}
         isStartPending={start.isPending}
         isFillBotsPending={fillBots.isPending}
         isPreassignPending={preassign.isPending}
+        isReadyPending={setReady.isPending}
         errorMessage={inlineError}
       />
       <JoinPrivateLobbyDialog

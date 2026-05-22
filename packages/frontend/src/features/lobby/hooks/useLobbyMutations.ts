@@ -113,6 +113,17 @@ export function useFillBots() {
   });
 }
 
+export function useSetReady() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ lobbyId, ready }: { lobbyId: string; ready: boolean }) =>
+      lobbyApi.setReady(lobbyId, ready),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(LOBBY_QUERY_KEY.details(variables.lobbyId), data);
+    },
+  });
+}
+
 /** Hook returning a function that resolves a lobby error code to a localized string. */
 export function useLobbyErrorMessage(): (code: string | undefined) => string {
   const { t } = useTranslation();

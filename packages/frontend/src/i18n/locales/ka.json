@@ -194,7 +194,11 @@
       "seatsProgress": "Места: {{current}} / {{total}}",
       "membersChip": "{{current}} / {{max}} игроков",
       "preassignTitle": "Назначить роль (dev)",
-      "preassignRandom": "Случайно"
+      "preassignRandom": "Случайно",
+      "markReady": "მზად",
+      "markNotReady": "მზად არ ვარ",
+      "readyLabel": "მზად",
+      "waitingReady": "ველოდებით მზადყოფნას: {{n}}"
     },
     "errors": {
       "lobby_not_found": "Лобби не найдено",

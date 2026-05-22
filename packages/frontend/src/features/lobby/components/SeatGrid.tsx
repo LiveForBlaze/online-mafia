@@ -109,9 +109,12 @@ function SeatCard({
     >
       <div className="flex items-center justify-between">
         <span className="text-base font-semibold text-fg tabular-nums">{seat}</span>
-        {occupant?.isHost && (
-          <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
-            {t('lobby.room.hostBadge')}
+        {occupant?.isReady && (
+          <span
+            className="rounded-full bg-success/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-success"
+            aria-label={t('lobby.room.readyLabel')}
+          >
+            ✓
           </span>
         )}
       </div>

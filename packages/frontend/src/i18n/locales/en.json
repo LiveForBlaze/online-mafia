@@ -188,7 +188,11 @@
       "seatsProgress": "Seats: {{current}} / {{total}}",
       "membersChip": "{{current}} / {{max}} players",
       "preassignTitle": "Assign role (dev)",
-      "preassignRandom": "Random"
+      "preassignRandom": "Random",
+      "markReady": "Ready",
+      "markNotReady": "Not ready",
+      "readyLabel": "Ready",
+      "waitingReady": "Waiting for ready: {{n}}"
     },
     "errors": {
       "lobby_not_found": "Lobby not found",

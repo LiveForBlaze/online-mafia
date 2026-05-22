@@ -106,6 +106,10 @@ model LobbyMember {
   user     User   @relation(fields: [userId], references: [id])
   seat     Int? // null when this member is the judge
   isJudge  Boolean @default(false)
+  // "Готов" toggle — everyone must mark themselves ready before the host
+  // can start the game. Bots are seeded ready=true on insert; humans flip
+  // it via POST /api/v1/lobby/:id/ready.
+  isReady  Boolean @default(false)
   joinedAt DateTime @default(now())
   // Host-only role pre-assignment (dev/test convenience). When set, the engine
   // honors this role instead of randomizing. Null = randomize as usual.
