@@ -56,7 +56,13 @@ model User {
   // the token's `v` claim against this value.
   tokenVersion  Int     @default(0)
 
+  // Currently-displayed avatar. May be a standard avatar slug ("avatar-01"…),
+  // a full URL (Google profile picture on first sign-in), or null.
   avatarUrl    String?
+  // The user's latest Google profile picture URL, captured on every Google
+  // sign-in. Kept separately from `avatarUrl` so users who pick a standard
+  // avatar can later restore their Google photo without re-OAuth.
+  googleAvatarUrl String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

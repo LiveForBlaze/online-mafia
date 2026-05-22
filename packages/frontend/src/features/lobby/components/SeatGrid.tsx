@@ -59,7 +59,6 @@ export function SeatGrid({
             key={seat}
             seat={seat}
             occupant={occupant}
-            isCurrentUser={occupant?.userId === currentUserId}
             canKick={canKick && occupant !== undefined && occupant.userId !== currentUserId}
             onKick={onKick}
             isKickPending={isKickPending}
@@ -75,7 +74,6 @@ export function SeatGrid({
 interface SeatCardProps {
   seat: number;
   occupant: LobbyMemberPublic | undefined;
-  isCurrentUser: boolean;
   canKick: boolean;
   onKick: (userId: string) => void;
   isKickPending?: boolean;
@@ -86,7 +84,6 @@ interface SeatCardProps {
 function SeatCard({
   seat,
   occupant,
-  isCurrentUser,
   canKick,
   onKick,
   isKickPending,
@@ -127,9 +124,8 @@ function SeatCard({
   return (
     <div
       className={cn(
-        'group relative flex aspect-[3/4] flex-col rounded-lg border bg-card p-2',
+        'group relative flex aspect-[3/4] flex-col rounded-lg border-2 bg-card p-2',
         borderColor,
-        isCurrentUser && 'ring-1 ring-accent ring-offset-1 ring-offset-bg',
       )}
     >
       <div className="flex items-center justify-between">

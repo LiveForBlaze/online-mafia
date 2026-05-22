@@ -51,6 +51,7 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
     nickname: user.nickname,
     publicCode: user.publicCode,
     avatarUrl: user.avatarUrl ?? null,
+    googleAvatarUrl: user.googleAvatarUrl ?? null,
     realName: user.realName ?? null,
     country: user.country ?? null,
     clubName: user.clubName ?? null,
@@ -170,8 +171,21 @@ export async function updateProfile(
   if (input.realName !== undefined) data.realName = norm(input.realName) ?? null;
   if (input.country !== undefined) data.country = norm(input.country) ?? null;
   if (input.clubName !== undefined) data.clubName = norm(input.clubName) ?? null;
-  // avatarId is stored directly in avatarUrl; null clears the avatar.
-  if (input.avatarId !== undefined) data.avatarUrl = input.avatarId;
+  if (input.avatarId !== undefined) {
+    if (input.avatarId === 'google') {
+      // Resolve the sentinel to the user's cached Google photo URL. If we
+      // don't have one cached the request silently no-ops on this field —
+      // the client should only offer "google" when googleAvatarUrl is set.
+      const current = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { googleAvatarUrl: true },
+      });
+      if (current?.googleAvatarUrl) data.avatarUrl = current.googleAvatarUrl;
+    } else {
+      // Standard avatar ID stored directly; null clears the avatar.
+      data.avatarUrl = input.avatarId;
+    }
+  }
 
   const updated = await prisma.user.update({ where: { id: userId }, data });
   return { ok: true, user: updated };
@@ -283,23 +297,41 @@ export async function findOrCreateUserFromGoogle(
   const normalizedEmail = profile.email.toLowerCase().trim();
 
   const byGoogleId = await prisma.user.findUnique({ where: { googleId: profile.sub } });
-  if (byGoogleId) return { ok: true, user: byGoogleId };
+  if (byGoogleId) {
+    // Refresh cached Google photo on every sign-in. If the user is currently
+    // showing their Google avatar (avatarUrl equals the previously-cached
+    // googleAvatarUrl, or avatarUrl is null), follow Google's new URL too.
+    const newGooglePhoto = profile.picture ?? null;
+    const followsGoogle =
+      byGoogleId.avatarUrl === null ||
+      (byGoogleId.googleAvatarUrl !== null && byGoogleId.avatarUrl === byGoogleId.googleAvatarUrl);
+    if (newGooglePhoto !== byGoogleId.googleAvatarUrl) {
+      const refreshed = await prisma.user.update({
+        where: { id: byGoogleId.id },
+        data: {
+          googleAvatarUrl: newGooglePhoto,
+          ...(followsGoogle ? { avatarUrl: newGooglePhoto } : {}),
+        },
+      });
+      return { ok: true, user: refreshed };
+    }
+    return { ok: true, user: byGoogleId };
+  }
 
   const byEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (byEmail) {
-    // Existing local account has a password but never proved control of the email.
-    // Pre-account-takeover protection: refuse the link.
     if (byEmail.passwordHash && !byEmail.emailVerified) {
       return { ok: false, error: AUTH_ERROR.OAUTH_LINK_REFUSED };
     }
-    // Safe to link: either the local account was already verified, or it has no
-    // password (created earlier via a different OAuth provider).
     const updated = await prisma.user.update({
       where: { id: byEmail.id },
       data: {
         googleId: profile.sub,
-        // Once linked to a verified Google account, mark email as verified.
         emailVerified: true,
+        // Always refresh the cached Google photo so users can restore it later.
+        googleAvatarUrl: profile.picture ?? null,
+        // Only seed avatarUrl from Google if it was empty — don't override an
+        // explicit standard avatar the user already picked.
         avatarUrl: byEmail.avatarUrl ?? profile.picture ?? null,
       },
     });
@@ -332,6 +364,7 @@ export async function findOrCreateUserFromGoogle(
           publicCode,
           googleId: profile.sub,
           avatarUrl: profile.picture ?? null,
+          googleAvatarUrl: profile.picture ?? null,
           emailVerified: true,
         },
       });

@@ -120,9 +120,11 @@ export function LobbyRoom({
         </section>
 
         {/* Status + ready button — the ready toggle lives here, outside the
-            seat tiles, so the player's attention isn't competing with seat UI. */}
+            seat tiles, so the player's attention isn't competing with seat UI.
+            Layout: progress on the left, action stacked on the right with the
+            caption and the button vertically aligned to each other. */}
         <section className="rounded-md border border-border bg-card p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-xs uppercase tracking-wider text-muted">
@@ -144,15 +146,13 @@ export function LobbyRoom({
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
-              <p className={cn('text-xs', judge ? 'text-success' : 'text-danger')}>
-                {judge
-                  ? t('lobby.room.judgePresent', { nickname: judge.nickname })
-                  : t('lobby.room.judgeAbsent')}
-              </p>
+              {/* Judge presence is already conveyed by the JudgeSlot card above —
+                  showing it again here would be noise. */}
+              {!judge && <p className="text-xs text-danger">{t('lobby.room.judgeAbsent')}</p>}
             </div>
             {viewerMember && (
-              <div className="text-center sm:text-right shrink-0">
-                <p className="text-xs text-muted mb-1.5">
+              <div className="flex shrink-0 flex-col items-center gap-1.5 sm:items-end">
+                <p className="text-xs text-muted">
                   {allSeatsFilled
                     ? viewerIsReady
                       ? t('lobby.room.youAreReady')
@@ -164,16 +164,12 @@ export function LobbyRoom({
                   onClick={() => onToggleReady(!viewerIsReady)}
                   disabled={isReadyPending}
                   className={cn(
-                    'min-w-[160px]',
+                    'min-w-[180px] justify-center',
                     viewerIsReady
                       ? 'bg-success hover:bg-success/90 text-white'
                       : 'bg-danger hover:bg-danger/90 text-white',
                   )}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="mr-1.5 inline-block h-2 w-2 rounded-full bg-white/90"
-                  />
                   {viewerIsReady ? t('lobby.room.markNotReadyShort') : t('lobby.room.markReady')}
                 </Button>
               </div>

@@ -1,8 +1,8 @@
 // Universal avatar renderer.
 //
 // Resolves three cases:
-//   1. Standard avatar ID stored in avatarUrl -> placeholder coloured tile (until real images ship)
-//   2. External URL (Google sign-in) -> <img>
+//   1. Standard avatar ID -> /avatars/<id>.jpg from the frontend's public dir
+//   2. Full URL (Google sign-in photo) -> <img src=url>
 //   3. Null -> nickname initial on a neutral surface
 
 import { isStandardAvatar, type StandardAvatarId } from '@mafia/shared';
@@ -10,19 +10,9 @@ import { isStandardAvatar, type StandardAvatarId } from '@mafia/shared';
 import { cn } from '@/lib/cn.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 
-// Placeholder colour palette — one per slot. Replaced by real PNGs later.
-const AVATAR_COLORS: Record<StandardAvatarId, string> = {
-  'avatar-01': '#E57373',
-  'avatar-02': '#FF8A65',
-  'avatar-03': '#FFB74D',
-  'avatar-04': '#A5D6A7',
-  'avatar-05': '#4DB6AC',
-  'avatar-06': '#64B5F6',
-  'avatar-07': '#7986CB',
-  'avatar-08': '#BA68C8',
-  'avatar-09': '#F06292',
-  'avatar-10': '#90A4AE',
-};
+function standardAvatarSrc(id: StandardAvatarId): string {
+  return `/avatars/${id}.jpg`;
+}
 
 interface AvatarProps {
   avatarUrl: string | null | undefined;
@@ -47,18 +37,14 @@ export function Avatar({
 
   if (isStandardAvatar(avatarUrl)) {
     return (
-      <span
-        aria-hidden="true"
-        className={cn(
-          'flex shrink-0 items-center justify-center font-bold text-white',
-          radius,
-          fillClass,
-          className,
-        )}
-        style={{ ...style, backgroundColor: AVATAR_COLORS[avatarUrl] }}
-      >
-        {Number(avatarUrl.slice(-2))}
-      </span>
+      <img
+        src={standardAvatarSrc(avatarUrl)}
+        alt={nickname}
+        className={cn('shrink-0 object-cover', radius, fillClass, className)}
+        style={style}
+        loading="lazy"
+        decoding="async"
+      />
     );
   }
   if (avatarUrl) {
@@ -68,6 +54,8 @@ export function Avatar({
         alt={nickname}
         className={cn('shrink-0 object-cover', radius, fillClass, className)}
         style={style}
+        loading="lazy"
+        decoding="async"
       />
     );
   }

@@ -20,12 +20,19 @@ export type UpdateNicknameInput = z.infer<typeof updateNicknameInputSchema>;
 // Payload for PATCH /api/v1/auth/me/profile — optional public fields. Pass
 // null in any field to clear it. Omitted fields are left untouched.
 const optionalShortText = z.string().trim().max(80).nullable().optional();
+
+// 'google' is a sentinel: server resolves it to the user's cached Google photo
+// URL. Lets the client switch avatars without ever sending a raw URL.
+export const avatarIdSchema = z
+  .union([z.enum(STANDARD_AVATARS), z.literal('google')])
+  .nullable()
+  .optional();
+
 export const updateProfileInputSchema = z.object({
   realName: optionalShortText,
   country: optionalShortText,
   clubName: optionalShortText,
-  // Pass a standard avatar ID to switch avatar, null to clear, omit to leave unchanged.
-  avatarId: z.enum(STANDARD_AVATARS).nullable().optional(),
+  avatarId: avatarIdSchema,
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
 
@@ -46,11 +53,12 @@ export const authenticatedUserSchema = z.object({
   nickname: z.string(),
   publicCode: z.string(),
   avatarUrl: z.string().nullable(),
+  // The user's cached Google photo URL (if they've ever signed in via Google).
+  // Exposed only to the owner so the picker can offer "restore Google avatar".
+  googleAvatarUrl: z.string().nullable(),
   realName: z.string().nullable(),
   country: z.string().nullable(),
   clubName: z.string().nullable(),
-  // Whether the user has a local password (vs Google-only). Used by the
-  // delete-account dialog to decide whether to show the password field.
   hasPassword: z.boolean(),
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;

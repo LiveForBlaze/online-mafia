@@ -35,58 +35,126 @@ import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
-/** Grid of 10 avatar tiles + a "none" option. */
-function AvatarPicker({
-  selected,
-  onSelect,
-  disabled,
+// Picker selection: a standard slot, the user's Google photo, or no avatar.
+type AvatarSelection = StandardAvatarId | 'google' | null;
+
+/** Modal-based avatar picker. Confirm/cancel preserve the previous selection
+ *  until the user clicks Apply, so accidental taps don't mutate state. */
+function AvatarPickerDialog({
+  open,
+  initial,
+  googleAvatarUrl,
+  nickname,
+  onClose,
+  onApply,
 }: {
-  selected: StandardAvatarId | null;
-  onSelect: (id: StandardAvatarId | null) => void;
-  disabled?: boolean;
+  open: boolean;
+  initial: AvatarSelection;
+  googleAvatarUrl: string | null;
+  nickname: string;
+  onClose: () => void;
+  onApply: (id: AvatarSelection) => void;
 }) {
   const { t } = useTranslation();
+  const [draft, setDraft] = useState<AvatarSelection>(initial);
+
+  useEffect(() => {
+    if (open) setDraft(initial);
+  }, [open, initial]);
+
+  function handleApply() {
+    onApply(draft);
+    onClose();
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {STANDARD_AVATARS.map((id) => {
-        const isSelected = selected === id;
-        return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t('avatar.dialogTitle')}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleApply}>{t('common.apply')}</Button>
+        </>
+      }
+    >
+      <p className="text-xs text-muted">{t('avatar.hint')}</p>
+      <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+        {/* Google option — only visible if the user has signed in via Google
+            (and we therefore have a cached photo URL to restore later). */}
+        {googleAvatarUrl && (
           <button
-            key={id}
             type="button"
-            disabled={disabled}
-            onClick={() => onSelect(isSelected ? null : id)}
-            aria-label={id}
-            aria-pressed={isSelected}
+            onClick={() => setDraft('google')}
+            aria-label={t('avatar.useGoogle')}
+            aria-pressed={draft === 'google'}
+            title={t('avatar.useGoogle')}
             className={cn(
-              'rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-              isSelected
-                ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg'
-                : 'opacity-70 hover:opacity-100',
-              disabled && 'cursor-not-allowed opacity-40',
+              'relative aspect-square w-full overflow-hidden rounded-md transition-all',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              draft === 'google'
+                ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
+                : 'opacity-80 hover:opacity-100',
             )}
           >
-            <Avatar avatarUrl={id} nickname={id} size={44} />
+            <Avatar avatarUrl={googleAvatarUrl} nickname={nickname} size={null} shape="square" />
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/65 py-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-white">
+              Google
+            </span>
           </button>
-        );
-      })}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onSelect(null)}
-        aria-label={t('avatar.none')}
-        aria-pressed={selected === null}
-        className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-muted text-xs text-muted transition-all hover:border-fg hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          selected === null &&
-            'border-accent text-accent ring-2 ring-accent ring-offset-2 ring-offset-bg',
-          disabled && 'cursor-not-allowed opacity-40',
         )}
-      >
-        ✕
-      </button>
-    </div>
+        {STANDARD_AVATARS.map((id) => {
+          const isSelected = draft === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setDraft(id)}
+              aria-label={id}
+              aria-pressed={isSelected}
+              className={cn(
+                'aspect-square w-full overflow-hidden rounded-md transition-all',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                isSelected
+                  ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
+                  : 'opacity-80 hover:opacity-100',
+              )}
+            >
+              <Avatar avatarUrl={id} nickname={id} size={null} shape="square" />
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setDraft(null)}
+          aria-label={t('avatar.none')}
+          aria-pressed={draft === null}
+          className={cn(
+            'flex aspect-square w-full items-center justify-center rounded-md border border-dashed border-muted text-sm text-muted transition-all',
+            'hover:border-fg hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            draft === null &&
+              'border-accent text-accent ring-2 ring-accent ring-offset-2 ring-offset-card',
+          )}
+        >
+          ✕
+        </button>
+      </div>
+    </Dialog>
   );
+}
+
+/** Translate the current user state into the picker's selection model. */
+function deriveAvatarSelection(
+  avatarUrl: string | null | undefined,
+  googleAvatarUrl: string | null | undefined,
+): AvatarSelection {
+  if (isStandardAvatar(avatarUrl)) return avatarUrl;
+  // Currently showing the Google photo if avatarUrl matches the cached one.
+  if (googleAvatarUrl && avatarUrl === googleAvatarUrl) return 'google';
+  return null;
 }
 
 export function UserPage() {
@@ -112,9 +180,10 @@ function OwnProfileSection() {
   const [realName, setRealName] = useState(user?.realName ?? '');
   const [country, setCountry] = useState(user?.country ?? '');
   const [clubName, setClubName] = useState(user?.clubName ?? '');
-  const [selectedAvatar, setSelectedAvatar] = useState<StandardAvatarId | null>(
-    isStandardAvatar(user?.avatarUrl) ? user.avatarUrl : null,
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarSelection>(
+    deriveAvatarSelection(user?.avatarUrl, user?.googleAvatarUrl),
   );
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savedRecently, setSavedRecently] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -126,10 +195,10 @@ function OwnProfileSection() {
     setRealName(user.realName ?? '');
     setCountry(user.country ?? '');
     setClubName(user.clubName ?? '');
-    setSelectedAvatar(isStandardAvatar(user.avatarUrl) ? user.avatarUrl : null);
+    setSelectedAvatar(deriveAvatarSelection(user.avatarUrl, user.googleAvatarUrl));
   }, [user]);
 
-  const currentAvatar = isStandardAvatar(user?.avatarUrl) ? user.avatarUrl : null;
+  const currentAvatar = deriveAvatarSelection(user?.avatarUrl, user?.googleAvatarUrl);
 
   const dirty = useMemo(() => {
     if (!user) return false;
@@ -212,19 +281,54 @@ function OwnProfileSection() {
     );
   }
 
+  // Show the currently-staged selection in the header so the user sees a live
+  // preview before clicking Save on the form. Resolves 'google' to the URL.
+  const headerAvatarUrl =
+    selectedAvatar === null
+      ? null
+      : selectedAvatar === 'google'
+        ? (user.googleAvatarUrl ?? null)
+        : selectedAvatar;
+
   return (
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-md space-y-6">
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar avatarUrl={user.avatarUrl} nickname={user.nickname} size={48} />
-            <h1 className="text-2xl font-bold text-fg">{t('auth.profile.title')}</h1>
+        <header className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setAvatarPickerOpen(true)}
+              aria-label={t('avatar.dialogTitle')}
+              className={cn(
+                'group relative shrink-0 overflow-hidden rounded-md transition',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+              )}
+            >
+              <Avatar
+                avatarUrl={headerAvatarUrl}
+                nickname={user.nickname}
+                size={64}
+                shape="square"
+              />
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 flex h-5 items-center justify-center bg-black/60 text-[10px] uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100"
+              >
+                {t('avatar.changeShort')}
+              </span>
+            </button>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-fg">{user.nickname}</h1>
+              {user.realName && (
+                <p className="mt-0.5 truncate text-sm text-muted">{user.realName}</p>
+              )}
+            </div>
           </div>
           <button
             type="button"
             onClick={() => logout.mutate()}
             disabled={logout.isPending}
-            className="text-sm text-muted hover:text-fg hover:underline disabled:opacity-60"
+            className="shrink-0 text-sm text-muted hover:text-fg hover:underline disabled:opacity-60"
           >
             {logout.isPending ? t('auth.profile.loggingOut') : t('auth.profile.logout')}
           </button>
@@ -235,16 +339,6 @@ function OwnProfileSection() {
           className="rounded-lg border border-border bg-card p-6 space-y-4"
           noValidate
         >
-          <div>
-            <p className="mb-2 text-sm font-medium text-fg">{t('avatar.title')}</p>
-            <AvatarPicker
-              selected={selectedAvatar}
-              onSelect={setSelectedAvatar}
-              disabled={saving}
-            />
-            <p className="mt-1.5 text-xs text-muted">{t('avatar.hint')}</p>
-          </div>
-
           <FormField
             label={t('auth.profile.emailLabel')}
             type="email"
@@ -344,6 +438,15 @@ function OwnProfileSection() {
           </div>
         </div>
       </div>
+
+      <AvatarPickerDialog
+        open={avatarPickerOpen}
+        initial={selectedAvatar}
+        googleAvatarUrl={user.googleAvatarUrl}
+        nickname={user.nickname}
+        onClose={() => setAvatarPickerOpen(false)}
+        onApply={setSelectedAvatar}
+      />
 
       <Dialog
         open={deleteOpen}

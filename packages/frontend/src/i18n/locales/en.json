@@ -20,7 +20,8 @@
     "loading": "Loading...",
     "connecting": "Connecting...",
     "lobby_loading": "Loading lobby...",
-    "close": "Close"
+    "close": "Close",
+    "apply": "Apply"
   },
   "languages": {
     "ru": "Русский",
@@ -454,6 +455,9 @@
     "title": "Avatar",
     "hint": "Choose from the standard set. Custom photos are not supported yet.",
     "none": "No avatar",
-    "selected": "Selected"
+    "selected": "Selected",
+    "useGoogle": "From Google",
+    "dialogTitle": "Choose avatar",
+    "changeShort": "Change"
   }
 }
