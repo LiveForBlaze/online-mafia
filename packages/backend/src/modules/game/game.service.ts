@@ -670,9 +670,11 @@ export async function checkAsSheriff(
 
 // ---- ROLE_DISTRIBUTION card pick ----
 
-// Per-game auto-pick timer. The picker has 10 seconds; if they don't click,
-// the server picks the first available card for them so the queue can move.
+// Auto-pick fallback. Humans get the full 10-second window and the server
+// then picks the first available card; bots pick a random card almost
+// immediately so the queue doesn't drag through 10s of "Bot N is picking".
 const PICK_TIMEOUT_MS = 10_000;
+const BOT_PICK_DELAY_MS = 1500;
 const pickTimers = new Map<string, NodeJS.Timeout>();
 
 function clearPickTimer(gameId: string): void {
@@ -687,13 +689,23 @@ function clearPickTimer(gameId: string): void {
  *  Re-scheduling is idempotent: each call cancels the previous timer first. */
 export function schedulePickTimer(gameId: string, expectedPickerSeat: number): void {
   clearPickTimer(gameId);
-  const t = setTimeout(() => {
-    void autoPickRoleCard(gameId, expectedPickerSeat);
-  }, PICK_TIMEOUT_MS);
+  const state = getGame(gameId);
+  const picker = state?.participants.find((p) => p.seat === expectedPickerSeat);
+  const isBot = picker?.isBot ?? false;
+  const t = setTimeout(
+    () => {
+      void autoPickRoleCard(gameId, expectedPickerSeat, isBot);
+    },
+    isBot ? BOT_PICK_DELAY_MS : PICK_TIMEOUT_MS,
+  );
   pickTimers.set(gameId, t);
 }
 
-async function autoPickRoleCard(gameId: string, expectedPickerSeat: number): Promise<void> {
+async function autoPickRoleCard(
+  gameId: string,
+  expectedPickerSeat: number,
+  randomize: boolean,
+): Promise<void> {
   const state = getGame(gameId);
   if (!state) return;
   if (state.phase !== GAME_PHASE.ROLE_DISTRIBUTION) return;
@@ -701,14 +713,16 @@ async function autoPickRoleCard(gameId: string, expectedPickerSeat: number): Pro
   const picker = state.participants.find((p) => p.seat === expectedPickerSeat);
   if (!picker) return;
   const taken = new Set(state.roleCardsPicked);
-  let cardIndex = -1;
+  const available: number[] = [];
   for (let i = 0; i < 10; i += 1) {
-    if (!taken.has(i)) {
-      cardIndex = i;
-      break;
-    }
+    if (!taken.has(i)) available.push(i);
   }
-  if (cardIndex === -1) return;
+  if (available.length === 0) return;
+  // Bots pick at random for that "I'm choosing" illusion; human timeouts
+  // get the first available card as documented for the player.
+  const cardIndex = randomize
+    ? available[Math.floor(Math.random() * available.length)]!
+    : available[0]!;
   await pickRoleCard({ gameId, userId: picker.userId }, cardIndex, true);
 }
 

@@ -37,6 +37,10 @@ export function RoleCardPickerDialog({
   // Judges don't pick cards. They watch the table progress and advance the
   // phase once the wall is empty.
   if (viewerIsJudge) return null;
+  // Once everyone has picked, dismiss the modal — the phase still lingers
+  // until the judge advances, but the wall is done and the table should
+  // see each other instead of the dialog overlay.
+  if (state.roleCardPickerSeat === null) return null;
 
   const myTurn = viewerSeat !== null && state.roleCardPickerSeat === viewerSeat;
   const myPickIndex = state.myRoleCardIndex;
@@ -50,23 +54,21 @@ export function RoleCardPickerDialog({
 
   const headerText = myTurn
     ? t('game.cardPicker.yourTurn')
-    : state.roleCardPickerSeat !== null
-      ? t('game.cardPicker.waitingFor', { seat: state.roleCardPickerSeat })
-      : t('game.cardPicker.finishedWaitJudge');
+    : t('game.cardPicker.waitingFor', { seat: state.roleCardPickerSeat });
 
   return (
     <Dialog
       open={true}
       onClose={() => undefined}
       title={t('game.cardPicker.title')}
-      className="max-w-xl"
+      className="max-w-4xl"
     >
       <div className="space-y-1 text-center">
-        <p className="text-sm text-fg">{headerText}</p>
+        <p className="text-base text-fg">{headerText}</p>
         {hasTimer && myTurn && (
           <p
             className={cn(
-              'text-3xl font-bold tabular-nums leading-none',
+              'text-4xl font-bold tabular-nums leading-none',
               secondsLeft <= 3 ? 'text-danger' : 'text-fg',
             )}
           >
@@ -75,9 +77,9 @@ export function RoleCardPickerDialog({
         )}
       </div>
 
-      {/* Wall of 10 cards. Picked cards visually collapse to a faded slot so
-          the wall geometry stays stable while indices remain meaningful. */}
-      <div className="grid grid-cols-5 gap-2 sm:gap-3">
+      {/* Wall of 10 cards. Picked cards leave a literal empty slot so the
+          wall geometry stays stable while indices remain meaningful. */}
+      <div className="grid grid-cols-5 gap-3 sm:gap-4">
         {Array.from({ length: 10 }, (_, idx) => {
           const isPicked = taken.has(idx);
           const isMine = myPickIndex === idx;
@@ -86,21 +88,18 @@ export function RoleCardPickerDialog({
             return (
               <div
                 key={idx}
-                className="flex aspect-[3/4] flex-col items-center justify-center rounded-md border-2 border-accent bg-card p-2 text-center"
+                className="flex aspect-[3/4] flex-col items-center justify-center rounded-lg border-2 border-accent bg-card p-3 text-center"
               >
-                <p className="text-[10px] uppercase tracking-wider text-muted">
+                <p className="text-xs uppercase tracking-wider text-muted">
                   {t('game.cardPicker.yourRoleLabel')}
                 </p>
-                <p className="mt-1 text-base font-bold text-fg leading-tight">
+                <p className="mt-1.5 text-lg font-bold text-fg leading-tight">
                   {t(`game.role.${viewerRole}`)}
                 </p>
               </div>
             );
           }
           if (isPicked) {
-            // Picked cards leave a literal empty slot — no border, no glyph.
-            // The visual reads "the card was taken away" instead of "this
-            // is a special placeholder cell".
             return <div key={idx} className="aspect-[3/4]" aria-hidden="true" />;
           }
           const clickable = myTurn;
@@ -112,7 +111,7 @@ export function RoleCardPickerDialog({
               onClick={() => pickCard(idx)}
               aria-label={t('game.cardPicker.cardLabel', { n: idx + 1 })}
               className={cn(
-                'flex aspect-[3/4] items-center justify-center rounded-md border bg-gradient-to-br from-card to-card-deep text-2xl font-bold transition',
+                'flex aspect-[3/4] items-center justify-center rounded-lg border bg-gradient-to-br from-card to-card-deep text-5xl font-bold transition',
                 clickable
                   ? 'border-accent text-accent cursor-pointer hover:scale-105 hover:shadow-lg'
                   : 'border-border text-muted/40 cursor-not-allowed',

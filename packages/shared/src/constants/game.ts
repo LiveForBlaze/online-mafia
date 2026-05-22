@@ -45,7 +45,10 @@ export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   [GAME_PHASE.LOBBY]: 0,
   // Open-mic intro phase — judge decides when everyone has said hi.
   [GAME_PHASE.PLAYER_INTRODUCTION]: 0,
-  [GAME_PHASE.ROLE_DISTRIBUTION]: 30,
+  // Per-pick window during the card-pick ceremony. Resets every time the
+  // picker advances to the next seat. After this many seconds the server
+  // auto-picks the first available card for the current seat.
+  [GAME_PHASE.ROLE_DISTRIBUTION]: 10,
   // Mafia + don use this minute to introduce themselves and agree on the
   // first-night strategy. Camera is on (mafia-team only); audio is closed,
   // so they coordinate by gestures.
