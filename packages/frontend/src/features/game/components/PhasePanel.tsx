@@ -458,18 +458,17 @@ export function actionForSeatInCurrentPhase(args: {
 
   switch (state.phase) {
     case GAME_PHASE.DAY_SPEECH:
-      // Nomination is judge-driven. The speaker says "выставляю №X" out
-      // loud, the judge clicks the corresponding tile. Hidden from players;
-      // only shown to the judge while there's an active speaker and the
-      // target isn't already nominated / isn't the speaker themselves.
+      // Nomination is judge-driven. The speaker says "выставляю №X" (or
+      // "выставляю себя") out loud, the judge clicks the corresponding
+      // tile. Hidden from players; only shown to the judge while there's
+      // an active speaker and the target isn't already nominated.
       // One nomination per speech: once the speaker has called one,
       // nominationLockedForSpeaker flips on and all nominate buttons hide
-      // until the next speaker takes the floor.
+      // until the next speaker takes the floor. Self-nomination IS allowed.
       if (!viewerIsJudge) return null;
       if (state.currentSpeakerSeat === null) return null;
       if (state.farewellSeat !== null) return null;
       if (state.nominationLockedForSpeaker) return null;
-      if (participantSeat === state.currentSpeakerSeat) return null;
       if (state.nominationSeats.includes(participantSeat)) return null;
       return {
         label: t('game.ui.nominateButton'),

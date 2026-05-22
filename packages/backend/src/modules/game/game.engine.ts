@@ -281,8 +281,9 @@ export function nextPhase(state: GameState): GamePhase {
 //   - phase must be DAY_SPEECH
 //   - there must be an active non-farewell speaker (farewell speakers can't
 //     nominate from the grave, so the judge can't either while they're on)
-//   - target must be alive, non-judge, not already nominated, and not the
-//     current speaker (you can't nominate yourself)
+//   - target must be alive, non-judge, not already nominated. The speaker
+//     IS allowed to nominate themselves — putting yourself up for vote is
+//     a legitimate (and sometimes strong) sport-mafia move.
 export function applyNominate(
   state: GameState,
   actorUserId: string,
@@ -307,9 +308,6 @@ export function applyNominate(
   if (target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
   if (!target.isAlive || target.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
   if (state.nominationSeats.includes(targetSeat)) return fail(ENGINE_ERROR.ALREADY_NOMINATED);
-  // Speaker can't nominate themselves — same rule as before, just rephrased
-  // since the actor is now the judge.
-  if (targetSeat === state.currentSpeakerSeat) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
 
   return ok({
     ...state,

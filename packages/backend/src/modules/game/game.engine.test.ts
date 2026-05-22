@@ -166,11 +166,11 @@ describe('applyNominate (judge-driven)', () => {
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   });
 
-  it('refuses nominating the current speaker (self-nomination)', () => {
+  it('allows self-nomination (speaker putting themselves up)', () => {
     const state = buildState({ currentSpeakerSeat: 1 });
     const result = applyNominate(state, 'user-judge', 1);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.CANNOT_TARGET_SELF);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.nominationSeats).toContain(1);
   });
 
   it('refuses nominating a dead player', () => {
