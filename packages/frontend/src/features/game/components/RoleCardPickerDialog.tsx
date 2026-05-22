@@ -98,15 +98,10 @@ export function RoleCardPickerDialog({
             );
           }
           if (isPicked) {
-            return (
-              <div
-                key={idx}
-                className="flex aspect-[3/4] items-center justify-center rounded-md border border-dashed border-border bg-card-deep/30 text-xs text-muted"
-                aria-hidden="true"
-              >
-                ✕
-              </div>
-            );
+            // Picked cards leave a literal empty slot — no border, no glyph.
+            // The visual reads "the card was taken away" instead of "this
+            // is a special placeholder cell".
+            return <div key={idx} className="aspect-[3/4]" aria-hidden="true" />;
           }
           const clickable = myTurn;
           return (
