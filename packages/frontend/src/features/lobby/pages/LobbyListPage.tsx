@@ -17,7 +17,6 @@ import { cn } from '@/lib/cn.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { EmptyLobbyState } from '@/features/lobby/components/EmptyLobbyState.js';
 import { HomeFeatures } from '@/features/lobby/components/HomeFeatures.js';
-import { HomeFooter } from '@/features/lobby/components/HomeFooter.js';
 import { HomeHero } from '@/features/lobby/components/HomeHero.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
@@ -180,8 +179,6 @@ export function LobbyListPage() {
         )}
 
         <HomeFeatures />
-
-        <HomeFooter />
 
         <CreateLobbyDialog
           open={isCreateOpen}
