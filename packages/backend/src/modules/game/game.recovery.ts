@@ -144,6 +144,7 @@ function replayState(
     bestMoveGuesses: [],
     roleCardPickerSeat: null,
     roleCardsPicked: [],
+    disqualifiedThisDay: false,
     winner: null,
     nextEventSeq: 0,
   };

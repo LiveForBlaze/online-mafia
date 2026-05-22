@@ -127,6 +127,14 @@ export interface GameState {
   roleCardPickerSeat: number | null;
   roleCardsPicked: number[];
 
+  // Per ФИИМ: if a player is disqualified (judge-removed, foul-removed,
+  // or self-leave) during DAY_SPEECH — before the day vote starts — that
+  // day's vote is cancelled and the table goes straight to night. Flag is
+  // set inside applyJudgeRemove when the current phase is DAY_SPEECH and
+  // cleared at the start of the next day (MORNING_ANNOUNCEMENT block in
+  // applyAdvancePhase).
+  disqualifiedThisDay: boolean;
+
   // Monotonic event sequence (mirrors GameEvent.seq in the database).
   nextEventSeq: number;
 }

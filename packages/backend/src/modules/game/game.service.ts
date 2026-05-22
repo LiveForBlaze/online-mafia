@@ -206,6 +206,7 @@ export async function createGameFromLobby(
     bestMoveGuesses: [],
     roleCardPickerSeat: null,
     roleCardsPicked: [],
+    disqualifiedThisDay: false,
     winner: null,
     nextEventSeq: 1,
   };

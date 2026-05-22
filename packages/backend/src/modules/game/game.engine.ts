@@ -226,6 +226,10 @@ export function nextPhase(state: GameState): GamePhase {
       return GAME_PHASE.DAY_SPEECH;
     case GAME_PHASE.DAY_SPEECH:
       // Speeches end → vote if there are nominations, else go to night.
+      // Exception (ФИИМ): if a player was disqualified during the speeches
+      // — judge-removed, foul-removed, or self-leave — the day's vote is
+      // cancelled and the table goes straight to night.
+      if (state.disqualifiedThisDay) return GAME_PHASE.NIGHT_MAFIA;
       return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE : GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.DAY_VOTE:
       // After vote resolution one of three outcomes is in `state`:
@@ -691,6 +695,9 @@ export function applyAdvancePhase(state: GameState): GameState {
       nominationSeats: [],
       votes: new Map(),
       participants: next.participants.map((p) => ({ ...p, hasSpokenThisDay: false })),
+      // Clear the per-day disqualification flag — a new day, the rule
+      // is evaluated against THIS day's removals only.
+      disqualifiedThisDay: false,
     };
   }
 
@@ -1078,6 +1085,10 @@ export function applyJudgeRemove(state: GameState, targetUserId: string): Engine
     // the judge will advance to the next speaker manually.
     currentSpeakerSeat: state.currentSpeakerSeat === removedSeat ? null : state.currentSpeakerSeat,
     farewellSeat: state.farewellSeat === removedSeat ? null : state.farewellSeat,
+    // Disqualification BEFORE the day vote cancels that day's vote and the
+    // table goes straight to night. Tracked only during DAY_SPEECH — removal
+    // during voting or night phases doesn't trigger this rule.
+    disqualifiedThisDay: state.phase === GAME_PHASE.DAY_SPEECH ? true : state.disqualifiedThisDay,
   };
   const winner = checkWinner(next);
   if (winner !== null) {
