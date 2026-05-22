@@ -351,11 +351,11 @@ export function applyMafiaTarget(
 
   const actor = findByUserId(state, actorUserId);
   if (!actor || actor.isJudge || !actor.isAlive) return fail(ENGINE_ERROR.NOT_LIVE_PLAYER);
-  // Only mafia (not don) cast the night kill ballot via the UI. Per the
-  // project owner: the don makes their case during the night-zero spoken
-  // discussion, not through the click mechanic. The don's own UI action
-  // remains the sheriff-check at NIGHT_DON.
-  if (actor.role !== ROLE.MAFIA) {
+  // All three black-team players (two mafia + don) cast the night kill
+  // ballot. Resolution at the end of night requires unanimity across
+  // everyone alive on the black team — if any of them disagrees or
+  // doesn't vote, the night ends in a miss.
+  if (actor.role !== ROLE.MAFIA && actor.role !== ROLE.DON) {
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
 
@@ -382,12 +382,11 @@ export function applyMafiaTarget(
   });
 }
 
-// Resolve the night's kill: if every alive MAFIA seat voted AND they all
-// picked the same target, that seat dies. The don doesn't participate in
-// this mechanic — they make their case during the night-zero discussion.
+// Resolve the night's kill: every alive black-team seat (mafia + don)
+// must have voted AND voted for the same target for the kill to land.
 // Returns null on miss / no consensus.
 function resolveMafiaConsensus(state: GameState): number | null {
-  const shooters = alivePlayers(state).filter((p) => p.role === ROLE.MAFIA);
+  const shooters = alivePlayers(state).filter((p) => p.role === ROLE.MAFIA || p.role === ROLE.DON);
   if (shooters.length === 0) return null;
   let agreed: number | null = null;
   for (const shooter of shooters) {
