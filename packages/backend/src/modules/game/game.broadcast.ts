@@ -10,7 +10,7 @@ import { SERVER_EVENT } from '@mafia/shared';
 
 import { logger } from '../../lib/logger.js';
 import { projectFor } from './game.engine.js';
-import { getGame } from './game.registry.js';
+import { activeGameIds, getGame } from './game.registry.js';
 
 let ioInstance: IOServer | null = null;
 
@@ -20,6 +20,34 @@ export function attachIO(io: IOServer): void {
 
 export function gameRoomName(gameId: string): string {
   return `game:${gameId}`;
+}
+
+/**
+ * Refresh the in-memory snapshot of a user's nickname / avatar in every
+ * active game they're a participant of, then re-broadcast each game's state
+ * so connected clients see the change without reloading.
+ */
+export function refreshUserInActiveGames(
+  userId: string,
+  patch: { nickname?: string; avatarUrl?: string | null },
+): void {
+  for (const gameId of activeGameIds()) {
+    const state = getGame(gameId);
+    if (!state) continue;
+    let touched = false;
+    for (const p of state.participants) {
+      if (p.userId !== userId) continue;
+      if (patch.nickname !== undefined && patch.nickname !== p.nickname) {
+        p.nickname = patch.nickname;
+        touched = true;
+      }
+      if (patch.avatarUrl !== undefined && patch.avatarUrl !== p.avatarUrl) {
+        p.avatarUrl = patch.avatarUrl;
+        touched = true;
+      }
+    }
+    if (touched) broadcastGameState(gameId);
+  }
 }
 
 /** Send the latest state to every socket in the room, projected for that socket's user. */

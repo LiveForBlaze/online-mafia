@@ -24,6 +24,21 @@ export function lobbyRoomName(lobbyId: string): string {
   return `lobby:${lobbyId}`;
 }
 
+/**
+ * Push a fresh lobby snapshot to the lobby the user is currently a member of
+ * (business rule: at most one). Called when the user's public-facing data
+ * (nickname, avatar) changes so the other seats see the update without
+ * anyone reloading. Only WAITING lobbies are touched — once a game starts,
+ * the GameParticipant snapshot takes over.
+ */
+export async function broadcastLobbiesContainingUser(userId: string): Promise<void> {
+  const membership = await prisma.lobbyMember.findFirst({
+    where: { userId, lobby: { status: 'WAITING' } },
+    select: { lobbyId: true },
+  });
+  if (membership) await broadcastLobbyUpdate(membership.lobbyId);
+}
+
 export async function broadcastLobbyUpdate(lobbyId: string): Promise<void> {
   if (!ioInstance) return;
   const room = ioInstance.sockets.adapter.rooms.get(lobbyRoomName(lobbyId));

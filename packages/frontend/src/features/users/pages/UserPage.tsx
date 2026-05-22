@@ -299,8 +299,10 @@ function OwnProfileSection() {
               type="button"
               onClick={() => setAvatarPickerOpen(true)}
               aria-label={t('avatar.dialogTitle')}
+              title={t('avatar.dialogTitle')}
               className={cn(
-                'group relative shrink-0 overflow-hidden rounded-md transition',
+                'group relative shrink-0 overflow-hidden rounded-md border border-border bg-card-deep transition',
+                'hover:border-accent',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
               )}
             >
@@ -310,9 +312,18 @@ function OwnProfileSection() {
                 size={64}
                 shape="square"
               />
+              {/* Always-visible edit pill in the corner: makes the clickable
+                  affordance obvious even on the plain-initial fallback where
+                  the tile would otherwise look static. */}
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 bottom-0 flex h-5 items-center justify-center bg-black/60 text-[10px] uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100"
+                className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-fg shadow-sm"
+              >
+                <EditIcon />
+              </span>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-0 flex h-5 items-center justify-center bg-black/65 text-[10px] uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100"
               >
                 {t('avatar.changeShort')}
               </span>
@@ -596,6 +607,25 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="shrink-0 text-xs uppercase tracking-wider text-muted">{label}</dt>
       <dd className="min-w-0 truncate text-right text-fg">{value}</dd>
     </div>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
 

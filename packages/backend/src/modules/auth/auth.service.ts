@@ -18,6 +18,8 @@ import type { User } from '@prisma/client';
 import { prisma } from '../../db/prisma.client.js';
 import { moderateName } from '../../lib/moderation.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
+import { refreshUserInActiveGames } from '../game/game.broadcast.js';
+import { broadcastLobbiesContainingUser } from '../lobby/lobby.broadcast.js';
 
 import type { GoogleUserInfo } from './google.js';
 
@@ -136,15 +138,16 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
 
 export async function updateNickname(userId: string, nickname: string): Promise<AuthResult> {
   const normalized = nickname.trim();
-  // Same AI-moderation gate as registration. Users can still change to any
-  // name we don't object to, but they can't repaint themselves with a slur.
   const verdict = await moderateName(normalized, 'nickname');
   if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
-  // Nicknames are no longer unique — no collision check needed.
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { nickname: normalized },
   });
+  // Push the new nickname to every lobby / active game this user is in so
+  // other sockets see it without reloading. Fire-and-forget; never blocks.
+  void broadcastLobbiesContainingUser(userId);
+  refreshUserInActiveGames(userId, { nickname: normalized });
   return { ok: true, user: updated };
 }
 
@@ -188,6 +191,12 @@ export async function updateProfile(
   }
 
   const updated = await prisma.user.update({ where: { id: userId }, data });
+  // If the avatar changed, push the new snapshot to the user's lobby and
+  // active game so other connected sockets see it without reloading.
+  if (data.avatarUrl !== undefined) {
+    void broadcastLobbiesContainingUser(userId);
+    refreshUserInActiveGames(userId, { avatarUrl: updated.avatarUrl });
+  }
   return { ok: true, user: updated };
 }
 
