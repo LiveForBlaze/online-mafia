@@ -3,6 +3,7 @@
 // shape) so it can drop in wherever a password field was used.
 
 import { forwardRef, useId, useState, type InputHTMLAttributes } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/cn.js';
 
@@ -16,9 +17,11 @@ interface PasswordFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
 
 export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
   function PasswordField({ label, error, className, id, disabled, ...rest }, ref) {
+    const { t } = useTranslation();
     const autoId = useId();
     const inputId = id ?? autoId;
     const [visible, setVisible] = useState(false);
+    const toggleLabel = visible ? t('common.hidePassword') : t('common.showPassword');
 
     return (
       <div className={cn('w-full', className)}>
@@ -38,8 +41,8 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
             onClick={() => setVisible((v) => !v)}
             disabled={disabled}
             tabIndex={-1}
-            aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'}
-            title={visible ? 'Скрыть пароль' : 'Показать пароль'}
+            aria-label={toggleLabel}
+            title={toggleLabel}
             className={cn(
               'absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-7 w-7',
               'items-center justify-center rounded-md text-muted hover:text-fg hover:bg-bg transition',

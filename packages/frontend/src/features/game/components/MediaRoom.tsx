@@ -12,6 +12,7 @@
 // out of the game itself.
 
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { LiveKitRoom, RoomContext } from '@livekit/components-react';
 import { Room } from 'livekit-client';
@@ -26,6 +27,7 @@ interface MediaRoomProps {
 }
 
 export function MediaRoom({ gameId, children }: MediaRoomProps) {
+  const { t } = useTranslation();
   const tokenQuery = useQuery({
     queryKey: ['game', gameId, 'livekit-token'],
     queryFn: () => gameApi.liveKitToken(gameId),
@@ -42,7 +44,7 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
   if (tokenQuery.isLoading) {
     return (
       <RoomContext.Provider value={idleRoom}>
-        <MediaBanner tone="info">Подключение к голосовой комнате...</MediaBanner>
+        <MediaBanner tone="info">{t('game.media.connecting')}</MediaBanner>
         {children}
       </RoomContext.Provider>
     );
@@ -50,9 +52,7 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
   if (tokenQuery.isError || !tokenQuery.data) {
     return (
       <RoomContext.Provider value={idleRoom}>
-        <MediaBanner tone="danger">
-          Не удалось подключиться к голосовой комнате. Игра продолжается без видео.
-        </MediaBanner>
+        <MediaBanner tone="danger">{t('game.media.connectError')}</MediaBanner>
         {children}
       </RoomContext.Provider>
     );

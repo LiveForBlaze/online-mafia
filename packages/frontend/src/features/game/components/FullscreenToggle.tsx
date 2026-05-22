@@ -3,31 +3,27 @@
 // missing for the document) the click falls back to a hint about
 // installing the site as a home-screen app for an immersive view.
 
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/Button.js';
 import { useFullscreen } from '@/features/game/hooks/useFullscreen.js';
 
 export function FullscreenToggle() {
+  const { t } = useTranslation();
   const { isFullscreen, toggle, isSupported } = useFullscreen();
 
   function handleClick() {
     if (!isSupported) {
-      window.alert(
-        'Полноэкранный режим на этом устройстве не поддерживается браузером. ' +
-          'На iPhone используйте «Поделиться → На экран „Домой"» — приложение откроется без панелей.',
-      );
+      window.alert(t('game.fullscreen.unsupported'));
       return;
     }
     void toggle();
   }
 
+  const label = isFullscreen ? t('game.fullscreen.exit') : t('game.fullscreen.enter');
+
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={handleClick}
-      title={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
-      aria-label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
-    >
+    <Button variant="ghost" size="sm" onClick={handleClick} title={label} aria-label={label}>
       {isFullscreen ? <ExitIcon /> : <EnterIcon />}
     </Button>
   );

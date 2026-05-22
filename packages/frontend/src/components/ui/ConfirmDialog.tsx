@@ -3,6 +3,8 @@
 // Render once at the page level with `open` derived from a piece of state that
 // holds the pending intent. Call `onConfirm` to commit, `onCancel` to dismiss.
 
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/Button.js';
 import { Dialog } from '@/components/ui/Dialog.js';
 
@@ -24,12 +26,14 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
-  cancelLabel = 'Отмена',
+  cancelLabel,
   onConfirm,
   onCancel,
   destructive = false,
   pending = false,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
   return (
     <Dialog
       open={open}
@@ -38,7 +42,7 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onCancel} disabled={pending}>
-            {cancelLabel}
+            {resolvedCancelLabel}
           </Button>
           <Button
             variant={destructive ? 'primary' : 'primary'}

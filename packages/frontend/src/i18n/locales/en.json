@@ -21,7 +21,9 @@
     "connecting": "Connecting...",
     "lobby_loading": "Loading lobby...",
     "close": "Close",
-    "apply": "Apply"
+    "apply": "Apply",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "languages": {
     "ru": "Русский",
@@ -366,6 +368,15 @@
       "yourRoleLabel": "Your role",
       "hint": "You have 10 seconds to choose. If you don't, the first available card opens.",
       "cardLabel": "Card №{{n}}"
+    },
+    "media": {
+      "connecting": "Connecting to the voice room…",
+      "connectError": "Could not connect to the voice room. The game continues without video."
+    },
+    "fullscreen": {
+      "enter": "Fullscreen",
+      "exit": "Exit fullscreen",
+      "unsupported": "Fullscreen is not supported by this browser. On iPhone use Share → Add to Home Screen — the app will open without browser chrome."
     }
   },
   "about": {
@@ -468,5 +479,25 @@
     "useGoogle": "From Google",
     "dialogTitle": "Choose avatar",
     "changeShort": "Change"
+  },
+  "home": {
+    "features": {
+      "worldwide": {
+        "title": "Worldwide play",
+        "body": "Play with real people from across the globe"
+      },
+      "fairPlay": {
+        "title": "Fair play",
+        "body": "Advanced anti-cheat system"
+      },
+      "tournaments": {
+        "title": "Tournaments & ratings",
+        "body": "Compete in tournaments and climb the leaderboard"
+      },
+      "clubs": {
+        "title": "Clubs & friends",
+        "body": "Create clubs and play with friends"
+      }
+    }
   }
 }
