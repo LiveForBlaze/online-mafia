@@ -293,7 +293,7 @@ function OwnProfileSection() {
   return (
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-md space-y-6">
-        <header className="flex items-start justify-between gap-3">
+        <header className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-4">
             <button
               type="button"
@@ -328,9 +328,14 @@ function OwnProfileSection() {
             type="button"
             onClick={() => logout.mutate()}
             disabled={logout.isPending}
-            className="shrink-0 text-sm text-muted hover:text-fg hover:underline disabled:opacity-60"
+            title={t('auth.profile.logout')}
+            aria-label={t('auth.profile.logout')}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted transition hover:bg-card hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
           >
-            {logout.isPending ? t('auth.profile.loggingOut') : t('auth.profile.logout')}
+            <LogoutIcon />
+            <span className="hidden sm:inline">
+              {logout.isPending ? t('auth.profile.loggingOut') : t('auth.profile.logout')}
+            </span>
           </button>
         </header>
 
@@ -591,5 +596,25 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="shrink-0 text-xs uppercase tracking-wider text-muted">{label}</dt>
       <dd className="min-w-0 truncate text-right text-fg">{value}</dd>
     </div>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
   );
 }
