@@ -14,6 +14,7 @@ import { GAME_PHASE, LOBBY, ROLE, type GameStateProjected, type Role } from '@ma
 import { prisma } from '../../db/prisma.client.js';
 import { withLock } from '../../lib/mutex.js';
 import { broadcastLobbyUpdate } from '../lobby/lobby.broadcast.js';
+import { broadcastGameState } from './game.broadcast.js';
 import { withFreshDeadline } from './game.engine.js';
 import { syncMediaPermissions } from './game.media-permissions.js';
 
@@ -723,7 +724,11 @@ async function autoPickRoleCard(
   const cardIndex = randomize
     ? available[Math.floor(Math.random() * available.length)]!
     : available[0]!;
-  await pickRoleCard({ gameId, userId: picker.userId }, cardIndex, true);
+  const result = await pickRoleCard({ gameId, userId: picker.userId }, cardIndex, true);
+  // Auto-picks bypass the gateway's respondAndBroadcast, so we have to push
+  // the new state to the room ourselves — otherwise other clients keep
+  // showing the bot/timeout's seat as still picking until they reload.
+  if (result.ok) broadcastGameState(gameId);
 }
 
 export async function pickRoleCard(
