@@ -28,6 +28,7 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
   const { messages, send } = useLobbyChat(lobbyId);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // YouTube-style "follow new messages while you're at the bottom" tracker.
@@ -55,17 +56,20 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
     const text = draft.trim();
     if (text.length === 0) return;
     setSending(true);
-    const ack = await send(text);
-    setSending(false);
-    if (ack.ok) {
-      setDraft('');
-      // Keep the input focused so the next message is just type-and-Enter
-      // away — the conversation flows continuously instead of forcing the
-      // user to re-click after every send.
-      inputRef.current?.focus();
-      // Sending implies they're engaged with the bottom of the conversation;
-      // re-arm follow-mode so the broadcast they're about to see auto-scrolls.
-      stickToBottom.current = true;
+    setSendError(null);
+    try {
+      const ack = await send(text);
+      if (ack.ok) {
+        setDraft('');
+        inputRef.current?.focus();
+        stickToBottom.current = true;
+      } else {
+        setSendError(ack.error ?? t('lobby.chat.sendError'));
+      }
+    } catch {
+      setSendError(t('lobby.chat.sendError'));
+    } finally {
+      setSending(false);
     }
   }
 
@@ -87,6 +91,9 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
           ))
         )}
       </div>
+      {sendError && (
+        <p className="px-3 py-1 text-xs text-danger border-t border-border">{sendError}</p>
+      )}
       <form
         onSubmit={handleSend}
         className="border-t border-border p-2 flex items-center gap-2"

@@ -120,8 +120,9 @@ export function GamePage() {
   const viewerIsAlive = viewer?.isAlive ?? false;
   const viewerIsJudge = viewer?.isJudge ?? false;
 
-  const actionFor = (participant: (typeof state.participants)[number]) =>
-    actionForSeatInCurrentPhase({
+  const actionFor = (participant: (typeof state.participants)[number]) => {
+    if (participant.isJudge || participant.seat === null) return null;
+    return actionForSeatInCurrentPhase({
       t,
       state,
       viewerRole,
@@ -129,10 +130,11 @@ export function GamePage() {
       viewerUserId: user.id,
       viewerIsAlive,
       viewerIsJudge,
-      participantSeat: participant.seat!,
+      participantSeat: participant.seat,
       participantIsAlive: participant.isAlive,
       participantUserId: participant.userId,
     });
+  };
 
   const zoomedParticipant =
     zoomedSeat !== null

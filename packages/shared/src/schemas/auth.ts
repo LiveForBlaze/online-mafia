@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { STANDARD_AVATARS } from '../constants/avatars.js';
 import { emailSchema, nicknameSchema, passwordSchema } from './common.js';
 
 // Payload for POST /api/v1/auth/register
@@ -23,6 +24,8 @@ export const updateProfileInputSchema = z.object({
   realName: optionalShortText,
   country: optionalShortText,
   clubName: optionalShortText,
+  // Pass a standard avatar ID to switch avatar, null to clear, omit to leave unchanged.
+  avatarId: z.enum(STANDARD_AVATARS).nullable().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
 
@@ -42,7 +45,7 @@ export const authenticatedUserSchema = z.object({
   email: z.string().email(),
   nickname: z.string(),
   publicCode: z.string(),
-  avatarUrl: z.string().url().nullable(),
+  avatarUrl: z.string().nullable(),
   realName: z.string().nullable(),
   country: z.string().nullable(),
   clubName: z.string().nullable(),
@@ -57,7 +60,7 @@ export const publicUserProfileSchema = z.object({
   id: z.string().uuid(),
   publicCode: z.string(),
   nickname: z.string(),
-  avatarUrl: z.string().url().nullable(),
+  avatarUrl: z.string().nullable(),
   realName: z.string().nullable(),
   country: z.string().nullable(),
   clubName: z.string().nullable(),

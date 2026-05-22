@@ -39,6 +39,9 @@ export const CLIENT_EVENT = {
   // Auth
   AUTHENTICATE: 'client:authenticate',
 
+  // Game room subscription (before game actions)
+  GAME_JOIN: 'client:game_join',
+
   // Lobby
   LOBBY_JOIN: 'client:lobby_join',
   LOBBY_LEAVE: 'client:lobby_leave',

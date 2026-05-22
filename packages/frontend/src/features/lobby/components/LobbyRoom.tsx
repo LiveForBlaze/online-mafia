@@ -99,10 +99,15 @@ export function LobbyRoom({
           isKickPending={isKickPending}
         />
 
-        <section className="rounded-md border border-border bg-card p-4 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">
-            {t('lobby.room.seatsTitle')}
-          </h2>
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">
+              {t('lobby.room.seatsTitle')}
+            </h2>
+            <p className="text-xs text-muted">
+              {t('lobby.room.seatCount', { n: totalPlayerSeats })}
+            </p>
+          </div>
           <SeatGrid
             members={lobby.members}
             currentUserId={currentUserId}
@@ -114,30 +119,66 @@ export function LobbyRoom({
           />
         </section>
 
-        <section className="rounded-md border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium text-fg">
-              {t('lobby.room.seatsProgress', { current: playerCount, total: totalPlayerSeats })}
-            </p>
-            <p className="text-xs text-muted text-right">{statusMessage}</p>
+        {/* Status + ready button — the ready toggle lives here, outside the
+            seat tiles, so the player's attention isn't competing with seat UI. */}
+        <section className="rounded-md border border-border bg-card p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-xs uppercase tracking-wider text-muted">
+                  {allSeatsFilled ? t('lobby.room.allSeated') : t('lobby.room.waitingPlayers')}
+                </p>
+                <p className="text-sm font-semibold text-fg tabular-nums">
+                  {playerCount} / {totalPlayerSeats}
+                </p>
+              </div>
+              <div
+                className="h-1.5 w-full overflow-hidden rounded-full bg-card-deep"
+                role="progressbar"
+                aria-valuenow={playerCount}
+                aria-valuemin={0}
+                aria-valuemax={totalPlayerSeats}
+              >
+                <div
+                  className="h-full bg-danger transition-[width] duration-300 ease-out"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <p className={cn('text-xs', judge ? 'text-success' : 'text-danger')}>
+                {judge
+                  ? t('lobby.room.judgePresent', { nickname: judge.nickname })
+                  : t('lobby.room.judgeAbsent')}
+              </p>
+            </div>
+            {viewerMember && (
+              <div className="text-center sm:text-right shrink-0">
+                <p className="text-xs text-muted mb-1.5">
+                  {allSeatsFilled
+                    ? viewerIsReady
+                      ? t('lobby.room.youAreReady')
+                      : t('lobby.room.youWillBeReady')
+                    : t('lobby.room.playersNeeded', { n: playersNeeded })}
+                </p>
+                <Button
+                  size="md"
+                  onClick={() => onToggleReady(!viewerIsReady)}
+                  disabled={isReadyPending}
+                  className={cn(
+                    'min-w-[160px]',
+                    viewerIsReady
+                      ? 'bg-success hover:bg-success/90 text-white'
+                      : 'bg-danger hover:bg-danger/90 text-white',
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mr-1.5 inline-block h-2 w-2 rounded-full bg-white/90"
+                  />
+                  {viewerIsReady ? t('lobby.room.markNotReadyShort') : t('lobby.room.markReady')}
+                </Button>
+              </div>
+            )}
           </div>
-          <div
-            className="h-2 w-full overflow-hidden rounded-full bg-card-deep"
-            role="progressbar"
-            aria-valuenow={playerCount}
-            aria-valuemin={0}
-            aria-valuemax={totalPlayerSeats}
-          >
-            <div
-              className="h-full bg-accent transition-[width] duration-300 ease-out"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <p className={cn('text-xs', judge ? 'text-success' : 'text-danger')}>
-            {judge
-              ? t('lobby.room.judgePresent', { nickname: judge.nickname })
-              : t('lobby.room.judgeAbsent')}
-          </p>
         </section>
 
         <LobbyChat lobbyId={lobby.id} viewerUserId={currentUserId} className="h-80" />
@@ -150,18 +191,6 @@ export function LobbyRoom({
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
-            {/* "Готов" toggle — everyone (including the host) must flip
-                their flag before the host's start button activates. */}
-            {viewerMember && (
-              <Button
-                variant={viewerIsReady ? 'secondary' : 'primary'}
-                onClick={() => onToggleReady(!viewerIsReady)}
-                disabled={isReadyPending}
-                className={viewerIsReady ? '' : 'bg-success hover:bg-success/90 text-white'}
-              >
-                {viewerIsReady ? t('lobby.room.markNotReady') : t('lobby.room.markReady')}
-              </Button>
-            )}
             {isHost && (
               <>
                 <Button

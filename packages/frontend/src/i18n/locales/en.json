@@ -192,7 +192,14 @@
       "markReady": "Ready",
       "markNotReady": "Not ready",
       "readyLabel": "Ready",
-      "waitingReady": "Waiting for ready: {{n}}"
+      "waitingReady": "Waiting for ready: {{n}}",
+      "seatCount": "{{n}} seats",
+      "allSeated": "All seats filled",
+      "waitingPlayers": "Waiting for players",
+      "playersNeeded": "{{n}} players needed",
+      "youAreReady": "You are ready",
+      "youWillBeReady": "Tap to mark ready",
+      "markNotReadyShort": "Not ready"
     },
     "errors": {
       "lobby_not_found": "Lobby not found",
@@ -442,5 +449,11 @@
     "tournaments_body": "Open and club tournaments — single-elimination and round-robin, with automatic table seeding and a unified leaderboard. Coming later.",
     "rules_title": "Rules",
     "rules_body": "Roles, phases, voting and judge actions explained — for first-timers or anyone wanting to nail the nuances. Coming later."
+  },
+  "avatar": {
+    "title": "Avatar",
+    "hint": "Choose from the standard set. Custom photos are not supported yet.",
+    "none": "No avatar",
+    "selected": "Selected"
   }
 }

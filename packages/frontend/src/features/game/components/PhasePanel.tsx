@@ -376,9 +376,9 @@ function BestMoveGuessForm({ state }: { state: GameStateProjected }) {
       <p className="text-xs text-muted">{t('game.ui.lhHint')}</p>
       <div className="flex flex-wrap gap-1.5">
         {candidates
-          .filter((p) => p.seat !== null)
+          .filter((p): p is typeof p & { seat: number } => p.seat !== null)
           .map((p) => {
-            const seat = p.seat as number;
+            const seat = p.seat;
             const picked = selected.includes(seat);
             return (
               <button

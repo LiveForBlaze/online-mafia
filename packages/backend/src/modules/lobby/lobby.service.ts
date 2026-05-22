@@ -195,6 +195,16 @@ export async function joinLobby(
 
     const result = await prisma.$transaction(
       async (tx) => {
+        // Re-read status inside the transaction to detect TOCTOU changes
+        // (lobby could have transitioned to IN_GAME between the outer read and here).
+        const currentStatus = await tx.lobby.findUnique({
+          where: { id: lobbyId },
+          select: { status: true },
+        });
+        if (!currentStatus || currentStatus.status !== 'WAITING') {
+          return { kind: 'error' as const, error: LOBBY_ERROR.NOT_OPEN };
+        }
+
         const existing = await tx.lobbyMember.findUnique({
           where: { lobbyId_userId: { lobbyId, userId } },
         });

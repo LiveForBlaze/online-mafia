@@ -93,7 +93,29 @@ export const socketioPlugin = fp(
 
     app.decorate('io', io);
 
+    // Periodically re-check tokenVersion for all connected sockets so that a
+    // logout or account deletion takes effect within this window even for
+    // already-connected game sockets (which are not re-authenticated per-event).
+    const RECHECK_INTERVAL_MS = 5 * 60 * 1000;
+    const recheckTimer = setInterval(async () => {
+      const sockets = await io.fetchSockets();
+      await Promise.allSettled(
+        sockets.map(async (s) => {
+          const user = s.data.user;
+          if (!user) return;
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.sub },
+            select: { tokenVersion: true },
+          });
+          if (!dbUser || dbUser.tokenVersion !== user.v) {
+            s.disconnect(true);
+          }
+        }),
+      );
+    }, RECHECK_INTERVAL_MS);
+
     app.addHook('onClose', async () => {
+      clearInterval(recheckTimer);
       await io.close();
     });
   },

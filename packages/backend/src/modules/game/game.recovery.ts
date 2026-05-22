@@ -15,6 +15,7 @@ import type { Prisma } from '@prisma/client';
 import { type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { logger } from '../../lib/logger.js';
 
 import {
   applyAdvancePhase,
@@ -56,7 +57,7 @@ export async function recoverActiveGames(): Promise<void> {
     },
   });
 
-  await Promise.all(
+  const results = await Promise.allSettled(
     games.map(async (game) => {
       const events = await prisma.gameEvent.findMany({
         where: { gameId: game.id },
@@ -78,10 +79,7 @@ export async function recoverActiveGames(): Promise<void> {
           seat: p.seat,
           isJudge: p.isJudge,
           isBot: p.user.isBot,
-          // Roles on disk are authoritative — assignment happened in createGameFromLobby
-          // and is never changed afterwards.
           role: p.role as Role | null,
-          // isAlive / isRemoved / foulsCount get rebuilt by replaying the events below.
           isAlive: true,
           isRemoved: false,
           foulsCount: 0,
@@ -95,6 +93,12 @@ export async function recoverActiveGames(): Promise<void> {
       void syncMediaPermissions(state);
     }),
   );
+
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      logger.error({ err: result.reason }, 'game.recovery: failed to replay game');
+    }
+  }
 }
 
 /** Build an initial blank state and replay events into it. */

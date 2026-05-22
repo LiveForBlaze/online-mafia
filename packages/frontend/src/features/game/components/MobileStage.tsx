@@ -82,33 +82,6 @@ function StageBody({
     return <GameOverReview state={state} />;
   }
 
-  // Check result — promoted to the strip's dominant element when set.
-  if (state.myCheckResult) {
-    const isSheriff = state.phase === GAME_PHASE.NIGHT_SHERIFF;
-    const label = isSheriff
-      ? state.myCheckResult.result
-        ? t('game.ui.sheriffCheckBlack')
-        : t('game.ui.sheriffCheckRed')
-      : state.myCheckResult.result
-        ? t('game.ui.donCheckSheriff')
-        : t('game.ui.donCheckNotSheriff');
-    const labelClass = isSheriff
-      ? state.myCheckResult.result
-        ? 'text-fg'
-        : 'text-danger'
-      : state.myCheckResult.result
-        ? 'text-danger'
-        : 'text-fg';
-    return (
-      <div className="flex items-baseline gap-2">
-        <span className="text-xs uppercase tracking-wider text-muted">
-          №{state.myCheckResult.targetSeat}
-        </span>
-        <span className={cn('text-2xl font-extrabold leading-tight', labelClass)}>{label}</span>
-      </div>
-    );
-  }
-
   switch (state.phase) {
     case GAME_PHASE.PLAYER_INTRODUCTION:
       return <p className="text-sm text-muted">{t('game.ui.introHint')}</p>;
@@ -217,7 +190,21 @@ function StageBody({
       );
     }
 
-    case GAME_PHASE.NIGHT_DON:
+    case GAME_PHASE.NIGHT_DON: {
+      if (state.myCheckResult) {
+        const label = state.myCheckResult.result
+          ? t('game.ui.donCheckSheriff')
+          : t('game.ui.donCheckNotSheriff');
+        const labelClass = state.myCheckResult.result ? 'text-danger' : 'text-fg';
+        return (
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs uppercase tracking-wider text-muted">
+              №{state.myCheckResult.targetSeat}
+            </span>
+            <span className={cn('text-2xl font-extrabold leading-tight', labelClass)}>{label}</span>
+          </div>
+        );
+      }
       return (
         <p className="text-xs text-muted">
           {viewerRole === ROLE.DON && viewerIsAlive
@@ -225,8 +212,23 @@ function StageBody({
             : t('game.ui.waitingForOthers')}
         </p>
       );
+    }
 
-    case GAME_PHASE.NIGHT_SHERIFF:
+    case GAME_PHASE.NIGHT_SHERIFF: {
+      if (state.myCheckResult) {
+        const label = state.myCheckResult.result
+          ? t('game.ui.sheriffCheckBlack')
+          : t('game.ui.sheriffCheckRed');
+        const labelClass = state.myCheckResult.result ? 'text-fg' : 'text-danger';
+        return (
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs uppercase tracking-wider text-muted">
+              №{state.myCheckResult.targetSeat}
+            </span>
+            <span className={cn('text-2xl font-extrabold leading-tight', labelClass)}>{label}</span>
+          </div>
+        );
+      }
       return (
         <p className="text-xs text-muted">
           {viewerRole === ROLE.SHERIFF && viewerIsAlive
@@ -234,6 +236,7 @@ function StageBody({
             : t('game.ui.waitingForOthers')}
         </p>
       );
+    }
 
     case GAME_PHASE.MORNING_ANNOUNCEMENT:
       return (

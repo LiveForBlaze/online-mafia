@@ -7,14 +7,11 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { SERVER_EVENT, type LobbyDetailsResponse } from '@mafia/shared';
+import { CLIENT_EVENT, SERVER_EVENT, type LobbyDetailsResponse } from '@mafia/shared';
 
 import { connectGameSocket, emitGameAction } from '@/features/game/socket/game.socket.js';
 
 import { LOBBY_QUERY_KEY } from './useLobbies.js';
-
-const CLIENT_LOBBY_JOIN = 'client:lobby_join';
-const CLIENT_LOBBY_LEAVE = 'client:lobby_leave';
 
 interface Ack {
   ok: boolean;
@@ -30,7 +27,7 @@ export function useLobbyConnection(lobbyId: string | undefined): void {
     const socket = connectGameSocket();
 
     function joinRoom() {
-      void emitGameAction<Ack>(CLIENT_LOBBY_JOIN, { lobbyId });
+      void emitGameAction<Ack>(CLIENT_EVENT.LOBBY_JOIN, { lobbyId });
     }
 
     function handleLobbyUpdate(payload: LobbyDetailsResponse) {
@@ -45,7 +42,7 @@ export function useLobbyConnection(lobbyId: string | undefined): void {
     return () => {
       socket.off('connect', joinRoom);
       socket.off(SERVER_EVENT.LOBBY_UPDATED, handleLobbyUpdate);
-      void emitGameAction<Ack>(CLIENT_LOBBY_LEAVE, { lobbyId });
+      void emitGameAction<Ack>(CLIENT_EVENT.LOBBY_LEAVE, { lobbyId });
     };
   }, [lobbyId, queryClient]);
 }

@@ -15,9 +15,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 
+import { STANDARD_AVATARS, isStandardAvatar, type StandardAvatarId } from '@mafia/shared';
+
+import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { Dialog } from '@/components/ui/Dialog.js';
 import { FormField } from '@/components/ui/FormField.js';
+import { cn } from '@/lib/cn.js';
 import { ApiError } from '@/lib/api-client.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
 import {
@@ -28,9 +32,62 @@ import {
   useUpdateProfile,
 } from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
-import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
+
+/** Grid of 10 avatar tiles + a "none" option. */
+function AvatarPicker({
+  selected,
+  onSelect,
+  disabled,
+}: {
+  selected: StandardAvatarId | null;
+  onSelect: (id: StandardAvatarId | null) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-wrap gap-2">
+      {STANDARD_AVATARS.map((id) => {
+        const isSelected = selected === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            disabled={disabled}
+            onClick={() => onSelect(isSelected ? null : id)}
+            aria-label={id}
+            aria-pressed={isSelected}
+            className={cn(
+              'rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              isSelected
+                ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg'
+                : 'opacity-70 hover:opacity-100',
+              disabled && 'cursor-not-allowed opacity-40',
+            )}
+          >
+            <Avatar avatarUrl={id} nickname={id} size={44} />
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onSelect(null)}
+        aria-label={t('avatar.none')}
+        aria-pressed={selected === null}
+        className={cn(
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-muted text-xs text-muted transition-all hover:border-fg hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          selected === null &&
+            'border-accent text-accent ring-2 ring-accent ring-offset-2 ring-offset-bg',
+          disabled && 'cursor-not-allowed opacity-40',
+        )}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 export function UserPage() {
   const [searchParams] = useSearchParams();
@@ -55,6 +112,9 @@ function OwnProfileSection() {
   const [realName, setRealName] = useState(user?.realName ?? '');
   const [country, setCountry] = useState(user?.country ?? '');
   const [clubName, setClubName] = useState(user?.clubName ?? '');
+  const [selectedAvatar, setSelectedAvatar] = useState<StandardAvatarId | null>(
+    isStandardAvatar(user?.avatarUrl) ? user.avatarUrl : null,
+  );
   const [savedRecently, setSavedRecently] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -66,7 +126,10 @@ function OwnProfileSection() {
     setRealName(user.realName ?? '');
     setCountry(user.country ?? '');
     setClubName(user.clubName ?? '');
+    setSelectedAvatar(isStandardAvatar(user.avatarUrl) ? user.avatarUrl : null);
   }, [user]);
+
+  const currentAvatar = isStandardAvatar(user?.avatarUrl) ? user.avatarUrl : null;
 
   const dirty = useMemo(() => {
     if (!user) return false;
@@ -75,9 +138,10 @@ function OwnProfileSection() {
       (nickTrim.length >= 2 && nickTrim !== user.nickname) ||
       realName.trim() !== (user.realName ?? '') ||
       country.trim() !== (user.country ?? '') ||
-      clubName.trim() !== (user.clubName ?? '')
+      clubName.trim() !== (user.clubName ?? '') ||
+      selectedAvatar !== currentAvatar
     );
-  }, [nickname, realName, country, clubName, user]);
+  }, [nickname, realName, country, clubName, selectedAvatar, currentAvatar, user]);
 
   if (!user) return null;
 
@@ -110,13 +174,15 @@ function OwnProfileSection() {
     const profileDirty =
       realName.trim() !== (user!.realName ?? '') ||
       country.trim() !== (user!.country ?? '') ||
-      clubName.trim() !== (user!.clubName ?? '');
+      clubName.trim() !== (user!.clubName ?? '') ||
+      selectedAvatar !== currentAvatar;
     if (profileDirty) {
       tasks.push(
         updateProfile.mutateAsync({
           realName: realName.trim() === '' ? null : realName.trim(),
           country: country.trim() === '' ? null : country.trim(),
           clubName: clubName.trim() === '' ? null : clubName.trim(),
+          avatarId: selectedAvatar,
         }),
       );
     }
@@ -150,7 +216,10 @@ function OwnProfileSection() {
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-md space-y-6">
         <header className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-fg">{t('auth.profile.title')}</h1>
+          <div className="flex items-center gap-3">
+            <Avatar avatarUrl={user.avatarUrl} nickname={user.nickname} size={48} />
+            <h1 className="text-2xl font-bold text-fg">{t('auth.profile.title')}</h1>
+          </div>
           <button
             type="button"
             onClick={() => logout.mutate()}
@@ -166,6 +235,16 @@ function OwnProfileSection() {
           className="rounded-lg border border-border bg-card p-6 space-y-4"
           noValidate
         >
+          <div>
+            <p className="mb-2 text-sm font-medium text-fg">{t('avatar.title')}</p>
+            <AvatarPicker
+              selected={selectedAvatar}
+              onSelect={setSelectedAvatar}
+              disabled={saving}
+            />
+            <p className="mt-1.5 text-xs text-muted">{t('avatar.hint')}</p>
+          </div>
+
           <FormField
             label={t('auth.profile.emailLabel')}
             type="email"
@@ -369,12 +448,7 @@ function PublicProfileSection({ code }: { code: string }) {
       <div className="mx-auto max-w-md space-y-6">
         <div className="rounded-lg border border-border bg-card p-6 space-y-5">
           <div className="flex items-center gap-4">
-            <span
-              aria-hidden="true"
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-semibold text-accent-fg"
-            >
-              {extractInitial(profile.nickname)}
-            </span>
+            <Avatar avatarUrl={profile.avatarUrl} nickname={profile.nickname} size={64} />
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-xl font-bold text-fg">{profile.nickname}</h1>
               <p className="mt-1 inline-flex items-center rounded-md bg-card-deep px-2 py-0.5 font-mono text-xs text-muted">

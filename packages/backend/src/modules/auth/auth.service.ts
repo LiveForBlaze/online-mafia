@@ -5,6 +5,7 @@
 
 import { randomBytes } from 'node:crypto';
 
+import { Prisma } from '@prisma/client';
 import type {
   AuthenticatedUser,
   LoginInput,
@@ -113,18 +114,23 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
   if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
 
   const passwordHash = await hashPassword(input.password);
-  const publicCode = await allocatePublicCode();
 
-  const user = await prisma.user.create({
-    data: {
-      email: normalizedEmail,
-      nickname: normalizedNickname,
-      publicCode,
-      passwordHash,
-    },
-  });
-
-  return { ok: true, user };
+  // Retry loop handles the rare case where two registrations collide on publicCode
+  // or email (concurrent requests that both pass the findUnique check above).
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const publicCode = await allocatePublicCode();
+    try {
+      const user = await prisma.user.create({
+        data: { email: normalizedEmail, nickname: normalizedNickname, publicCode, passwordHash },
+      });
+      return { ok: true, user };
+    } catch (error) {
+      if (isPublicCodeCollision(error)) continue;
+      if (isEmailCollision(error)) return { ok: false, error: AUTH_ERROR.EMAIL_TAKEN };
+      throw error;
+    }
+  }
+  throw new Error('Could not allocate a unique publicCode after retries');
 }
 
 export async function updateNickname(userId: string, nickname: string): Promise<AuthResult> {
@@ -155,10 +161,17 @@ export async function updateProfile(
     const trimmed = v.trim();
     return trimmed.length === 0 ? null : trimmed;
   };
-  const data: { realName?: string | null; country?: string | null; clubName?: string | null } = {};
+  const data: {
+    realName?: string | null;
+    country?: string | null;
+    clubName?: string | null;
+    avatarUrl?: string | null;
+  } = {};
   if (input.realName !== undefined) data.realName = norm(input.realName) ?? null;
   if (input.country !== undefined) data.country = norm(input.country) ?? null;
   if (input.clubName !== undefined) data.clubName = norm(input.clubName) ?? null;
+  // avatarId is stored directly in avatarUrl; null clears the avatar.
+  if (input.avatarId !== undefined) data.avatarUrl = input.avatarId;
 
   const updated = await prisma.user.update({ where: { id: userId }, data });
   return { ok: true, user: updated };
@@ -309,24 +322,41 @@ export async function findOrCreateUserFromGoogle(
     nickname = 'player';
   }
 
-  const created = await prisma.user.create({
-    data: {
-      email: normalizedEmail,
-      nickname,
-      publicCode: await allocatePublicCode(),
-      googleId: profile.sub,
-      avatarUrl: profile.picture ?? null,
-      // Google verified the email for us — no separate verification flow needed.
-      emailVerified: true,
-    },
-  });
-  return { ok: true, user: created };
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const publicCode = await allocatePublicCode();
+    try {
+      const created = await prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          nickname,
+          publicCode,
+          googleId: profile.sub,
+          avatarUrl: profile.picture ?? null,
+          emailVerified: true,
+        },
+      });
+      return { ok: true, user: created };
+    } catch (error) {
+      if (isPublicCodeCollision(error)) continue;
+      if (isEmailCollision(error)) return { ok: false, error: AUTH_ERROR.EMAIL_TAKEN };
+      throw error;
+    }
+  }
+  throw new Error('Could not allocate a unique publicCode after retries');
 }
 
-/**
- * Suggest a nickname that does not collide with anyone else.
- * If "alice" is taken, try "alice-2", then "alice-3", and so on.
- * Falls back to a random suffix after a few attempts to keep this bounded.
- */
-// (suggestUniqueNickname removed — nicknames are no longer unique. Pass
-// whatever the OAuth provider gave us straight through.)
+function isPublicCodeCollision(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+    return false;
+  }
+  const target = (error.meta as { target?: string[] } | undefined)?.target;
+  return Array.isArray(target) && target.includes('publicCode');
+}
+
+function isEmailCollision(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+    return false;
+  }
+  const target = (error.meta as { target?: string[] } | undefined)?.target;
+  return Array.isArray(target) && target.includes('email');
+}

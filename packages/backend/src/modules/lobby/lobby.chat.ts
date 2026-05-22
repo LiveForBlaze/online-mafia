@@ -40,12 +40,13 @@ export function appendLobbyChatMessage(
     text: trimmed,
     sentAt: new Date().toISOString(),
   };
-  const buf = buffers.get(lobbyId) ?? [];
-  buf.push(message);
-  if (buf.length > LOBBY_CHAT_BUFFER_SIZE) {
-    buf.splice(0, buf.length - LOBBY_CHAT_BUFFER_SIZE);
-  }
-  buffers.set(lobbyId, buf);
+  const existing = buffers.get(lobbyId) ?? [];
+  // Build a new array (never mutate the stored reference — callers may hold it).
+  const next =
+    existing.length >= LOBBY_CHAT_BUFFER_SIZE
+      ? [...existing.slice(-(LOBBY_CHAT_BUFFER_SIZE - 1)), message]
+      : [...existing, message];
+  buffers.set(lobbyId, next);
   return message;
 }
 

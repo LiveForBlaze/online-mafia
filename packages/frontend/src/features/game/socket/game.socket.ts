@@ -26,7 +26,10 @@ export function disconnectGameSocket(): void {
   socket = null;
 }
 
-/** Emit an action and resolve when the server acknowledges. */
+const EMIT_TIMEOUT_MS = 10_000;
+
+/** Emit an action and resolve when the server acknowledges.
+ *  Rejects with 'ack_timeout' if the server does not respond within 10 s. */
 export function emitGameAction<TResponse = unknown>(
   eventName: string,
   payload?: unknown,
@@ -36,7 +39,11 @@ export function emitGameAction<TResponse = unknown>(
       reject(new Error('Socket not connected'));
       return;
     }
-    socket.emit(eventName, payload ?? {}, (response: TResponse) => resolve(response));
+    const timer = setTimeout(() => reject(new Error('ack_timeout')), EMIT_TIMEOUT_MS);
+    socket.emit(eventName, payload ?? {}, (response: TResponse) => {
+      clearTimeout(timer);
+      resolve(response);
+    });
   });
 }
 

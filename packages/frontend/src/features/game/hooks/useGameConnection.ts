@@ -6,12 +6,10 @@
 
 import { useEffect } from 'react';
 
-import { SERVER_EVENT, type GameStateProjected } from '@mafia/shared';
+import { CLIENT_EVENT, SERVER_EVENT, type GameStateProjected } from '@mafia/shared';
 
 import { connectGameSocket, emitGameAction } from '@/features/game/socket/game.socket.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
-
-const CLIENT_GAME_JOIN = 'client:game_join';
 
 interface JoinAck {
   ok: boolean;
@@ -32,7 +30,7 @@ export function useGameConnection(gameId: string | undefined): void {
     function handleConnect() {
       setConnected(true);
       setError(null);
-      void emitGameAction<JoinAck>(CLIENT_GAME_JOIN, { gameId }).then((ack) => {
+      void emitGameAction<JoinAck>(CLIENT_EVENT.GAME_JOIN, { gameId }).then((ack) => {
         if (!ack.ok) setError(ack.error ?? 'unknown');
       });
     }

@@ -73,9 +73,10 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
   );
 
   // Host-only formatted game log for the debrief modal.
+  // Rate-limited separately: each additional request loads all game events from DB.
   app.get<{ Params: { id: string } }>(
     '/:id/log',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate], config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
     async (request, reply) => {
       const result = await getGameLogForHost(request.params.id, request.user.sub);
       if (!result.ok) {

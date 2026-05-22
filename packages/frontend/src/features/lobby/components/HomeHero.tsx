@@ -15,7 +15,7 @@ export function HomeHero({ onCreateLobby }: HomeHeroProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   return (
-    <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center py-6 sm:py-10">
+    <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center pt-6 sm:pt-10 pb-2 sm:pb-3">
       <div className="space-y-5">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning">
