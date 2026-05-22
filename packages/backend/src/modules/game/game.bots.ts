@@ -12,7 +12,7 @@ import { GAME_PHASE, ROLE } from '@mafia/shared';
 
 import { activeGameIds, getGame } from './game.registry.js';
 import { broadcastGameState } from './game.broadcast.js';
-import { castVote, checkAsDon, checkAsSheriff, chooseMafiaTarget } from './game.service.js';
+import { checkAsDon, checkAsSheriff, chooseMafiaTarget } from './game.service.js';
 import { alivePlayers, type GameParticipant, type GameState } from './game.state.js';
 
 const TICK_INTERVAL_MS = 1500;
@@ -106,15 +106,14 @@ function decideAction(state: GameState, bot: GameParticipant): (() => Promise<un
       return () => checkAsSheriff(ctx, target);
     }
 
-    case GAME_PHASE.DAY_VOTE: {
-      if (bot.seat === null) return null;
-      if (state.votes.has(bot.seat)) return null;
-      const choices = state.nominationSeats.filter((s) => s !== bot.seat);
-      if (choices.length === 0) return null;
-      const pick = choices[Math.floor(Math.random() * choices.length)]!;
-      return () => castVote(ctx, pick);
-    }
-
+    // Bots intentionally never cast a day vote. Per ФИИМ "те кто не
+    // проголосовал — за последнего", any voter who skips through the
+    // sequential rounds gets auto-cast for the last candidate at the
+    // moment the judge passes the last round (applyNextSpeaker in the
+    // engine). Letting bots vote randomly was the simplest possible
+    // ticker behaviour but it produced unpredictable tallies during
+    // testing — disabling it makes the auto-cast rule the deterministic
+    // source of bot voting behaviour.
     default:
       return null;
   }
