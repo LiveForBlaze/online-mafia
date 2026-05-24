@@ -13,7 +13,19 @@ interface JudgePanelProps {
 
 export function JudgePanel({ state }: JudgePanelProps) {
   const { t } = useTranslation();
-  const showSpeakerButton = state.phase === GAME_PHASE.DAY_SPEECH;
+  // Кнопка «Дальше» нужна во всех фазах, где `applyNextSpeaker` шагает:
+  //   - DAY_SPEECH — следующий спикер по ротации
+  //   - DAY_VOTE / DAY_REVOTE — следующий кандидат в sequential vote
+  //   - DAY_SHOOTOUT — следующий tied-спикер в перестрелке
+  //   - DAY_LAST_WORD — следующая жертва в multi-victim очереди
+  // Без неё судья не может пройти больше одного раунда голосования —
+  // единственная альтернатива (advancePhase) резолвит весь day vote сразу.
+  const showSpeakerButton =
+    state.phase === GAME_PHASE.DAY_SPEECH ||
+    state.phase === GAME_PHASE.DAY_VOTE ||
+    state.phase === GAME_PHASE.DAY_REVOTE ||
+    state.phase === GAME_PHASE.DAY_SHOOTOUT ||
+    state.phase === GAME_PHASE.DAY_LAST_WORD;
   const phaseLocked = state.status === 'finished';
 
   return (
