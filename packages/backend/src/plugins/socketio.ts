@@ -92,33 +92,39 @@ export const socketioPlugin = fp(
     });
 
     // Per-socket rate limiter. Защищаем оба пути (lobby chat + game actions) от
-    // спама/DoS: один сокет не может выдать больше, чем разрешено в окне.
-    // Без этого можно было слать 10к msg/sec и забивать DB + бродкаст всем
-    // в комнате. Лимит свой по событиям: чат строже, остальные действия мягче.
+    // спама/DoS. Реализован как packet-middleware: при превышении пакет
+    // отбивается с ошибкой в ack, но СОКЕТ ОСТАЁТСЯ ЖИВ. Раньше я делал
+    // `socket.disconnect(true)`, и клиент уходил на exponential-backoff
+    // реконнект (1→2→5→10s) — это ломало редирект игроков в момент старта
+    // игры (хост шлёт broadcast, а у других сокет «отдыхает» 10s).
     const RATE_WINDOW_MS = 10_000;
     const RATE_LIMITS: Record<string, number> = {
-      'client:lobby_chat_send': 10, // 1/сек в среднем — комфортно для общения, отсекает спам
-      'client:lobby_join': 20,
-      'client:lobby_leave': 20,
-      // Игровые действия — оставляем большой запас для legitimate UI bursts,
-      // но не безлимит. По 50 событий в 10 секунд (5/сек) с головой хватает.
-      __default__: 50,
+      // Чат — в среднем 3/сек комфортно, спам отрубается.
+      'client:lobby_chat_send': 30,
+      // Игровые / lobby действия — щедрый лимит на legitimate UI bursts
+      // (клик-клик-клик при назначении, переподключения, mount флёшы).
+      __default__: 200,
     };
     io.use((socket, next) => {
       const buckets = new Map<string, { count: number; resetAt: number }>();
-      socket.onAny((event) => {
-        const limit = RATE_LIMITS[event] ?? RATE_LIMITS.__default__ ?? 50;
+      socket.use((packet, dispatch) => {
+        const event = packet[0];
+        if (typeof event !== 'string') return dispatch();
+        const limit = RATE_LIMITS[event] ?? RATE_LIMITS.__default__ ?? 200;
         const now = Date.now();
         const bucket = buckets.get(event);
         if (!bucket || bucket.resetAt <= now) {
           buckets.set(event, { count: 1, resetAt: now + RATE_WINDOW_MS });
-          return;
+          return dispatch();
         }
         bucket.count += 1;
         if (bucket.count > limit) {
-          // Тихо отрубаем сокет — клиент переподключится с чистым бакетом.
-          socket.disconnect(true);
+          // Не дисконнектим сокет — лишь отказываем пакету. Socket.IO
+          // отдаст ошибку в ack callback клиента, а соединение продолжит
+          // жить, так что broadcast'ы и server-push доходят моментально.
+          return dispatch(new Error('rate_limited'));
         }
+        return dispatch();
       });
       next();
     });
