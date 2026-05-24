@@ -171,12 +171,12 @@ describe('applyNominate (judge-driven)', () => {
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   });
 
-  it('rejects self-nomination per ФИИМ', () => {
-    // ФИИМ: игрок не может выставить свою кандидатуру на голосование.
+  it('allows self-nomination (player asks the judge to nominate them)', () => {
+    // По решению пользователя: игрок имеет право заявить себя на отстрел.
     const state = buildState({ currentSpeakerSeat: 1 });
     const result = applyNominate(state, 'user-judge', 1);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.CANNOT_TARGET_SELF);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.nominationSeats).toContain(1);
   });
 
   it('refuses nominating a dead player', () => {

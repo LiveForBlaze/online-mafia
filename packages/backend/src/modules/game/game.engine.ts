@@ -314,8 +314,10 @@ export function applyNominate(
   if (target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
   if (!target.isAlive || target.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
   if (state.nominationSeats.includes(targetSeat)) return fail(ENGINE_ERROR.ALREADY_NOMINATED);
-  // ФИИМ запрещает самовыставление: игрок не может ставить свою кандидатуру.
-  if (targetSeat === state.currentSpeakerSeat) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
+  // Самовыставление разрешено: иногда игрок просит судью «поставьте меня»
+  // как тактический ход (заявка на доверие, желание дать свою защиту перед
+  // голосованием). Формально ФИИМ это ограничивает, но за столом такое
+  // случается, и игрок не должен оказываться без рычага.
 
   return ok({
     ...state,

@@ -14,7 +14,9 @@
   --color-accent: oklch(0.62 0.25 24);
   --color-accent-fg: oklch(0.98 0 0);
   --color-team-red: oklch(0.62 0.25 24);
-  --color-team-black: oklch(0.25 0.02 270);
+  /* Тёмно-серый для бейджей чёрной команды. Раньше был с holodным
+     фиолетово-синим оттенком (hue 270) — глаз ловил его как «синий». */
+  --color-team-black: oklch(0.25 0 0);
 
   /* Primary CTA — глобально это БРЕНДОВЫЙ красный (одного семейства с
      accent). Логично для главной/лобби: «Создать лобби», «Войти» — CTA
@@ -29,14 +31,16 @@
      artwork on the home page so the hero blends seamlessly into the page
      instead of reading as a distinct card. Cards then sit *above* this bg
      at slightly higher lightness. */
-  --color-bg: oklch(0.13 0.01 270);
+  /* Нейтральные токены — нулевая chroma, никакого холодного / синего
+     подтона. Тёмно-серый-в-чёрный, без отлива в фиолетовый. */
+  --color-bg: oklch(0.13 0 0);
   --color-fg: oklch(0.95 0 0);
   --color-muted: oklch(0.65 0 0);
-  --color-card: oklch(0.19 0.01 270);
+  --color-card: oklch(0.19 0 0);
   /* "Deep" card for elevated/recessed panels (judge, info). Darker than bg
      so the central control zone reads as visually distinct. */
-  --color-card-deep: oklch(0.09 0.01 270);
-  --color-border: oklch(0.26 0.01 270);
+  --color-card-deep: oklch(0.09 0 0);
+  --color-border: oklch(0.26 0 0);
 
   /* Status */
   --color-success: oklch(0.7 0.17 145);
