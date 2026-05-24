@@ -157,11 +157,16 @@ function StageBody({
       );
     }
 
-    case GAME_PHASE.DAY_VOTE_INTRO:
+    case GAME_PHASE.DAY_VOTE_INTRO: {
+      const day1SingleSkip = state.dayNumber === 0 && state.nominationSeats.length === 1;
       return (
         <div className="space-y-1">
-          <p className="text-sm font-bold text-fg">{t('game.ui.voteIntroTitle')}</p>
-          <p className="text-xs text-muted">{t('game.ui.voteIntroHint')}</p>
+          <p className="text-sm font-bold text-fg">
+            {day1SingleSkip ? t('game.ui.voteSkippedTitle') : t('game.ui.voteIntroTitle')}
+          </p>
+          <p className="text-xs text-muted">
+            {day1SingleSkip ? t('game.ui.voteSkippedHint') : t('game.ui.voteIntroHint')}
+          </p>
           {state.nominationSeats.length > 0 && (
             <p className="text-sm text-warning font-mono">
               {state.nominationSeats.map((s, i) => `${i + 1}. №${s}`).join('   ')}
@@ -169,6 +174,7 @@ function StageBody({
           )}
         </div>
       );
+    }
 
     case GAME_PHASE.DAY_VOTE:
     case GAME_PHASE.DAY_REVOTE:

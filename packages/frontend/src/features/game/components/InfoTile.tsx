@@ -183,13 +183,19 @@ function Body({
         </div>
       );
 
-    case GAME_PHASE.DAY_VOTE_INTRO:
+    case GAME_PHASE.DAY_VOTE_INTRO: {
+      // ФИИМ: первый день + один кандидат → голосование не проводится,
+      // игрок остаётся, идём в ночь. UI должен это явно сказать судье и
+      // игрокам, иначе после клика «Дальше» происходит непонятное.
+      const day1SingleSkip = state.dayNumber === 0 && state.nominationSeats.length === 1;
       return (
         <div className="space-y-2">
           <p className="text-xl sm:text-2xl font-bold text-fg leading-tight">
-            {t('game.ui.voteIntroTitle')}
+            {day1SingleSkip ? t('game.ui.voteSkippedTitle') : t('game.ui.voteIntroTitle')}
           </p>
-          <p className="text-sm text-muted">{t('game.ui.voteIntroHint')}</p>
+          <p className="text-sm text-muted">
+            {day1SingleSkip ? t('game.ui.voteSkippedHint') : t('game.ui.voteIntroHint')}
+          </p>
           {state.nominationSeats.length > 0 && (
             <ol className="space-y-1 mt-1">
               {state.nominationSeats.map((seat, i) => (
@@ -202,6 +208,7 @@ function Body({
           )}
         </div>
       );
+    }
 
     case GAME_PHASE.DAY_VOTE:
     case GAME_PHASE.DAY_REVOTE:

@@ -863,6 +863,39 @@ describe('day_last_word after vote elimination', () => {
     expect(afterIntro.voteRoundIdx).toBe(0);
   });
 
+  it('first day + single nominee: NO vote, player stays, go to night', () => {
+    // Day 1 (dayNumber===0) с единственным кандидатом — ФИИМ: голосование
+    // не проводится, кандидат остаётся, идём в ночь.
+    const speechDone = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      dayNumber: 0,
+      currentSpeakerSeat: null,
+      nominationSeats: [3],
+      participants: buildState().participants.map((p) => ({ ...p, hasSpokenThisDay: true })),
+    });
+    const afterSpeech = applyAdvancePhase(speechDone);
+    expect(afterSpeech.phase).toBe(GAME_PHASE.DAY_VOTE_INTRO);
+
+    const afterIntro = applyAdvancePhase(afterSpeech);
+    expect(afterIntro.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    // Кандидат жив.
+    expect(afterIntro.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+  });
+
+  it('Day 2+ single nominee: autokill (no first-day exemption)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      dayNumber: 2,
+      currentSpeakerSeat: null,
+      nominationSeats: [3],
+      votes: new Map(),
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(next.lastWordSeats).toEqual([3]);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+  });
+
   it('DAY_SPEECH без nominations пропускает intro и идёт в ночь', () => {
     const speechDone = buildState({
       phase: GAME_PHASE.DAY_SPEECH,

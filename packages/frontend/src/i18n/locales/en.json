@@ -301,6 +301,8 @@
       "restartVideo": "Restart video",
       "voteIntroTitle": "Vote announcement",
       "voteIntroHint": "Judge reads the nominated players. Vote follows.",
+      "voteSkippedTitle": "No vote today",
+      "voteSkippedHint": "First day, only one nominee — they stay. Going to night.",
       "judgeListenAll": "Hear all",
       "judgeListenProcess": "Hear game",
       "judgeListenAllHint": "Hearing everyone. Click → hear game flow only.",

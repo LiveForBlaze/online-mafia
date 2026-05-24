@@ -235,7 +235,12 @@ export function nextPhase(state: GameState): GamePhase {
       if (state.disqualifiedThisDay) return GAME_PHASE.NIGHT_MAFIA;
       return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE_INTRO : GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.DAY_VOTE_INTRO:
-      // Судья объявил порядок → голосование.
+      // Судья объявил порядок → голосование. Исключение для первого дня:
+      // если выставлен один игрок, голосование не проводится — сразу
+      // в ночь, никого не убиваем (ФИИМ).
+      if (state.nominationSeats.length === 1 && state.dayNumber === 0) {
+        return GAME_PHASE.NIGHT_MAFIA;
+      }
       return GAME_PHASE.DAY_VOTE;
     case GAME_PHASE.DAY_VOTE:
       // After vote resolution one of three outcomes is in `state`:
@@ -531,14 +536,20 @@ export function applyAdvancePhase(state: GameState): GameState {
   // Resolve side-effects of the *current* phase before transitioning.
   let next: GameState = { ...state };
 
+  // (Очистка nominationSeats при day-1 single nomination сделана НИЖЕ,
+  // после вычисления nextPhase — иначе nextPhase читал бы уже пустой
+  // массив и не понял бы что это «day 1 + single» кейс.)
+
   if (state.phase === GAME_PHASE.DAY_VOTE) {
     // ФИИМ: дисквал во время дневной фазы до того, как голосование завершилось,
     // отменяет результат текущего дня. Сразу в ночь, без отстрела.
     if (state.disqualifiedThisDay) {
       next = { ...next, votes: new Map(), nominationSeats: [], tiedSeats: [] };
-    } else if (state.nominationSeats.length === 1) {
+    } else if (state.nominationSeats.length === 1 && state.dayNumber > 0) {
       // ФИИМ: единственный выставленный кандидат уходит «без голосования» —
       // голосование не проводится, игрок автоматически выбывает.
+      // Исключение: в ПЕРВЫЙ день (dayNumber === 0) голосование за
+      // единственного НЕ проводится и он НЕ покидает стол — идём в ночь.
       const onlyCandidate = state.nominationSeats[0]!;
       next = killSeat(next, onlyCandidate);
       next = {
@@ -549,6 +560,11 @@ export function applyAdvancePhase(state: GameState): GameState {
         votes: new Map(),
         nominationSeats: [],
       };
+    } else if (state.nominationSeats.length === 1 && state.dayNumber === 0) {
+      // День 1, единственный кандидат — ни голосования, ни автокилла.
+      // Чистим выставления и проваливаемся в ночь (nextPhase для
+      // DAY_VOTE → NIGHT_MAFIA когда нет lastWordSeats / tiedSeats).
+      next = { ...next, votes: new Map(), nominationSeats: [], tiedSeats: [] };
     } else {
       const eliminatedSeat = resolveVote(state);
       if (eliminatedSeat !== null) {
@@ -757,6 +773,17 @@ export function applyAdvancePhase(state: GameState): GameState {
 
   // Now determine the next phase.
   let phase = nextPhase(next);
+
+  // Leaving DAY_VOTE_INTRO с day-1 single-nomination skipping the vote:
+  // голосование не проводится, очищаем nominationSeats чтобы при заходе
+  // в ночь не осталось «привидений» в state.
+  if (
+    state.phase === GAME_PHASE.DAY_VOTE_INTRO &&
+    phase === GAME_PHASE.NIGHT_MAFIA &&
+    next.nominationSeats.length === 1
+  ) {
+    next = { ...next, nominationSeats: [], votes: new Map() };
+  }
 
   // Check end-of-game conditions after any kill (vote or night).
   const winner = checkWinner(next);
