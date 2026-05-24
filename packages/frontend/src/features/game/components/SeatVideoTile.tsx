@@ -245,7 +245,7 @@ function DeadOverlay({ seat, isSelf }: { seat: number | null; isSelf: boolean })
       <div className="absolute top-1 left-2 flex items-center gap-2">
         {/* Тот же размер что и у живых — но заметно темнее, чтобы «выбыл»
             считывалось с расстояния по контрасту яркости. */}
-        <span className="text-4xl font-extrabold text-muted/40 leading-none">{seat}</span>
+        <span className="text-4xl font-extrabold text-muted/20 leading-none">{seat}</span>
         {isSelf && (
           <span className="rounded bg-primary/85 text-primary-fg px-1.5 py-0.5 text-xs">
             {t('game.ui.you')}

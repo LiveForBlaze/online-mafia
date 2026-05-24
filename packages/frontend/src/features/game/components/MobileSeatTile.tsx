@@ -209,7 +209,7 @@ function DeadOverlay({ seat }: { seat: number }) {
     <>
       {/* Тот же размер и жирность что у живых — но темнее, чтоб «выбыл»
           считывалось с расстояния не по черепу, а по контрасту. */}
-      <span className="absolute top-0.5 left-1 text-xl font-extrabold text-muted/40 leading-none">
+      <span className="absolute top-0.5 left-1 text-xl font-extrabold text-muted/20 leading-none">
         {seat}
       </span>
       <div className="absolute inset-0 flex items-center justify-center text-muted">💀</div>
