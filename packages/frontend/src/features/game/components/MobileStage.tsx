@@ -87,7 +87,13 @@ function MobileJudgeStepControls({ state }: { state: GameStateProjected }) {
       >
         ↶
       </Button>
-      <Button size="sm" className="flex-1" onClick={() => judgeStep(state)} disabled={disabled}>
+      <Button
+        size="sm"
+        variant="danger"
+        className="flex-1"
+        onClick={() => judgeStep(state)}
+        disabled={disabled}
+      >
         {t('game.ui.advanceStep')}
       </Button>
     </div>

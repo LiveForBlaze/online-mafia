@@ -896,7 +896,18 @@ export async function judgeRevert(ctx: ActionContext): Promise<ServiceResult<Gam
     const prev = popHistorySnapshot(ctx.gameId);
     if (!prev) return fail('wrong_phase');
 
-    let next = prev;
+    // Snapshot держит свой старый nextEventSeq, но в БД уже записаны
+    // события с бóльшими seq (advance, vote, …). Если вызвать persistEvent
+    // с prev.nextEventSeq, прилетит P2002 на (gameId, seq) — withLock
+    // отпустит, но фронт получит ошибку, и игра ломается. Поэтому seq
+    // подтягиваем из БД = max(seq)+1.
+    const latest = await prisma.gameEvent.findFirst({
+      where: { gameId: ctx.gameId },
+      orderBy: { seq: 'desc' },
+      select: { seq: true },
+    });
+    const nextSeq = (latest?.seq ?? -1) + 1;
+    let next: GameState = { ...prev, nextEventSeq: nextSeq };
     next = await persistEvent(next, GAME_EVENT_TYPE.REVERTED, ctx.userId, {
       restoredPhase: prev.phase,
     });
