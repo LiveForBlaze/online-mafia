@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { type PublicUserProfile } from '@mafia/shared';
 
 import { Avatar } from '@/components/ui/Avatar.js';
+import { CountryLabel } from '@/components/ui/CountryLabel.js';
 import { Input } from '@/components/ui/Input.js';
 import { usersApi } from '@/features/users/api/users.api.js';
 import { userProfilePath } from '@/routes/paths.js';
@@ -91,8 +92,16 @@ function PlayerCard({ user }: { user: PublicUserProfile }) {
         <Avatar avatarUrl={user.avatarUrl} nickname={user.nickname} size={48} />
         <div className="min-w-0 flex-1">
           <p className="text-base font-semibold text-fg truncate">{user.nickname}</p>
-          <p className="text-xs text-muted truncate">
-            {[user.country, user.clubName].filter(Boolean).join(' · ') || `#${user.publicCode}`}
+          <p className="text-xs text-muted truncate flex items-center gap-1">
+            {user.country && (
+              <>
+                {/* CountryLabel сам подбирает локаль; флаг рисует. */}
+                <CountryLabel code={user.country} />
+                {user.clubName && <span> · </span>}
+              </>
+            )}
+            {user.clubName && <span>{user.clubName}</span>}
+            {!user.country && !user.clubName && <span>#{user.publicCode}</span>}
           </p>
         </div>
       </Link>

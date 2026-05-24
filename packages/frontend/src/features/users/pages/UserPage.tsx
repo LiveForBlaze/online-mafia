@@ -19,8 +19,11 @@ import { STANDARD_AVATARS, isStandardAvatar, type StandardAvatarId } from '@mafi
 
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
+import { CountryLabel } from '@/components/ui/CountryLabel.js';
+import { CountrySelect } from '@/components/ui/CountrySelect.js';
 import { Dialog } from '@/components/ui/Dialog.js';
 import { FormField } from '@/components/ui/FormField.js';
+import { Label } from '@/components/ui/Label.js';
 import { cn } from '@/lib/cn.js';
 import { ApiError } from '@/lib/api-client.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
@@ -391,12 +394,10 @@ function OwnProfileSection() {
           </div>
 
           <div>
-            <FormField
-              label={t('profile.country')}
-              type="text"
-              maxLength={80}
-              value={country}
-              onChange={(event) => setCountry(event.target.value)}
+            <Label>{t('profile.country')}</Label>
+            <CountrySelect
+              value={country || null}
+              onChange={(v) => setCountry(v ?? '')}
               disabled={saving}
             />
             <p className="mt-1 text-xs text-muted">{t('profile.country_hint')}</p>
@@ -580,7 +581,12 @@ function PublicProfileSection({ code }: { code: string }) {
             {profile.realName && (
               <Row label={t('public_profile.real_name')} value={profile.realName} />
             )}
-            {profile.country && <Row label={t('public_profile.country')} value={profile.country} />}
+            {profile.country && (
+              <Row
+                label={t('public_profile.country')}
+                value={<CountryLabel code={profile.country} />}
+              />
+            )}
             {profile.clubName && <Row label={t('public_profile.club')} value={profile.clubName} />}
           </dl>
 
@@ -601,7 +607,7 @@ function PublicProfileSection({ code }: { code: string }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="shrink-0 text-xs uppercase tracking-wider text-muted">{label}</dt>

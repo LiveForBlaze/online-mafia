@@ -28,9 +28,20 @@ export const avatarIdSchema = z
   .nullable()
   .optional();
 
+// Страна хранится как ISO 3166-1 alpha-2 код. Допускаем `null`/пусто
+// (поле опционально). Не валидируем список здесь чтобы не таскать
+// COUNTRIES в schemas — backend сам нормализует regex + uppercase.
+const countryCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{2}$/, 'invalid_country_code')
+  .nullable()
+  .optional();
+
 export const updateProfileInputSchema = z.object({
   realName: optionalShortText,
-  country: optionalShortText,
+  country: countryCodeSchema,
   clubName: optionalShortText,
   avatarId: avatarIdSchema,
 });

@@ -4,3 +4,4 @@ export * from './game.js';
 export * from './ws-events.js';
 export * from './lobby.js';
 export * from './avatars.js';
+export * from './countries.js';
