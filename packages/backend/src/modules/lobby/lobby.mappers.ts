@@ -48,7 +48,9 @@ const DB_STATUS_TO_API: Record<string, LobbyStatus> = {
 
 export function toLobbySummary(
   lobby: LobbyWithHost,
-  memberCount: number,
+  // Сколько игроков в лобби (без судьи). Карточки и счётчики на фронте
+  // показывают «X/10 игроков» — судья считается отдельно.
+  playerCount: number,
   isViewerMember: boolean,
 ): LobbySummary {
   return {
@@ -60,8 +62,8 @@ export function toLobbySummary(
     hostPublicCode: lobby.host.publicCode,
     rulesetSlug: lobby.rulesetSlug,
     status: DB_STATUS_TO_API[lobby.status] ?? LOBBY_STATUS.WAITING,
-    memberCount,
-    maxMembers: LOBBY.MAX_MEMBERS,
+    memberCount: playerCount,
+    maxMembers: LOBBY.PLAYER_SLOTS,
     createdAt: lobby.createdAt.toISOString(),
     gameId: lobby.game?.id ?? null,
     isViewerMember,
@@ -93,7 +95,8 @@ export function toLobbyMemberPublic(
 export function toLobbyDetails(lobby: LobbyWithMembersAndHost, viewerUserId: string): LobbyDetails {
   const isViewerMember = lobby.members.some((m) => m.userId === viewerUserId);
   const viewerIsHost = lobby.hostId === viewerUserId;
-  const summary = toLobbySummary(lobby, lobby.members.length, isViewerMember);
+  const playerCount = lobby.members.filter((m) => !m.isJudge).length;
+  const summary = toLobbySummary(lobby, playerCount, isViewerMember);
   return {
     ...summary,
     members: lobby.members.map((m) => toLobbyMemberPublic(m, lobby.hostId, viewerIsHost)),

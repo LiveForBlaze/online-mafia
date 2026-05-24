@@ -61,6 +61,10 @@ export function useLeaveLobby() {
     onSuccess: (_data, lobbyId) => {
       void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.details(lobbyId) });
       void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.list() });
+      // На случай если игра уже была запущена, прибиваем «active» — иначе
+      // home page будет редиректить ушедшего юзера обратно в game.
+      void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.active() });
+      void queryClient.invalidateQueries({ queryKey: ['game', 'active'] });
     },
   });
 }

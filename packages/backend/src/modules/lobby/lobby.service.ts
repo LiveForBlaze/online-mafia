@@ -107,7 +107,9 @@ export async function listUserActiveLobbies(viewerUserId: string): Promise<Lobby
     include: {
       host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
-      _count: { select: { members: true } },
+      // Подсчитываем только игроков (без судьи) — счётчик на фронте
+      // показывает «N/10 игроков».
+      _count: { select: { members: { where: { isJudge: false } } } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -129,7 +131,8 @@ export async function listPublicLobbies(viewerUserId: string): Promise<LobbySumm
     include: {
       host: { select: { id: true, nickname: true, publicCode: true } },
       game: { select: { id: true } },
-      _count: { select: { members: true } },
+      // Счётчик игроков без судьи (см. listUserActiveLobbies).
+      _count: { select: { members: { where: { isJudge: false } } } },
       members: {
         where: { userId: viewerUserId },
         select: { userId: true },

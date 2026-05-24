@@ -58,7 +58,10 @@ export function LobbyRoom({
   const isHost = lobby.hostId === currentUserId;
   const judge = lobby.members.find((m) => m.isJudge);
   const playerCount = lobby.members.filter((m) => !m.isJudge).length;
-  const totalPlayerSeats = lobby.maxMembers - 1;
+  // maxMembers теперь приходит как число player-слотов (без судьи) — см.
+  // toLobbySummary. Раньше тут было `-1`, после изменения формата сервера
+  // вычитание лишнее.
+  const totalPlayerSeats = lobby.maxMembers;
   // Player seats fill independently from the judge slot. The "ready" condition
   // requires BOTH: all 10 player seats taken AND a judge present.
   const allPlayerSeatsFilled = playerCount === totalPlayerSeats;

@@ -31,7 +31,12 @@ export function useLobbyConnection(lobbyId: string | undefined): void {
     }
 
     function handleLobbyUpdate(payload: LobbyDetailsResponse) {
+      // Пишем свежие данные сразу — это даёт мгновенный re-render через
+      // useLobby. Дополнительно вызываем invalidate как страховку: если
+      // payload пришёл в неожиданном формате (старый клиент / новый сервер),
+      // react-query сам перетянет актуальный snapshot через REST.
       queryClient.setQueryData(LOBBY_QUERY_KEY.details(lobbyId!), payload);
+      void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.details(lobbyId!) });
     }
 
     socket.on('connect', joinRoom);
