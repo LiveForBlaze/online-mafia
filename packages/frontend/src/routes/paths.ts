@@ -9,6 +9,7 @@ export const ROUTE_PATH = {
   // Unified user page. Same route for owner (editable) and visitor (read-only) —
   // the page checks the `id` query param against the viewer's publicCode.
   USER: '/user',
+  PLAYERS: '/players',
   CLUBS: '/clubs',
   TOURNAMENTS: '/tournaments',
   RULES: '/rules',

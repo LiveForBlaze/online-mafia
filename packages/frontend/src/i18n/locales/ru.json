@@ -1,10 +1,21 @@
 {
   "nav": {
     "lobby": "Лобби",
+    "players": "Игроки",
     "clubs": "Клубы",
     "tournaments": "Турниры",
     "rules": "Правила",
     "about": "О проекте"
+  },
+  "players": {
+    "title": "Игроки",
+    "subtitle": "Сообщество online-mafia. Кликни на карточку, чтобы открыть профиль.",
+    "searchPlaceholder": "Поиск по нику, имени или коду",
+    "shownOf": "Показано {{shown}} из {{total}}",
+    "empty": {
+      "none": "Здесь пока никого",
+      "search": "По запросу ничего не нашли"
+    }
   },
   "common": {
     "create_lobby": "Создать лобби",

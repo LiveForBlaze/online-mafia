@@ -1,10 +1,21 @@
 {
   "nav": {
     "lobby": "Lobby",
+    "players": "Players",
     "clubs": "Clubs",
     "tournaments": "Tournaments",
     "rules": "Rules",
     "about": "About"
+  },
+  "players": {
+    "title": "Players",
+    "subtitle": "online-mafia community. Click a card to open the profile.",
+    "searchPlaceholder": "Search by nickname, name, or code",
+    "shownOf": "Showing {{shown}} of {{total}}",
+    "empty": {
+      "none": "Nobody here yet",
+      "search": "Nothing matched your search"
+    }
   },
   "common": {
     "create_lobby": "Create lobby",

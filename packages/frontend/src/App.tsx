@@ -14,6 +14,7 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage.js';
 import { LobbyListPage } from '@/features/lobby/pages/LobbyListPage.js';
 import { LobbyRoomPage } from '@/features/lobby/pages/LobbyRoomPage.js';
 import { GamePage } from '@/features/game/pages/GamePage.js';
+import { PlayersPage } from '@/features/users/pages/PlayersPage.js';
 import { UserPage } from '@/features/users/pages/UserPage.js';
 import { AboutPage } from '@/pages/AboutPage.js';
 import { ClubsPage } from '@/pages/ClubsPage.js';
@@ -40,6 +41,7 @@ export function App() {
       >
         <Route path={ROUTE_PATH.HOME} element={<LobbyListPage />} />
         <Route path={ROUTE_PATH.USER} element={<UserPage />} />
+        <Route path={ROUTE_PATH.PLAYERS} element={<PlayersPage />} />
         <Route path={ROUTE_PATH.CLUBS} element={<ClubsPage />} />
         <Route path={ROUTE_PATH.TOURNAMENTS} element={<TournamentsPage />} />
         <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />

@@ -206,6 +206,51 @@ export async function findUserByPublicCode(code: string): Promise<User | null> {
   return prisma.user.findUnique({ where: { publicCode: code.trim().toUpperCase() } });
 }
 
+// Список реальных игроков для директории игроков. Фильтры:
+//   - не показываем ботов (isBot=false)
+//   - не показываем удалённые аккаунты (email кончается на @deleted.local)
+//   - поиск по nickname / realName / publicCode (case-insensitive contains)
+// Пагинация offset/limit. Сортировка: сначала недавно созданные.
+export interface UserListOptions {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+export async function listPublicUsers(
+  opts: UserListOptions,
+): Promise<{ users: User[]; total: number }> {
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 100);
+  const offset = Math.max(opts.offset ?? 0, 0);
+  const searchRaw = opts.search?.trim();
+  const search = searchRaw && searchRaw.length > 0 ? searchRaw : null;
+
+  const baseWhere = {
+    isBot: false,
+    email: { not: { endsWith: '@deleted.local' } },
+  } as const;
+  const whereWithSearch = search
+    ? {
+        ...baseWhere,
+        OR: [
+          { nickname: { contains: search, mode: 'insensitive' as const } },
+          { realName: { contains: search, mode: 'insensitive' as const } },
+          { publicCode: { contains: search.toUpperCase() } },
+        ],
+      }
+    : baseWhere;
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where: whereWithSearch,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.user.count({ where: whereWithSearch }),
+  ]);
+  return { users, total };
+}
+
 // Account deletion. Confirmation is enforced upstream — the route only calls
 // this when the user has typed their email correctly.
 //

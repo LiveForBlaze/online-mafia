@@ -81,6 +81,13 @@ export const publicUserProfileResponseSchema = z.object({
 });
 export type PublicUserProfileResponse = z.infer<typeof publicUserProfileResponseSchema>;
 
+// Список игроков (директория). Ответ paginated, фильтр по nickname.
+export const publicUserListResponseSchema = z.object({
+  users: z.array(publicUserProfileSchema),
+  total: z.number().int().nonnegative(),
+});
+export type PublicUserListResponse = z.infer<typeof publicUserListResponseSchema>;
+
 // Payload for DELETE /api/v1/auth/me. The user must retype their email to
 // confirm and — if they have a password — re-enter it. Google-only users
 // without a local password skip the password field; for them the email

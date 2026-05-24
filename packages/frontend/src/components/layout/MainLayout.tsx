@@ -22,6 +22,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: ROUTE_PATH.HOME, labelKey: 'nav.lobby' },
+  { to: ROUTE_PATH.PLAYERS, labelKey: 'nav.players' },
   { to: ROUTE_PATH.CLUBS, labelKey: 'nav.clubs' },
   { to: ROUTE_PATH.TOURNAMENTS, labelKey: 'nav.tournaments' },
   { to: ROUTE_PATH.RULES, labelKey: 'nav.rules' },

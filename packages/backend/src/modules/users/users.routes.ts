@@ -1,13 +1,19 @@
-// Public user profile routes.
+// Public user routes.
 //
 // Mounted under /api/v1/users.
-//   GET /:code   public profile by short code (auth required; we don't
-//                want to make profiles trivially scrapable without a
-//                session, even though they expose only public fields)
+//   GET /          paginated directory of real players (auth required)
+//   GET /:code     public profile by short code (auth required)
+//
+// Профили auth-gated даже для public-only полей: мы не хотим, чтобы
+// директория сканировалась анонимно ботами/скрейперами.
 
 import type { FastifyPluginAsync } from 'fastify';
 
-import { findUserByPublicCode, toPublicUserProfile } from '../auth/auth.service.js';
+import {
+  findUserByPublicCode,
+  listPublicUsers,
+  toPublicUserProfile,
+} from '../auth/auth.service.js';
 
 const HTTP_STATUS = {
   OK: 200,
@@ -15,6 +21,25 @@ const HTTP_STATUS = {
 } as const;
 
 export const userRoutes: FastifyPluginAsync = async (app) => {
+  // Список игроков. ?search=Vasya&limit=50&offset=0
+  app.get<{ Querystring: { search?: string; limit?: string; offset?: string } }>(
+    '/',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const limit = request.query.limit ? Number(request.query.limit) : undefined;
+      const offset = request.query.offset ? Number(request.query.offset) : undefined;
+      const { users, total } = await listPublicUsers({
+        search: request.query.search,
+        limit: Number.isFinite(limit) ? limit : undefined,
+        offset: Number.isFinite(offset) ? offset : undefined,
+      });
+      return reply.code(HTTP_STATUS.OK).send({
+        users: users.map(toPublicUserProfile),
+        total,
+      });
+    },
+  );
+
   app.get<{ Params: { code: string } }>(
     '/:code',
     { preHandler: [app.authenticate] },
