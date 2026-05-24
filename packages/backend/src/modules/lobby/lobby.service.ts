@@ -196,6 +196,10 @@ export async function joinLobby(
       if (!passwordOk) return fail(LOBBY_ERROR.WRONG_PASSWORD);
     }
 
+    // Откуда нужно автоматически выйти при удачном join — список заполнится
+    // внутри транзакции и обрабатывается ПОСЛЕ commit'а (broadcast надо
+    // делать вне транзакции).
+    let evictedFromLobbies: string[] = [];
     const result = await prisma.$transaction(
       async (tx) => {
         // Re-read status inside the transaction to detect TOCTOU changes
@@ -212,6 +216,29 @@ export async function joinLobby(
           where: { lobbyId_userId: { lobbyId, userId } },
         });
         if (existing) return { kind: 'error' as const, error: LOBBY_ERROR.ALREADY_MEMBER };
+
+        // Один пользователь = ровно одно WAITING-лобби. До добавления в
+        // новое — выкидываем из всех старых, в которых юзер ещё числится.
+        // Хосты не auto-evict'ятся — для них leave/close идёт отдельным
+        // путём (он закроет всё лобби). Тут мы трогаем только non-host
+        // membership.
+        const otherMemberships = await tx.lobbyMember.findMany({
+          where: {
+            userId,
+            lobbyId: { not: lobbyId },
+            lobby: { status: 'WAITING', hostId: { not: userId } },
+          },
+          select: { lobbyId: true },
+        });
+        if (otherMemberships.length > 0) {
+          await tx.lobbyMember.deleteMany({
+            where: {
+              userId,
+              lobbyId: { in: otherMemberships.map((m) => m.lobbyId) },
+            },
+          });
+          evictedFromLobbies = otherMemberships.map((m) => m.lobbyId);
+        }
 
         const members = await tx.lobbyMember.findMany({
           where: { lobbyId },
@@ -236,6 +263,11 @@ export async function joinLobby(
     );
 
     if (result.kind === 'error') return fail(result.error);
+
+    // Broadcast по каждому старому лобби — там игрок исчез из списка.
+    for (const evictedId of evictedFromLobbies) {
+      void broadcastLobbyUpdate(evictedId);
+    }
   } catch (error) {
     if (isSerializationFailure(error)) return fail(LOBBY_ERROR.SEAT_CONTENTION);
     if (isUniqueConstraintViolation(error)) return fail(LOBBY_ERROR.SEAT_CONTENTION);

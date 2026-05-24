@@ -118,7 +118,45 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         return;
       }
       await socket.leave(lobbyRoomName(parsed.data.lobbyId));
+      // Игрок ушёл с экрана лобби (navigate / close-tab fallback / etc.) —
+      // нельзя оставлять его «готов» в чужом списке. Сбрасываем флаг, но
+      // не удаляем membership: если он вернётся обратно, всё что нужно — это
+      // нажать «Готов» ещё раз. Полный leave идёт через REST /leave.
+      const userId = socket.data.user?.sub;
+      if (userId) await resetReadyOnDisconnect(parsed.data.lobbyId, userId);
       ack?.({ ok: true });
     });
+
+    // Socket пропадает (close-tab / network drop / explicit disconnect).
+    // Используем `disconnecting`, а не `disconnect`, чтобы поймать список
+    // комнат socket.rooms ДО его очистки. По каждой lobby:<id> сбрасываем
+    // isReady, чтобы хост не пытался стартовать игру с «призраком».
+    socket.on('disconnecting', async () => {
+      const userId = socket.data.user?.sub;
+      if (!userId) return;
+      for (const room of socket.rooms) {
+        if (!room.startsWith('lobby:')) continue;
+        const lobbyId = room.slice('lobby:'.length);
+        await resetReadyOnDisconnect(lobbyId, userId);
+      }
+    });
   });
+}
+
+async function resetReadyOnDisconnect(lobbyId: string, userId: string): Promise<void> {
+  try {
+    const member = await prisma.lobbyMember.findUnique({
+      where: { lobbyId_userId: { lobbyId, userId } },
+      select: { isReady: true },
+    });
+    if (!member?.isReady) return;
+    await prisma.lobbyMember.update({
+      where: { lobbyId_userId: { lobbyId, userId } },
+      data: { isReady: false },
+    });
+    void broadcastLobbyUpdate(lobbyId);
+  } catch {
+    // member могли удалить параллельно (через REST /leave). Игнорим —
+    // broadcast от того, кто реально удалял, всё равно дойдёт.
+  }
 }
