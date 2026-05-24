@@ -58,7 +58,7 @@ function SplashImage() {
     'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)';
   return (
     <div
-      className="relative w-full aspect-[16/10] bg-no-repeat bg-center bg-cover"
+      className="relative w-full aspect-16/10 bg-no-repeat bg-center bg-cover"
       style={{
         backgroundImage: 'url(/splash-hero.png)',
         maskImage: `${verticalMask}, ${horizontalMask}`,

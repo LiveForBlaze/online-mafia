@@ -23,7 +23,7 @@ import { MobileStage } from '@/features/game/components/MobileStage.js';
 import { PhaseHeader } from '@/features/game/components/PhaseHeader.js';
 import { RoleCardPickerDialog } from '@/features/game/components/RoleCardPickerDialog.js';
 import { RotateDeviceOverlay } from '@/features/game/components/RotateDeviceOverlay.js';
-import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePanel.js';
+import { actionForSeatInCurrentPhase } from '@/features/game/lib/actionForSeat.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
 import { useVoteHotkey } from '@/features/game/hooks/useVoteHotkey.js';
