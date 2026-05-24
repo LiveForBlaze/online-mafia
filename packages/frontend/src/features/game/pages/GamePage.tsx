@@ -197,7 +197,10 @@ export function GamePage() {
             actionFor={actionFor}
             judgeControlsFor={(participant) =>
               viewerIsJudge && !participant.isJudge ? (
-                <JudgeSeatControls targetUserId={participant.userId} />
+                <JudgeSeatControls
+                  targetUserId={participant.userId}
+                  foulsCount={participant.foulsCount}
+                />
               ) : null
             }
             onZoomSeat={(seat) => setZoomedSeat(seat)}
@@ -219,7 +222,10 @@ export function GamePage() {
           action={actionFor(zoomedParticipant)}
           judgeControls={
             viewerIsJudge && !zoomedParticipant.isJudge ? (
-              <JudgeSeatControls targetUserId={zoomedParticipant.userId} />
+              <JudgeSeatControls
+                targetUserId={zoomedParticipant.userId}
+                foulsCount={zoomedParticipant.foulsCount}
+              />
             ) : null
           }
           onClose={() => setZoomedSeat(null)}

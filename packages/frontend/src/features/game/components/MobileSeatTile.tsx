@@ -24,6 +24,7 @@ interface MobileSeatTileProps {
   isSelf: boolean;
   isSpeaker: boolean;
   isNominated: boolean;
+  isDeadButSpeaking?: boolean;
   voteCountAgainst?: number;
   action: { label: string; onClick: () => void; disabled?: boolean } | null;
   onZoom: () => void;
@@ -35,6 +36,7 @@ export function MobileSeatTile({
   isSelf,
   isSpeaker,
   isNominated,
+  isDeadButSpeaking = false,
   voteCountAgainst,
   action,
   onZoom,
@@ -49,7 +51,9 @@ export function MobileSeatTile({
     );
   }
 
-  const isDead = !participant.isAlive;
+  // Череп показываем только полностью мёртвым. Если игрок только что отстрелян
+  // и сейчас говорит farewell / last word — на тайле рисуем как живого.
+  const isDead = !participant.isAlive && !isDeadButSpeaking;
 
   return (
     <button

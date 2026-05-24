@@ -979,19 +979,34 @@ export function applyNextSpeaker(state: GameState): {
 export function applyJudgeFoul(state: GameState, targetUserId: string): EngineResult<GameState> {
   const target = findByUserId(state, targetUserId);
   if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
+  // На 4 фоле кнопка фола больше не накручивается автоматически и не
+  // удаляет игрока — это сознательная защита от случайного клика. Когда
+  // у игрока 4 фола, ведущий принимает решение вручную: либо «−Фол»
+  // (откатить случайный), либо «Удалить» (зафиксировать техпотерю).
+  if (target.foulsCount >= FOUL_REMOVE_THRESHOLD) {
+    return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  }
   const newFouls = target.foulsCount + 1;
-  const withFoul: GameState = {
+  return ok({
     ...state,
     participants: state.participants.map((p) =>
       p.userId === targetUserId ? { ...p, foulsCount: newFouls } : p,
     ),
-  };
-  // 4th foul = technical loss — same outcome as a manual judge remove,
-  // including the votes/nominations cleanup and the win-condition check.
-  if (newFouls >= FOUL_REMOVE_THRESHOLD) {
-    return applyJudgeRemove(withFoul, targetUserId);
-  }
-  return ok(withFoul);
+  });
+}
+
+// Судья отменяет один фол игроку (если случайно кликнул или передумал).
+// Никаких side-effects: просто снижаем счётчик. Не может уйти ниже нуля.
+export function applyJudgeUnfoul(state: GameState, targetUserId: string): EngineResult<GameState> {
+  const target = findByUserId(state, targetUserId);
+  if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
+  if (target.foulsCount <= 0) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  return ok({
+    ...state,
+    participants: state.participants.map((p) =>
+      p.userId === targetUserId ? { ...p, foulsCount: p.foulsCount - 1 } : p,
+    ),
+  });
 }
 
 // Player presses "Сказать под фол" — they accept a foul on themselves and
@@ -1010,20 +1025,16 @@ export function applyOutOfTurn(state: GameState, userId: string): EngineResult<G
   if (actor.foulsCount >= FOUL_MUTE_THRESHOLD) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
 
   const newFouls = actor.foulsCount + 1;
-  const next: GameState = {
+  // Никакого auto-remove на 4 фоле — даже если по какой-то причине гард
+  // выше пропустил (старая клиентская кнопка / гонка). Ведущий решает
+  // удалить игрока сам.
+  return ok({
     ...state,
     participants: state.participants.map((p) =>
       p.userId === userId ? { ...p, foulsCount: newFouls } : p,
     ),
     outOfTurnSpeaker: { userId, until: Date.now() + OUT_OF_TURN_WINDOW_MS },
-  };
-  // Asking for the floor while sitting on 3 fouls is the path to a technical
-  // loss — you get the 4th foul and you're out. The audio window we just set
-  // is harmless on a removed participant (projection filters them out).
-  if (newFouls >= FOUL_REMOVE_THRESHOLD) {
-    return applyJudgeRemove(next, userId);
-  }
-  return ok(next);
+  });
 }
 
 // Judge presses the red "Выйти из игры" — the entire game is ended. The lobby

@@ -89,6 +89,11 @@ export function PlayerTable({
                   isSelf={participant.userId === viewerUserId}
                   isSpeaker={state.currentSpeakerSeat === seat}
                   isNominated={state.nominationSeats.includes(seat)}
+                  isDeadButSpeaking={
+                    !participant.isAlive &&
+                    seat === state.currentSpeakerSeat &&
+                    (seat === state.farewellSeat || seat === state.lastWordSeat)
+                  }
                   voteCountAgainst={votesAgainst.get(seat)}
                   action={actionFor?.(participant) ?? null}
                   judgeControls={judgeControlsFor?.(participant) ?? null}
@@ -129,6 +134,12 @@ export function PlayerTable({
               isSelf={participant?.userId === viewerUserId}
               isSpeaker={state.currentSpeakerSeat === seat}
               isNominated={state.nominationSeats.includes(seat)}
+              isDeadButSpeaking={
+                !!participant &&
+                !participant.isAlive &&
+                seat === state.currentSpeakerSeat &&
+                (seat === state.farewellSeat || seat === state.lastWordSeat)
+              }
               voteCountAgainst={votesAgainst.get(seat)}
               action={participant ? (actionFor?.(participant) ?? null) : null}
               onZoom={() => onZoomSeat?.(seat)}

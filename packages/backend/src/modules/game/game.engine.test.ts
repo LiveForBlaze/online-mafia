@@ -16,6 +16,7 @@ import {
   applyDonCheck,
   applyJudgeFoul,
   applyJudgeRemove,
+  applyJudgeUnfoul,
   applyLiftAllVote,
   applyMafiaTarget,
   applyNominate,
@@ -983,7 +984,9 @@ describe('foul effects', () => {
     expect(advanced.state.currentSpeakerSeat).toBe(2);
   });
 
-  it('4th foul auto-removes the player', () => {
+  it('фол на 3-х НЕ auto-removes (защита от случайного клика)', () => {
+    // По решению пользователя: при 4 фоле игрок НЕ удаляется автоматически.
+    // Ведущий сам решает: либо снять случайный фол, либо удалить вручную.
     const state = buildState({
       phase: GAME_PHASE.DAY_SPEECH,
       participants: buildState().participants.map((p) =>
@@ -995,8 +998,19 @@ describe('foul effects', () => {
     if (!result.ok) return;
     const seat1 = result.data.participants.find((p) => p.seat === 1);
     expect(seat1?.foulsCount).toBe(4);
-    expect(seat1?.isRemoved).toBe(true);
-    expect(seat1?.isAlive).toBe(false);
+    expect(seat1?.isRemoved).toBe(false);
+    expect(seat1?.isAlive).toBe(true);
+  });
+
+  it('фол на игроке с 4 фолами отклоняется — ведущий решает вручную', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      participants: buildState().participants.map((p) =>
+        p.seat === 1 ? { ...p, foulsCount: 4 } : p,
+      ),
+    });
+    const result = applyJudgeFoul(state, 'user-1');
+    expect(result.ok).toBe(false);
   });
 
   it('out-of-turn запрещён игроку с 3 фолами (защита от one-click техпотери)', () => {
@@ -1026,5 +1040,25 @@ describe('foul effects', () => {
     expect(seat1?.foulsCount).toBe(1);
     expect(seat1?.isAlive).toBe(true);
     expect(seat1?.isRemoved).toBe(false);
+  });
+
+  it('applyJudgeUnfoul снижает счётчик на 1 (от случайного клика)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      participants: buildState().participants.map((p) =>
+        p.seat === 1 ? { ...p, foulsCount: 2 } : p,
+      ),
+    });
+    const result = applyJudgeUnfoul(state, 'user-1');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const seat1 = result.data.participants.find((p) => p.seat === 1);
+    expect(seat1?.foulsCount).toBe(1);
+  });
+
+  it('applyJudgeUnfoul на нуле отказывает', () => {
+    const state = buildState({ phase: GAME_PHASE.DAY_SPEECH });
+    const result = applyJudgeUnfoul(state, 'user-1');
+    expect(result.ok).toBe(false);
   });
 });

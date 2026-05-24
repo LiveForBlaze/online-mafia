@@ -41,6 +41,7 @@ import {
   judgeAdvancePhase,
   judgeAdvanceSpeaker,
   judgeIssueFoul,
+  judgeRevokeFoul,
   judgeRemovePlayer,
   leaveGameAsParticipant,
   nominatePlayer,
@@ -159,6 +160,12 @@ export function registerGameGateway(app: FastifyInstance): void {
       CLIENT_EVENT.JUDGE_ISSUE_FOUL,
       withSchema(socket, judgeFoulPayloadSchema, (data) =>
         judgeIssueFoul({ gameId: getGameIdFromSocket(socket), userId }, data.targetUserId),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.JUDGE_REVOKE_FOUL,
+      withSchema(socket, judgeFoulPayloadSchema, (data) =>
+        judgeRevokeFoul({ gameId: getGameIdFromSocket(socket), userId }, data.targetUserId),
       ),
     );
     socket.on(

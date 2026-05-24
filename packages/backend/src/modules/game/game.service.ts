@@ -26,6 +26,7 @@ import {
   applyJudgeEndGame,
   applyJudgeFoul,
   applyJudgeRemove,
+  applyJudgeUnfoul,
   applyLiftAllVote,
   applyMafiaTarget,
   applyNextSpeaker,
@@ -70,6 +71,8 @@ export const GAME_EVENT_TYPE = {
   PLAYER_KILLED_AT_NIGHT: 'player_killed_at_night',
   FOUL_ISSUED: 'foul_issued',
   PLAYER_REMOVED: 'player_removed',
+  // Судья снял один фол. Payload: { targetUserId }.
+  FOUL_REVOKED: 'foul_revoked',
   // Лучший Ход (best-move guess) cast by an eliminated player during their
   // last word. Payload: { byUserId, guessedSeats: number[] }.
   BEST_MOVE_GUESSED: 'best_move_guessed',
@@ -864,6 +867,26 @@ export async function judgeIssueFoul(
 
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_ISSUED, ctx.userId, { targetUserId });
+    return ok(await commit(next));
+  });
+}
+
+// Снять один фол (защита от случайного клика судьи).
+export async function judgeRevokeFoul(
+  ctx: ActionContext,
+  targetUserId: string,
+): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+    const judgeCheck = requireJudge(loaded.data.state, ctx.userId);
+    if (!judgeCheck.ok) return judgeCheck;
+
+    const engineResult = applyJudgeUnfoul(loaded.data.state, targetUserId);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_REVOKED, ctx.userId, { targetUserId });
     return ok(await commit(next));
   });
 }

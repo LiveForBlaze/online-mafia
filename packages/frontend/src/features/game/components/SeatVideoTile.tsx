@@ -21,6 +21,10 @@ interface SeatVideoTileProps {
   isSelf: boolean;
   isSpeaker: boolean;
   isNominated: boolean;
+  // Мертвый, но сейчас на полу (farewell после ночного убийства / last word
+  // после дневного отстрела) — отрисовываем как живого: видео, никнейм. Череп
+  // появится только когда судья «Далее» сменит спикера.
+  isDeadButSpeaking?: boolean;
   voteCountAgainst?: number;
   action?: { label: string; onClick: () => void; disabled?: boolean } | null;
   judgeControls?: React.ReactNode;
@@ -31,6 +35,7 @@ export function SeatVideoTile({
   isSelf,
   isSpeaker,
   isNominated,
+  isDeadButSpeaking = false,
   voteCountAgainst,
   action,
   judgeControls,
@@ -57,7 +62,9 @@ export function SeatVideoTile({
   // AudioTrack/VideoTrack на permission flip — управлять через volume/muted»).
   const hasCameraTrack = Boolean(cameraPublication?.track && !cameraPublication.isMuted);
   const showCamera = hasCameraTrack && mayWatch;
-  const isDead = !participant.isAlive;
+  // «Полный мертвец» — череп. Если мёртвый сейчас говорит farewell/last word,
+  // показываем его как живого.
+  const isDead = !participant.isAlive && !isDeadButSpeaking;
 
   return (
     <div

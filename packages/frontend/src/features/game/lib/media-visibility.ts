@@ -157,8 +157,19 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
   if (targetIsJudge) return true;
   if (viewerIsJudge) return true;
 
-  // Active "out of turn" window — that one player is heard by everyone.
-  if (outOfTurnSpeaker && outOfTurnSpeaker.userId === targetUserId) {
+  // Active "out of turn" window — that one player is heard by everyone,
+  // НО ТОЛЬКО:
+  //   - в дневной фазе (под фол ночью говорить нельзя),
+  //   - в пределах 5-секундного окна (until > now).
+  // Сервер чистит outOfTurnSpeaker в projection после until, но между двумя
+  // GAME_STATE_DELTA клиент держит старое значение — поэтому проверяем
+  // окно ещё и тут, чтобы не было «продлённого» звука после окончания.
+  if (
+    outOfTurnSpeaker &&
+    outOfTurnSpeaker.userId === targetUserId &&
+    outOfTurnSpeaker.until > now &&
+    DAY_PHASES.includes(phase)
+  ) {
     return true;
   }
 

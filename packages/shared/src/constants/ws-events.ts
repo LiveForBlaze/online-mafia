@@ -65,6 +65,7 @@ export const CLIENT_EVENT = {
   JUDGE_ADVANCE_PHASE: 'client:judge_advance_phase',
   JUDGE_ADVANCE_SPEAKER: 'client:judge_advance_speaker',
   JUDGE_ISSUE_FOUL: 'client:judge_issue_foul',
+  JUDGE_REVOKE_FOUL: 'client:judge_revoke_foul',
   JUDGE_REMOVE_PLAYER: 'client:judge_remove_player',
 
   // Self-removal — the player explicitly leaves the game (red button).
