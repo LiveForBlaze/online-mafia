@@ -59,6 +59,30 @@ export async function createLobby(
     return fail(LOBBY_ERROR.NAME_REJECTED);
   }
 
+  // Один пользователь = одно WAITING-лобби. До создания нового —
+  // выкидываем себя из всех старых, где сейчас числимся гостем (не host).
+  // Та же логика что в joinLobby — без неё пользователь, который не
+  // явным leave вышел из чужого лобби (закрыл вкладку, ушёл через лого),
+  // оставался там «призраком» когда создавал своё.
+  const stalePlayerMemberships = await prisma.lobbyMember.findMany({
+    where: {
+      userId: hostId,
+      lobby: { status: 'WAITING', hostId: { not: hostId } },
+    },
+    select: { lobbyId: true },
+  });
+  if (stalePlayerMemberships.length > 0) {
+    await prisma.lobbyMember.deleteMany({
+      where: {
+        userId: hostId,
+        lobbyId: { in: stalePlayerMemberships.map((m) => m.lobbyId) },
+      },
+    });
+    for (const { lobbyId: oldId } of stalePlayerMemberships) {
+      void broadcastLobbyUpdate(oldId);
+    }
+  }
+
   const passwordHash = input.password ? await hashPassword(input.password) : null;
   const hostAsJudge = input.hostRole === MEMBER_ROLE.JUDGE;
 

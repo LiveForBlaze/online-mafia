@@ -9,7 +9,6 @@ import { useNavigate, useParams } from 'react-router';
 import type { Role } from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
-import { env } from '@/lib/env.js';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { LobbyRoom } from '@/features/lobby/components/LobbyRoom.js';
@@ -96,16 +95,12 @@ export function LobbyRoomPage() {
     if (lobbyStatus === 'closed') navigate(ROUTE_PATH.HOME);
   }, [lobbyStatus, navigate]);
 
-  // Best-effort cleanup: when the user closes the tab, beacon /leave.
-  useEffect(() => {
-    if (!lobbyId || gameId) return;
-    function leaveOnUnload() {
-      const url = `${env.VITE_BACKEND_URL}/api/v1/lobby/${lobbyId}/leave`;
-      navigator.sendBeacon(url);
-    }
-    window.addEventListener('beforeunload', leaveOnUnload);
-    return () => window.removeEventListener('beforeunload', leaveOnUnload);
-  }, [lobbyId, gameId]);
+  // Раньше тут висел beforeunload → sendBeacon('/leave'). Это ломало F5:
+  // unload-handler срабатывал при простом обновлении страницы, leaveLobby
+  // на сервере для хоста закрывал лобби, гости летели на главную.
+  // Полный leave теперь только через явный клик «Выйти». F5/close-tab
+  // ловится сокетом (см. lobby.gateway.ts disconnecting): сбрасывается
+  // isReady, membership остаётся — игрок может вернуться.
 
   function handleLeave() {
     if (!lobbyId) return;
