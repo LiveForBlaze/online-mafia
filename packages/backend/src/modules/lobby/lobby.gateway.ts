@@ -46,6 +46,11 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'not_member' });
         return;
       }
+      // Сначала вступаем в socket-комнату — иначе broadcast ниже (при
+      // сбросе isReady) уйдёт всем, КРОМЕ самого вернувшегося, и у него
+      // на экране останется устаревший «Готов», пока другие будут видеть
+      // его «не готов».
+      await socket.join(lobbyRoomName(parsed.data.lobbyId));
       // Returning to the lobby (fresh page mount or socket reconnect) always
       // drops the player back to "not ready". The "Готов" flag is a deliberate
       // act, not a sticky preference — if the player walked off to change
@@ -58,7 +63,6 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         });
         void broadcastLobbyUpdate(parsed.data.lobbyId);
       }
-      await socket.join(lobbyRoomName(parsed.data.lobbyId));
       // Replay the current chat buffer to the joiner so they don't land on
       // an empty pane. New broadcasts arrive over the live channel below.
       const history = getLobbyChatHistory(parsed.data.lobbyId);
