@@ -327,10 +327,16 @@ export async function closeLobby(
 ): Promise<ServiceResult<{ closed: true }>> {
   const lobby = await prisma.lobby.findUnique({
     where: { id: lobbyId },
-    select: { id: true, hostId: true },
+    select: { id: true, hostId: true, status: true },
   });
   if (!lobby) return fail(LOBBY_ERROR.NOT_FOUND);
   if (lobby.hostId !== userId) return fail(LOBBY_ERROR.NOT_HOST);
+  if (lobby.status === 'CLOSED') return ok({ closed: true });
+
+  // Если хост закрывает лобби в момент идущей игры — игру тоже завершаем.
+  // Иначе остаётся «осиротевшая» игра в registry: участники видят активный
+  // редирект и попадают в фантомный матч, чей parent lobby уже CLOSED.
+  await endActiveGameForLobby(lobbyId);
 
   await prisma.lobby.update({
     where: { id: lobbyId },

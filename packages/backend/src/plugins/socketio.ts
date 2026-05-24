@@ -91,6 +91,38 @@ export const socketioPlugin = fp(
       next();
     });
 
+    // Per-socket rate limiter. Защищаем оба пути (lobby chat + game actions) от
+    // спама/DoS: один сокет не может выдать больше, чем разрешено в окне.
+    // Без этого можно было слать 10к msg/sec и забивать DB + бродкаст всем
+    // в комнате. Лимит свой по событиям: чат строже, остальные действия мягче.
+    const RATE_WINDOW_MS = 10_000;
+    const RATE_LIMITS: Record<string, number> = {
+      'client:lobby_chat_send': 10, // 1/сек в среднем — комфортно для общения, отсекает спам
+      'client:lobby_join': 20,
+      'client:lobby_leave': 20,
+      // Игровые действия — оставляем большой запас для legitimate UI bursts,
+      // но не безлимит. По 50 событий в 10 секунд (5/сек) с головой хватает.
+      __default__: 50,
+    };
+    io.use((socket, next) => {
+      const buckets = new Map<string, { count: number; resetAt: number }>();
+      socket.onAny((event) => {
+        const limit = RATE_LIMITS[event] ?? RATE_LIMITS.__default__ ?? 50;
+        const now = Date.now();
+        const bucket = buckets.get(event);
+        if (!bucket || bucket.resetAt <= now) {
+          buckets.set(event, { count: 1, resetAt: now + RATE_WINDOW_MS });
+          return;
+        }
+        bucket.count += 1;
+        if (bucket.count > limit) {
+          // Тихо отрубаем сокет — клиент переподключится с чистым бакетом.
+          socket.disconnect(true);
+        }
+      });
+      next();
+    });
+
     app.decorate('io', io);
 
     // Periodically re-check tokenVersion for all connected sockets so that a

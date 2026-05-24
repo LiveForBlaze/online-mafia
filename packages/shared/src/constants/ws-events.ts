@@ -63,6 +63,7 @@ export const CLIENT_EVENT = {
 
   // Judge actions
   JUDGE_ADVANCE_PHASE: 'client:judge_advance_phase',
+  JUDGE_ADVANCE_SPEAKER: 'client:judge_advance_speaker',
   JUDGE_ISSUE_FOUL: 'client:judge_issue_foul',
   JUDGE_REMOVE_PLAYER: 'client:judge_remove_player',
 

@@ -89,6 +89,17 @@ const LOBBY_CREATE_RATE_LIMIT = {
     request.user?.sub ?? request.ip,
 } as const;
 
+// Приватный join вызывает argon2-проверку пароля (~50ms CPU + 19MB памяти).
+// Без отдельного лимита это путь к перегрузке CPU перебором паролей.
+// 10 попыток в минуту на пользователя (с фолбэком на IP) — достаточно для
+// человека, но отрубает перебор.
+const LOBBY_JOIN_RATE_LIMIT = {
+  max: 10,
+  timeWindow: '1 minute',
+  keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
+    request.user?.sub ?? request.ip,
+} as const;
+
 export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Create lobby ----
   app.post(
@@ -154,7 +165,10 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Join lobby ----
   app.post<{ Params: { id: string } }>(
     '/:id/join',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: LOBBY_JOIN_RATE_LIMIT },
+    },
     async (request, reply) => {
       const parsed = joinLobbyInputSchema.safeParse(request.body ?? {});
       if (!parsed.success) {

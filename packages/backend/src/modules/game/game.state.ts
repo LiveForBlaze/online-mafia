@@ -128,12 +128,20 @@ export interface GameState {
   roleCardsPicked: number[];
 
   // Per ФИИМ: if a player is disqualified (judge-removed, foul-removed,
-  // or self-leave) during DAY_SPEECH — before the day vote starts — that
-  // day's vote is cancelled and the table goes straight to night. Flag is
-  // set inside applyJudgeRemove when the current phase is DAY_SPEECH and
-  // cleared at the start of the next day (MORNING_ANNOUNCEMENT block in
-  // applyAdvancePhase).
+  // or self-leave) during any day phase BEFORE the vote result is known —
+  // including DAY_SPEECH, DAY_VOTE, DAY_SHOOTOUT, DAY_REVOTE, DAY_LIFT_VOTE —
+  // the current day's vote is cancelled and the table goes straight to night.
+  // Flag is set inside applyJudgeRemove and cleared at MORNING_ANNOUNCEMENT
+  // start (next day's apply path).
   disqualifiedThisDay: boolean;
+
+  // ФИИМ rule: "Лучший Ход" is granted to the player killed on the FIRST
+  // night — unless during Day 1 the table eliminated two or more players by
+  // vote (lift-all kill). In that case the first-night victim gets no LH.
+  // We track that with this flag, set when DAY_LIFT_VOTE on dayNumber=0
+  // produces a multi-kill. Never cleared — only one first-night victim per
+  // game.
+  firstDayMultiVoteKill: boolean;
 
   // Monotonic event sequence (mirrors GameEvent.seq in the database).
   nextEventSeq: number;

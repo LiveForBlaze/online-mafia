@@ -7,9 +7,6 @@ import { CLIENT_EVENT, GAME_PHASE, type GameStateProjected } from '@mafia/shared
 import { Button } from '@/components/ui/Button.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 
-const CLIENT_GAME_ADVANCE_PHASE = 'client:judge_advance_phase';
-const CLIENT_GAME_ADVANCE_SPEAKER = 'client:judge_advance_speaker';
-
 interface JudgePanelProps {
   state: GameStateProjected;
 }
@@ -29,7 +26,7 @@ export function JudgePanel({ state }: JudgePanelProps) {
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => emitGameAction(CLIENT_GAME_ADVANCE_SPEAKER)}
+          onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_SPEAKER)}
         >
           {t('game.ui.nextSpeaker')}
         </Button>
@@ -37,7 +34,7 @@ export function JudgePanel({ state }: JudgePanelProps) {
 
       <Button
         size="sm"
-        onClick={() => emitGameAction(CLIENT_GAME_ADVANCE_PHASE)}
+        onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_PHASE)}
         disabled={phaseLocked}
       >
         {t('game.ui.advancePhase')}

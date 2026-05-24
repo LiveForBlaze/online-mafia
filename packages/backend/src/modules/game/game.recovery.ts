@@ -145,6 +145,7 @@ function replayState(
     roleCardPickerSeat: null,
     roleCardsPicked: [],
     disqualifiedThisDay: false,
+    firstDayMultiVoteKill: false,
     winner: null,
     nextEventSeq: 0,
   };

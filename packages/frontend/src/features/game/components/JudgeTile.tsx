@@ -42,7 +42,9 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
   const cameraPublication = videoPubsMap
     ? Array.from(videoPubsMap.values()).find((pub) => pub.source === Track.Source.Camera)
     : undefined;
-  const hasLiveCamera = Boolean(mayWatch && cameraPublication?.track && !cameraPublication.isMuted);
+  // См. SeatVideoTile: трек смонтирован постоянно, видимость классом.
+  const hasCameraTrack = Boolean(cameraPublication?.track && !cameraPublication.isMuted);
+  const showCamera = hasCameraTrack && mayWatch;
   const isSelf = judge.userId === viewerUserId;
 
   return (
@@ -54,18 +56,20 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
         'relative w-full h-full min-h-0 rounded-md overflow-hidden border border-border bg-card-deep',
       )}
     >
-      {hasLiveCamera && lkJudge && cameraPublication ? (
+      {hasCameraTrack && lkJudge && cameraPublication && (
         <VideoTrack
           trackRef={{
             participant: lkJudge,
             source: Track.Source.Camera,
             publication: cameraPublication,
           }}
-          className="absolute inset-0 w-full h-full object-cover"
+          className={cn(
+            'absolute inset-0 w-full h-full object-cover',
+            showCamera ? 'visible' : 'invisible',
+          )}
         />
-      ) : (
-        <Placeholder nickname={judge.nickname} />
       )}
+      {!showCamera && <Placeholder nickname={judge.nickname} avatarUrl={judge.avatarUrl} />}
 
       {/* СУДЬЯ badge in the top-left */}
       <div className="absolute top-1 left-1 flex items-center gap-1.5 text-xs">
@@ -105,11 +109,15 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
   );
 }
 
-function Placeholder({ nickname }: { nickname: string }) {
+function Placeholder({ nickname, avatarUrl }: { nickname: string; avatarUrl: string | null }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-card">
-      <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center text-lg font-semibold text-fg">
-        {firstLetter(nickname)}
+      <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center overflow-hidden">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-lg font-semibold text-fg">{firstLetter(nickname)}</span>
+        )}
       </div>
     </div>
   );

@@ -91,6 +91,10 @@ function buildState(overrides: Partial<GameState> = {}): GameState {
     shootoutSpeakerIdx: 0,
     liftAllVotes: new Map(),
     bestMoveGuesses: [],
+    roleCardPickerSeat: null,
+    roleCardsPicked: [],
+    disqualifiedThisDay: false,
+    firstDayMultiVoteKill: false,
     winner: null,
     nextEventSeq: 0,
     ...overrides,
@@ -166,11 +170,12 @@ describe('applyNominate (judge-driven)', () => {
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   });
 
-  it('allows self-nomination (speaker putting themselves up)', () => {
+  it('rejects self-nomination per ФИИМ', () => {
+    // ФИИМ: игрок не может выставить свою кандидатуру на голосование.
     const state = buildState({ currentSpeakerSeat: 1 });
     const result = applyNominate(state, 'user-judge', 1);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data.nominationSeats).toContain(1);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.CANNOT_TARGET_SELF);
   });
 
   it('refuses nominating a dead player', () => {
@@ -238,10 +243,10 @@ describe('applyCastVote (sequential rounds)', () => {
     expect(advanced.state.votes.get(1)).toBe(3);
   });
 
-  it('applyNextSpeaker auto-casts remaining voters to the LAST candidate', () => {
+  it('applyNextSpeaker auto-casts non-nominated voters to the LAST candidate', () => {
     // Three candidates [3, 5, 7], we're on the last round, only seat 1 has
-    // voted (for 3). Everyone else alive (excluding seat 7 itself, who'd
-    // be self-voting) gets auto-pinned to seat 7.
+    // voted (for 3). ФИИМ: всех выставленных тоже исключаем из auto-cast —
+    // нельзя принудительно голосовать против конкурента.
     const state = buildState({
       phase: GAME_PHASE.DAY_VOTE,
       nominationSeats: [3, 5, 7],
@@ -253,13 +258,14 @@ describe('applyCastVote (sequential rounds)', () => {
     expect(advanced.state.voteRoundIdx).toBe(3); // past end
     // seat 1 keeps their original vote
     expect(advanced.state.votes.get(1)).toBe(3);
-    // seats 2-6, 8-10 are auto-cast for seat 7 (excluding 7 itself who'd be
-    // voting for themselves)
-    for (const seat of [2, 3, 4, 5, 6, 8, 9, 10]) {
+    // seats 2, 4, 6, 8, 9, 10 — НЕ выставленные — auto-cast за 7
+    for (const seat of [2, 4, 6, 8, 9, 10]) {
       expect(advanced.state.votes.get(seat)).toBe(7);
     }
-    // Seat 7 (the last candidate) is not in votes — they're not auto-cast
-    // for themselves and they hadn't voted manually.
+    // Все выставленные (3, 5, 7) остаются абстенциями — их собственный голос
+    // не записан.
+    expect(advanced.state.votes.has(3)).toBe(false);
+    expect(advanced.state.votes.has(5)).toBe(false);
     expect(advanced.state.votes.has(7)).toBe(false);
   });
 
@@ -666,8 +672,8 @@ describe('lift-all vote', () => {
     if (!after.ok) expect(after.error).toBe(ENGINE_ERROR.ALREADY_VOTED);
   });
 
-  it('strict majority of alive (>50%) kills every tied seat and queues them all for last word', () => {
-    // 10 players alive in the default buildState — need 6+ yes votes to pass.
+  it('majority (>=50%) of alive kills every tied seat and queues them all for last word', () => {
+    // 10 players alive in the default buildState — ФИИМ: >=50% уже поднимает.
     const state = liftVoteState([
       [1, true],
       [2, true],
@@ -688,14 +694,28 @@ describe('lift-all vote', () => {
     expect(next.liftAllVotes.size).toBe(0);
   });
 
-  it('exactly 50% yes is NOT enough to lift', () => {
-    // 5 yes / 5 silent with 10 alive — strictly less than 50%, no kill.
+  it('exactly 50% yes IS enough to lift per ФИИМ', () => {
+    // 5 yes / 5 silent with 10 alive — ровно 50%, по ФИИМ поднимает.
     const state = liftVoteState([
       [1, true],
       [2, true],
       [4, true],
       [6, true],
       [7, true],
+    ]);
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(false);
+  });
+
+  it('below 50% yes does NOT lift', () => {
+    // 4 yes — меньше половины. Никто не уходит.
+    const state = liftVoteState([
+      [1, true],
+      [2, true],
+      [4, true],
+      [6, true],
     ]);
     const next = applyAdvancePhase(state);
     expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
@@ -726,7 +746,7 @@ describe('lift-all vote', () => {
   });
 
   it('walks the multi-victim last-word queue via applyNextSpeaker', () => {
-    // 6 yes / 10 alive → passes the >50% gate.
+    // 6 yes / 10 alive → passes the >=50% gate.
     const state = liftVoteState([
       [1, true],
       [2, true],
@@ -741,6 +761,21 @@ describe('lift-all vote', () => {
     expect(second.state.currentSpeakerSeat).toBe(5);
     const done = applyNextSpeaker(second.state);
     expect(done.speechesDone).toBe(true);
+  });
+
+  it('Day-1 multi-kill через lift sets firstDayMultiVoteKill', () => {
+    // dayNumber=0 → текущий день в нашей нумерации это Day 1.
+    // Подъём убивает двух → флаг ставится.
+    const state = liftVoteState([
+      [1, true],
+      [2, true],
+      [4, true],
+      [6, true],
+      [7, true],
+      [8, true],
+    ]);
+    const next = applyAdvancePhase({ ...state, dayNumber: 0 });
+    expect(next.firstDayMultiVoteKill).toBe(true);
   });
 });
 
@@ -763,10 +798,8 @@ describe('day_last_word after vote elimination', () => {
     expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
   });
 
-  it('routes day_vote with no votes straight to night', () => {
-    // No votes at all and only one (or zero) nominations — no winner, no
-    // tie-of-2+ either. Engine should bypass DAY_LAST_WORD and DAY_SHOOTOUT
-    // and head straight to night.
+  it('single nominee auto-kills without a vote (ФИИМ)', () => {
+    // ФИИМ: один выставленный = автокилл без голосования.
     const state = buildState({
       phase: GAME_PHASE.DAY_VOTE,
       currentSpeakerSeat: null,
@@ -774,10 +807,54 @@ describe('day_last_word after vote elimination', () => {
       votes: new Map(),
     });
     const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(next.lastWordSeats).toEqual([3]);
+    expect(next.currentSpeakerSeat).toBe(3);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+  });
+
+  it('no nominations at all — straight to night', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      currentSpeakerSeat: null,
+      nominationSeats: [],
+      votes: new Map(),
+    });
+    const next = applyAdvancePhase(state);
     expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
-    expect(next.lastWordSeats).toEqual([]);
-    expect(next.tiedSeats).toEqual([]);
-    expect(next.currentSpeakerSeat).toBe(null);
+  });
+
+  it('day-vote with disqualifiedThisDay flag is cancelled — straight to night', () => {
+    // ФИИМ: если в день кого-то дисквалифицировали — текущее голосование
+    // отменяется, никто не отстреливается.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      currentSpeakerSeat: null,
+      nominationSeats: [3, 5],
+      votes: new Map([
+        [1, 3],
+        [2, 3],
+      ]),
+      disqualifiedThisDay: true,
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    // Никто не убит голосованием.
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
+  });
+
+  it('applyJudgeRemove во время DAY_VOTE ставит disqualifiedThisDay', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      currentSpeakerSeat: null,
+      nominationSeats: [3, 5],
+      votes: new Map([[1, 3]]),
+    });
+    const result = applyJudgeRemove(state, 'user-2');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.disqualifiedThisDay).toBe(true);
   });
 
   it('exits day_last_word into night_mafia and clears the queue', () => {
@@ -794,35 +871,36 @@ describe('day_last_word after vote elimination', () => {
   });
 });
 
-describe('applyBestMoveGuess (LH)', () => {
-  function lastWordState(): GameState {
+describe('applyBestMoveGuess (LH — жертва первой ночи на утренней прощальной)', () => {
+  // ФИИМ: ЛХ даёт ЖЕРТВА первой ночи в свою farewell-минуту утром Day 1.
+  // Кого выгнали голосованием — ЛХ НЕ называет.
+  function farewellState(): GameState {
     return buildState({
-      phase: GAME_PHASE.DAY_LAST_WORD,
-      lastWordSeats: [3],
-      lastWordIdx: 0,
+      phase: GAME_PHASE.DAY_SPEECH,
+      dayNumber: 1,
+      farewellSeat: 3,
       currentSpeakerSeat: 3,
       participants: buildState().participants.map((p) =>
-        // Seat 3 is the eliminated player giving last word — dead.
         p.seat === 3 ? { ...p, isAlive: false } : p,
       ),
     });
   }
 
-  it('records a valid 1–3 seat guess from the current last-word speaker', () => {
-    const result = applyBestMoveGuess(lastWordState(), 'user-3', [8, 9, 10]);
+  it('records a valid 1–3 seat guess from the first-night victim during farewell', () => {
+    const result = applyBestMoveGuess(farewellState(), 'user-3', [8, 9, 10]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.bestMoveGuesses).toEqual([{ byUserId: 'user-3', guessedSeats: [8, 9, 10] }]);
   });
 
-  it('rejects a guess from someone who is not the last-word speaker', () => {
-    const result = applyBestMoveGuess(lastWordState(), 'user-1', [8, 9, 10]);
+  it('rejects a guess from someone who is not the farewell speaker', () => {
+    const result = applyBestMoveGuess(farewellState(), 'user-1', [8, 9, 10]);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_YOUR_TURN);
   });
 
   it('rejects a second guess from the same speaker', () => {
-    const first = applyBestMoveGuess(lastWordState(), 'user-3', [8, 9, 10]);
+    const first = applyBestMoveGuess(farewellState(), 'user-3', [8, 9, 10]);
     expect(first.ok).toBe(true);
     if (!first.ok) return;
     const second = applyBestMoveGuess(first.data, 'user-3', [1, 2, 4]);
@@ -831,24 +909,54 @@ describe('applyBestMoveGuess (LH)', () => {
   });
 
   it('rejects an empty or oversized guess list', () => {
-    const empty = applyBestMoveGuess(lastWordState(), 'user-3', []);
+    const empty = applyBestMoveGuess(farewellState(), 'user-3', []);
     expect(empty.ok).toBe(false);
     if (!empty.ok) expect(empty.error).toBe(ENGINE_ERROR.INVALID_GUESS);
 
-    const tooMany = applyBestMoveGuess(lastWordState(), 'user-3', [1, 2, 4, 5]);
+    const tooMany = applyBestMoveGuess(farewellState(), 'user-3', [1, 2, 4, 5]);
     expect(tooMany.ok).toBe(false);
     if (!tooMany.ok) expect(tooMany.error).toBe(ENGINE_ERROR.INVALID_GUESS);
   });
 
   it('rejects a guess containing duplicate seats', () => {
-    const result = applyBestMoveGuess(lastWordState(), 'user-3', [8, 8, 9]);
+    const result = applyBestMoveGuess(farewellState(), 'user-3', [8, 8, 9]);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.INVALID_GUESS);
   });
 
-  it('rejects a guess outside of DAY_LAST_WORD', () => {
-    const state = buildState({ phase: GAME_PHASE.DAY_VOTE });
+  it('rejects in DAY_LAST_WORD (выгнанный голосованием ЛХ НЕ называет)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_LAST_WORD,
+      lastWordSeats: [3],
+      currentSpeakerSeat: 3,
+    });
+    const result = applyBestMoveGuess(state, 'user-3', [8, 9]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+  });
+
+  it('rejects outside of farewell (обычная дневная речь)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      dayNumber: 1,
+      farewellSeat: null,
+      currentSpeakerSeat: 1,
+    });
     const result = applyBestMoveGuess(state, 'user-1', [8, 9]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+  });
+
+  it('rejects on Day 2+ (только жертва ПЕРВОЙ ночи)', () => {
+    const state = { ...farewellState(), dayNumber: 2 };
+    const result = applyBestMoveGuess(state, 'user-3', [8, 9, 10]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+  });
+
+  it('rejects when Day 1 lift-all killed 2+ (firstDayMultiVoteKill)', () => {
+    const state = { ...farewellState(), firstDayMultiVoteKill: true };
+    const result = applyBestMoveGuess(state, 'user-3', [8, 9, 10]);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
   });
@@ -891,10 +999,9 @@ describe('foul effects', () => {
     expect(seat1?.isAlive).toBe(false);
   });
 
-  it('out-of-turn that crosses the 4-foul line also auto-removes', () => {
-    // User-1 sits on 3 fouls. Pressing "say out of turn" makes it 4 — they
-    // get the foul AND are technically removed. The audio window we open
-    // is moot since the projection filter will silence them.
+  it('out-of-turn запрещён игроку с 3 фолами (защита от one-click техпотери)', () => {
+    // ФИИМ: с 3 фолами игрок уже лишён слова. Кнопка «под фол» для него
+    // была бы добровольным четвёртым фолом → техпотеря. Движок отклоняет.
     const state = buildState({
       phase: GAME_PHASE.DAY_SPEECH,
       participants: buildState().participants.map((p) =>
@@ -902,10 +1009,12 @@ describe('foul effects', () => {
       ),
     });
     const result = applyOutOfTurn(state, 'user-1');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const seat1 = result.data.participants.find((p) => p.seat === 1);
-    expect(seat1?.isRemoved).toBe(true);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+    // Игрок остаётся в игре, фолы не растут.
+    const seat1 = state.participants.find((p) => p.seat === 1);
+    expect(seat1?.foulsCount).toBe(3);
+    expect(seat1?.isRemoved).toBe(false);
   });
 
   it('foul below the threshold leaves the player playing', () => {

@@ -60,7 +60,8 @@ export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   // игрока N" and counts hands for 3 seconds before moving to the next.
   [GAME_PHASE.DAY_VOTE]: 3,
   [GAME_PHASE.DAY_REVOTE]: 3,
-  [GAME_PHASE.DAY_SHOOTOUT]: 60,
+  // Per ФИИМ: каждому в перестрелке даётся 30 секунд (а не полная минута речи).
+  [GAME_PHASE.DAY_SHOOTOUT]: 30,
   [GAME_PHASE.DAY_LIFT_VOTE]: 30,
   [GAME_PHASE.DAY_LAST_WORD]: 60,
   [GAME_PHASE.NIGHT_MAFIA]: 45,

@@ -94,28 +94,37 @@ function StageBody({
         </p>
       ) : null;
 
-    case GAME_PHASE.DAY_SPEECH:
+    case GAME_PHASE.DAY_SPEECH: {
+      const showBestMove =
+        viewerSeat !== null &&
+        state.farewellSeat === viewerSeat &&
+        state.farewellSeat === state.currentSpeakerSeat &&
+        state.dayNumber === 1;
       return (
-        <div className="flex items-baseline gap-2 flex-wrap">
-          {state.currentSpeakerSeat !== null && (
-            <p
-              className={cn(
-                'text-base font-bold',
-                state.farewellSeat !== null ? 'text-warning' : 'text-fg',
-              )}
-            >
-              {state.farewellSeat !== null
-                ? t('game.ui.farewellSpeaker', { seat: state.currentSpeakerSeat })
-                : t('game.ui.currentSpeaker', { seat: state.currentSpeakerSeat })}
-            </p>
-          )}
-          {state.nominationSeats.length > 0 && (
-            <p className="text-xs text-muted">
-              {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
-            </p>
-          )}
+        <div className="space-y-2">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            {state.currentSpeakerSeat !== null && (
+              <p
+                className={cn(
+                  'text-base font-bold',
+                  state.farewellSeat !== null ? 'text-warning' : 'text-fg',
+                )}
+              >
+                {state.farewellSeat !== null
+                  ? t('game.ui.farewellSpeaker', { seat: state.currentSpeakerSeat })
+                  : t('game.ui.currentSpeaker', { seat: state.currentSpeakerSeat })}
+              </p>
+            )}
+            {state.nominationSeats.length > 0 && (
+              <p className="text-xs text-muted">
+                {t('game.ui.nominations')}: {state.nominationSeats.map((s) => `№${s}`).join(', ')}
+              </p>
+            )}
+          </div>
+          {showBestMove && <MobileBestMoveForm state={state} viewerSeat={viewerSeat!} />}
         </div>
       );
+    }
 
     case GAME_PHASE.DAY_VOTE:
     case GAME_PHASE.DAY_REVOTE:
@@ -157,19 +166,12 @@ function StageBody({
 
     case GAME_PHASE.DAY_LIFT_VOTE:
       return (
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <p className="text-sm text-fg">
-            {t('game.ui.tiedCandidates')}: {state.tiedSeats.map((s) => `№${s}`).join(', ')}
-          </p>
-          <p className="text-xs font-mono text-muted">
-            {t('game.ui.liftTally', { yes: state.liftAllTally.yes, no: state.liftAllTally.no })}
-          </p>
-          {state.myLiftAllVote !== null && (
-            <p className="text-xs text-success">
-              {state.myLiftAllVote ? t('game.ui.liftMyVoteYes') : t('game.ui.liftMyVoteNo')}
-            </p>
-          )}
-        </div>
+        <MobileLiftVoteBody
+          state={state}
+          viewerSeat={viewerSeat}
+          viewerIsAlive={viewerIsAlive}
+          viewerIsJudge={viewerIsJudge}
+        />
       );
 
     case GAME_PHASE.NIGHT_MAFIA: {
@@ -322,6 +324,148 @@ function MobileVoteBody({
         </Button>
       )}
       {viewerIsAlive && hasVoted && <p className="text-xs text-success">{t('game.ui.voted')}</p>}
+    </div>
+  );
+}
+
+function MobileBestMoveForm({
+  state,
+  viewerSeat,
+}: {
+  state: GameStateProjected;
+  viewerSeat: number;
+}) {
+  const { t } = useTranslation();
+  const [picked, setPicked] = useState<number[]>([]);
+  const [pending, setPending] = useState(false);
+  const me = state.participants.find((p) => p.seat === viewerSeat);
+  const alreadySubmitted = state.bestMoveGuesses.some((g) => g.byUserId === me?.userId);
+
+  function togglePick(seat: number) {
+    setPicked((prev) =>
+      prev.includes(seat)
+        ? prev.filter((s) => s !== seat)
+        : prev.length < 3
+          ? [...prev, seat]
+          : prev,
+    );
+  }
+
+  async function submit() {
+    if (picked.length === 0 || picked.length > 3 || pending) return;
+    setPending(true);
+    try {
+      await emitGameAction(CLIENT_EVENT.BEST_MOVE_GUESS, { guessedSeats: picked });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (alreadySubmitted) {
+    return <p className="text-xs text-success">{t('game.ui.lhSubmitted')}</p>;
+  }
+
+  const candidates = state.participants
+    .filter((p) => !p.isJudge && p.isAlive && !p.isRemoved && p.seat !== viewerSeat)
+    .map((p) => p.seat!)
+    .sort((a, b) => a - b);
+
+  return (
+    <div className="space-y-1.5 rounded-md border border-warning/40 bg-warning/5 p-2">
+      <p className="text-[10px] uppercase tracking-wider text-warning font-semibold">
+        {t('game.ui.lhTitle')}
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {candidates.map((seat) => (
+          <button
+            key={seat}
+            type="button"
+            onClick={() => togglePick(seat)}
+            className={cn(
+              'h-7 min-w-7 px-2 rounded text-xs font-mono font-semibold border',
+              picked.includes(seat)
+                ? 'bg-warning text-bg border-warning'
+                : 'bg-bg text-fg border-border',
+            )}
+          >
+            №{seat}
+          </button>
+        ))}
+      </div>
+      <Button
+        size="sm"
+        onClick={submit}
+        disabled={pending || picked.length === 0}
+        className="w-full"
+      >
+        {t('game.ui.lhSubmit')}
+      </Button>
+    </div>
+  );
+}
+
+function MobileLiftVoteBody({
+  state,
+  viewerSeat,
+  viewerIsAlive,
+  viewerIsJudge,
+}: {
+  state: GameStateProjected;
+  viewerSeat: number | null;
+  viewerIsAlive: boolean;
+  viewerIsJudge: boolean;
+}) {
+  const { t } = useTranslation();
+  const [pending, setPending] = useState(false);
+  const canVote =
+    !viewerIsJudge && viewerIsAlive && viewerSeat !== null && state.myLiftAllVote === null;
+
+  async function vote(yes: boolean) {
+    if (!canVote || pending) return;
+    setPending(true);
+    try {
+      await emitGameAction(CLIENT_EVENT.LIFT_ALL_VOTE, { yes });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <p className="text-sm text-fg">
+          {t('game.ui.tiedCandidates')}: {state.tiedSeats.map((s) => `№${s}`).join(', ')}
+        </p>
+        <p className="text-xs font-mono text-muted">
+          {t('game.ui.liftTally', { yes: state.liftAllTally.yes, no: state.liftAllTally.no })}
+        </p>
+      </div>
+      {canVote && (
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => vote(true)}
+            disabled={pending}
+            className="flex-1 bg-danger hover:bg-danger/90"
+          >
+            {t('game.ui.liftYes')}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => vote(false)}
+            disabled={pending}
+            variant="secondary"
+            className="flex-1"
+          >
+            {t('game.ui.liftNo')}
+          </Button>
+        </div>
+      )}
+      {state.myLiftAllVote !== null && (
+        <p className="text-xs text-success">
+          {state.myLiftAllVote ? t('game.ui.liftMyVoteYes') : t('game.ui.liftMyVoteNo')}
+        </p>
+      )}
     </div>
   );
 }

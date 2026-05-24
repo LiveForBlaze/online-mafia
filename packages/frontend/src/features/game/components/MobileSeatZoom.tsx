@@ -59,7 +59,11 @@ export function MobileSeatZoom({
         </button>
 
         <div className="flex-1 min-h-0 relative">
-          <ZoomedMedia participantUserId={participant.userId} nickname={participant.nickname} />
+          <ZoomedMedia
+            participantUserId={participant.userId}
+            nickname={participant.nickname}
+            avatarUrl={participant.avatarUrl}
+          />
           {/* Top-left badge: seat # and vote count. */}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
             <span className="text-5xl font-extrabold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
@@ -128,9 +132,11 @@ export function MobileSeatZoom({
 function ZoomedMedia({
   participantUserId,
   nickname,
+  avatarUrl,
 }: {
   participantUserId: string;
   nickname: string;
+  avatarUrl: string | null;
 }) {
   const liveKitParticipants = useParticipants();
   const lkParticipant = liveKitParticipants.find((p) => p.identity === participantUserId);
@@ -146,26 +152,38 @@ function ZoomedMedia({
   );
 
   const mayWatch = useShouldShowMedia(participantUserId);
-  const hasLiveCamera = Boolean(mayWatch && cameraPublication?.track && !cameraPublication.isMuted);
+  // Видеотрек смонтирован постоянно когда трек физически готов, видимость
+  // переключается классом (см. SeatVideoTile).
+  const hasCameraTrack = Boolean(cameraPublication?.track && !cameraPublication.isMuted);
+  const showCamera = hasCameraTrack && mayWatch;
 
-  if (hasLiveCamera && lkParticipant && cameraPublication) {
-    return (
-      <VideoTrack
-        trackRef={{
-          participant: lkParticipant,
-          source: Track.Source.Camera,
-          publication: cameraPublication,
-        }}
-        className="absolute inset-0 w-full h-full object-cover bg-bg"
-      />
-    );
-  }
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-bg">
-      <div className="w-32 h-32 rounded-full bg-card-deep flex items-center justify-center text-5xl font-semibold text-fg">
-        {extractInitial(nickname)}
-      </div>
-    </div>
+    <>
+      {hasCameraTrack && lkParticipant && cameraPublication && (
+        <VideoTrack
+          trackRef={{
+            participant: lkParticipant,
+            source: Track.Source.Camera,
+            publication: cameraPublication,
+          }}
+          className={cn(
+            'absolute inset-0 w-full h-full object-cover bg-bg',
+            showCamera ? 'visible' : 'invisible',
+          )}
+        />
+      )}
+      {!showCamera && (
+        <div className="absolute inset-0 flex items-center justify-center bg-bg">
+          <div className="w-32 h-32 rounded-full bg-card-deep flex items-center justify-center overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-5xl font-semibold text-fg">{extractInitial(nickname)}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

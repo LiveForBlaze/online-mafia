@@ -8,9 +8,10 @@
 // frontend hides their video; locking down server-side permissions on death is a future
 // improvement (it requires reissuing tokens or using LiveKit room admin API).
 
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 
 import { env } from '../../config/env.js';
+import { prisma } from '../../db/prisma.client.js';
 
 import { getGame } from './game.registry.js';
 import { findByUserId, type GameParticipant } from './game.state.js';
@@ -29,9 +30,10 @@ interface IssueTokenFailure {
 export type IssueTokenResult = IssueTokenSuccess | IssueTokenFailure;
 
 const LIVEKIT_ROOM_PREFIX = 'game:';
-// Tokens live longer than a single game so reconnects work without re-fetching;
-// 12 hours is comfortably more than even a long tournament round.
-const LIVEKIT_TOKEN_TTL_SECONDS = 60 * 60 * 12;
+// Короче, чем раньше: 30 минут хватает на партию + переподключение, но не
+// сохраняет украденный cookie на полсуток. Клиент перевыпустит токен после
+// истечения через REST.
+const LIVEKIT_TOKEN_TTL_SECONDS = 30 * 60;
 
 export function liveKitRoomNameForGame(gameId: string): string {
   return `${LIVEKIT_ROOM_PREFIX}${gameId}`;
@@ -70,4 +72,39 @@ async function createAccessToken(gameId: string, participant: GameParticipant): 
     canPublishData: false,
   });
   return at.toJwt();
+}
+
+// Lazily-created room service client. Used для принудительного выкидывания
+// участника из его LK-комнат при logout/delete — без этого старый LK-токен
+// продолжает работать до конца TTL даже после ротации session-куки.
+let roomServiceClient: RoomServiceClient | null = null;
+function getRoomServiceClient(): RoomServiceClient {
+  if (!roomServiceClient) {
+    roomServiceClient = new RoomServiceClient(
+      env.LIVEKIT_URL,
+      env.LIVEKIT_API_KEY,
+      env.LIVEKIT_API_SECRET,
+    );
+  }
+  return roomServiceClient;
+}
+
+// Принудительно убирает пользователя из всех его активных LiveKit-комнат.
+// Вызывается на logout и на удалении аккаунта — закрывает окно, в котором
+// украденный bearer-token LK ещё работал бы до истечения 30-минутного TTL.
+export async function revokeLiveKitForUser(userId: string): Promise<void> {
+  // Активные игры пользователя — в Game с endedAt=null. Для каждой попробуем
+  // удалить из комнаты; best-effort, ошибки игнорируем (комнаты может уже не
+  // быть, токен мог не успеть подключиться).
+  const games = await prisma.game.findMany({
+    where: { endedAt: null, participants: { some: { userId } } },
+    select: { id: true },
+  });
+  if (games.length === 0) return;
+  const client = getRoomServiceClient();
+  await Promise.allSettled(
+    games.map((g) =>
+      client.removeParticipant(liveKitRoomNameForGame(g.id), userId).catch(() => {}),
+    ),
+  );
 }

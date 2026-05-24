@@ -49,6 +49,7 @@ import {
   generateState,
   isGoogleOAuthConfigured,
 } from './google.js';
+import { revokeLiveKitForUser } from '../game/game.livekit.js';
 
 const HTTP_STATUS = {
   OK: 200,
@@ -150,7 +151,19 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // ---- Logout ----
-  app.post('/logout', async (_request, reply) => {
+  app.post('/logout', async (request, reply) => {
+    // Если есть сессия — попробуем выкинуть пользователя из всех его активных
+    // LiveKit-комнат. Без этого старый LK-токен (TTL 30 минут) продолжает
+    // работать с украденным cookie до истечения. Best-effort — ошибки игнорим.
+    const cookie = request.cookies?.[COOKIE_NAME.SESSION];
+    if (cookie) {
+      try {
+        const payload = app.jwt.verify<{ sub: string }>(cookie);
+        if (payload?.sub) void revokeLiveKitForUser(payload.sub);
+      } catch {
+        // invalid token — нечего отзывать
+      }
+    }
     clearSessionCookie(reply);
     return reply.code(HTTP_STATUS.NO_CONTENT).send();
   });
@@ -223,6 +236,10 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       if (!result.ok) {
         return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
       }
+      // tokenVersion уже бампнут — сокеты и REST отвалятся в течение 5 минут
+      // (RECHECK_INTERVAL_MS), но LK-токен живёт своим bearer'ом до TTL.
+      // Принудительно выкидываем из любых активных LK-комнат сейчас.
+      void revokeLiveKitForUser(request.user.sub);
       clearSessionCookie(reply);
       return reply.code(HTTP_STATUS.NO_CONTENT).send();
     },

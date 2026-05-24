@@ -50,7 +50,13 @@ export function SeatVideoTile({
   );
 
   const mayWatch = useShouldShowMedia(participant.userId);
-  const hasLiveCamera = Boolean(mayWatch && cameraPublication?.track && !cameraPublication.isMuted);
+  // Камера-трек публикации физически есть и не замьючен на стороне публикатора —
+  // решение об ОТОБРАЖЕНИИ берётся отдельным флагом `mayWatch`. Сам VideoTrack
+  // остаётся смонтированным когда трек физически готов, чтобы не было re-init
+  // задержки на каждом permission flip (см. memory: «не размонтировать
+  // AudioTrack/VideoTrack на permission flip — управлять через volume/muted»).
+  const hasCameraTrack = Boolean(cameraPublication?.track && !cameraPublication.isMuted);
+  const showCamera = hasCameraTrack && mayWatch;
   const isDead = !participant.isAlive;
 
   return (
@@ -68,17 +74,23 @@ export function SeatVideoTile({
         <DeadOverlay seat={participant.seat} isSelf={isSelf} />
       ) : (
         <>
-          {hasLiveCamera && lkParticipant && cameraPublication ? (
+          {/* Видеотрек монтируется как только он физически доступен и не
+              размонтируется на permission flip — мы лишь скрываем его. */}
+          {hasCameraTrack && lkParticipant && cameraPublication && (
             <VideoTrack
               trackRef={{
                 participant: lkParticipant,
                 source: Track.Source.Camera,
                 publication: cameraPublication,
               }}
-              className="absolute inset-0 w-full h-full object-cover"
+              className={cn(
+                'absolute inset-0 w-full h-full object-cover',
+                showCamera ? 'visible' : 'invisible',
+              )}
             />
-          ) : (
-            <VideoPlaceholder nickname={participant.nickname} />
+          )}
+          {!showCamera && (
+            <VideoPlaceholder nickname={participant.nickname} avatarUrl={participant.avatarUrl} />
           )}
 
           {/* Top-left: large seat number + small secondary badges (you / vote count).
@@ -174,11 +186,15 @@ export function SeatVideoTile({
   );
 }
 
-function VideoPlaceholder({ nickname }: { nickname: string }) {
+function VideoPlaceholder({ nickname, avatarUrl }: { nickname: string; avatarUrl: string | null }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-card">
-      <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center text-xl font-semibold text-fg">
-        {extractInitial(nickname)}
+      <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center overflow-hidden">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xl font-semibold text-fg">{extractInitial(nickname)}</span>
+        )}
       </div>
     </div>
   );

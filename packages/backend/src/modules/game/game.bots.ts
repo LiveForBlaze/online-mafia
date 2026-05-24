@@ -70,17 +70,34 @@ function decideAction(state: GameState, bot: GameParticipant): (() => Promise<un
 
   switch (state.phase) {
     case GAME_PHASE.NIGHT_MAFIA: {
-      // All three black-team seats (two mafia + don) cast the kill ballot.
-      // Each bot votes once per night under the consensus rule. With
-      // multiple shooters picking independently their picks will usually
-      // disagree → miss; the kill only lands when they happen to align.
-      // That's the correct emergent behaviour, not a bug.
+      // Чёрные боты должны согласовать выстрел. Реализуем простую договорку:
+      //   - один из чёрных (берём дона, если жив; иначе мафа с наименьшим
+      //     seat) — «инициатор» и стреляет в случайного красного;
+      //   - остальные чёрные ботом-«ведомым» подтягиваются к
+      //     `state.pendingMafiaTargetSeat`, если он уже выставлен; иначе
+      //     ждут следующего тика.
+      // Это даёт согласованное попадание ботов и убирает «всегда промах»
+      // при двух ботах-мафах, на который жаловался аудит.
       if (bot.role !== ROLE.MAFIA && bot.role !== ROLE.DON) return null;
       if (bot.seat !== null && state.mafiaVotes.has(bot.seat)) return null;
-      const target = pickRandomLivingSeat(state, {
-        excludeRoles: [ROLE.MAFIA, ROLE.DON],
-        excludeUserId: bot.userId,
-      });
+
+      const blackTeam = alivePlayers(state)
+        .filter((p) => p.role === ROLE.MAFIA || p.role === ROLE.DON)
+        .sort((a, b) => (a.seat ?? 0) - (b.seat ?? 0));
+      const initiator = blackTeam.find((p) => p.role === ROLE.DON) ?? blackTeam[0];
+      const isInitiator = initiator && initiator.userId === bot.userId;
+
+      let target: number | null;
+      if (isInitiator) {
+        target = pickRandomLivingSeat(state, {
+          excludeRoles: [ROLE.MAFIA, ROLE.DON],
+          excludeUserId: bot.userId,
+        });
+      } else {
+        // Ведомый — ждём пика инициатора и подтягиваемся к нему.
+        target = state.pendingMafiaTargetSeat ?? null;
+        if (target === null) return null;
+      }
       if (target === null) return null;
       return () => chooseMafiaTarget(ctx, target);
     }

@@ -207,6 +207,7 @@ export async function createGameFromLobby(
     roleCardPickerSeat: null,
     roleCardsPicked: [],
     disqualifiedThisDay: false,
+    firstDayMultiVoteKill: false,
     winner: null,
     nextEventSeq: 1,
   };
@@ -424,12 +425,22 @@ export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
 
   const state = getGame(game.id);
   if (state && state.status !== 'finished') {
-    const finished: GameState = {
+    let finished: GameState = {
       ...state,
       status: 'finished',
+      phase: GAME_PHASE.GAME_OVER,
       winner: null,
     };
+    // Persist a GAME_ENDED event so event-log replay reaches a terminal
+    // state cleanly. Without this, recovery would treat the game as still
+    // in-progress and try to replay phases past the end.
+    finished = await persistEvent(finished, GAME_EVENT_TYPE.GAME_ENDED, null, {
+      reason: 'lobby_host_left',
+      winner: null,
+    });
     setGame(finished);
+    void syncMediaPermissions(finished);
+    broadcastGameState(game.id);
   }
 }
 
@@ -544,12 +555,17 @@ function loadGameForUser(ctx: ActionContext): ServiceResult<{ state: GameState }
   if (!state) return fail(GAME_ERROR.GAME_NOT_FOUND);
   const participant = findByUserId(state, ctx.userId);
   if (!participant) return fail(GAME_ERROR.NOT_PARTICIPANT);
+  // Удалённый из игры участник не может слать действия — даже если его сокет
+  // остался в комнате. Защита от «removed judge продолжает командовать»
+  // и аналога для обычных игроков (вышел через красную кнопку, но клиент жив).
+  if (participant.isRemoved) return fail(GAME_ERROR.NOT_PARTICIPANT);
   return ok({ state });
 }
 
 function requireJudge(state: GameState, userId: string): ServiceResult<{ state: GameState }> {
   const participant = findByUserId(state, userId);
   if (!participant?.isJudge) return fail(GAME_ERROR.NOT_JUDGE);
+  if (participant.isRemoved) return fail(GAME_ERROR.NOT_JUDGE);
   return ok({ state });
 }
 
