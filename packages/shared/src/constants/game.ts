@@ -64,7 +64,9 @@ export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   [GAME_PHASE.DAY_SHOOTOUT]: 30,
   [GAME_PHASE.DAY_LIFT_VOTE]: 30,
   [GAME_PHASE.DAY_LAST_WORD]: 60,
-  [GAME_PHASE.NIGHT_MAFIA]: 45,
+  // Договорка проходит на NIGHT_ZERO, ночью чёрным нужно лишь нажать в
+  // выбранного — 15 секунд хватает, минута растягивает партию впустую.
+  [GAME_PHASE.NIGHT_MAFIA]: 15,
   [GAME_PHASE.NIGHT_DON]: 15,
   [GAME_PHASE.NIGHT_SHERIFF]: 15,
   [GAME_PHASE.MORNING_ANNOUNCEMENT]: 15,
