@@ -16,11 +16,13 @@
   --color-team-red: oklch(0.62 0.25 24);
   --color-team-black: oklch(0.25 0.02 270);
 
-  /* Primary CTA — холодный сапфирово-синий. Это «нейтральное действие»:
-     «Дальше», «Выставить», «Готов». Контрастно с тёмным фоном, не
-     конкурирует с брендовым красным за внимание. */
-  --color-primary: oklch(0.62 0.15 245);
-  --color-primary-fg: oklch(0.98 0 0);
+  /* Primary CTA — насыщенный зелёный, тот же оттенок что у success-state
+     и номеров живых игроков. Единая метафора: «зелёное → активно, можно
+     действовать». «Дальше», «Стрелять», «Готов», бейдж «ВЫ» — всё одно.
+     Это сокращает палитру с ~5 ярких цветов до ~3 (зелёный = действие,
+     красный = опасное, золото = статус), глазам легче. */
+  --color-primary: oklch(0.7 0.17 145);
+  --color-primary-fg: oklch(0.15 0.01 270);
 
   /* Surface. The page background is deep dark — it matches the dim splash
      artwork on the home page so the hero blends seamlessly into the page
