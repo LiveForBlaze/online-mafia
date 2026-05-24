@@ -5,17 +5,16 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { FOUL_MUTE_THRESHOLD, type GameParticipantPublic } from '@mafia/shared';
 
+import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
 import { restartCameraSubscription } from '@/features/game/lib/restart-video.js';
-import { userProfilePath } from '@/routes/paths.js';
 
 interface SeatVideoTileProps {
   participant: GameParticipantPublic;
@@ -181,19 +180,11 @@ export function SeatVideoTile({
             >
               {t('game.ui.foulsCount', { count: participant.foulsCount })}
             </p>
-            {participant.publicCode ? (
-              <Link
-                to={userProfilePath(participant.publicCode)}
-                // Don't trigger the surrounding zoom-on-click handler when the
-                // user is just trying to open the profile link.
-                onClick={(event) => event.stopPropagation()}
-                className="block text-sm font-medium text-white truncate hover:underline"
-              >
-                {participant.nickname}
-              </Link>
-            ) : (
-              <p className="text-sm font-medium text-white truncate">{participant.nickname}</p>
-            )}
+            {/* Ник во время игры — простой текст. Раньше это была ссылка
+                на профиль, но клик случайно уводил со страницы посреди
+                раунда; для перехода на профиль используйте game-over
+                review или другую вкладку. */}
+            <p className="text-sm font-medium text-white truncate">{participant.nickname}</p>
             {action && (
               <Button
                 size="sm"
@@ -236,13 +227,7 @@ function RestartIcon() {
 function VideoPlaceholder({ nickname, avatarUrl }: { nickname: string; avatarUrl: string | null }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-card">
-      <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center overflow-hidden">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-xl font-semibold text-fg">{extractInitial(nickname)}</span>
-        )}
-      </div>
+      <Avatar avatarUrl={avatarUrl} nickname={nickname} size={64} />
     </div>
   );
 }
@@ -288,11 +273,4 @@ function SkullIcon() {
       <path d="M12 2C7.03 2 3 5.94 3 10.8c0 2.34 1.02 4.5 2.7 6.1V20a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1.5h1V20a1 1 0 0 0 1 1h.6a1 1 0 0 0 1-1v-1.5h1V20a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3.1c1.68-1.6 2.7-3.76 2.7-6.1C21 5.94 16.97 2 12 2zM8.5 12.5a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4zm7 0a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4zM10 16c0-.55.45-1 1-1h2c.55 0 1 .45 1 1s-.45 1-1 1h-2c-.55 0-1-.45-1-1z" />
     </svg>
   );
-}
-
-function extractInitial(nickname: string): string {
-  for (const ch of nickname) {
-    if (/[\p{L}\p{N}]/u.test(ch)) return ch.toUpperCase();
-  }
-  return '?';
 }

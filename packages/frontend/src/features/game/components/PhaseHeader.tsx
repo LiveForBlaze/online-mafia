@@ -27,6 +27,7 @@ export function PhaseHeader({
   const { t } = useTranslation();
   return (
     <header className="flex items-center justify-between gap-2 sm:gap-3">
+      {/* Слева: только «Выйти» (опасное действие — стоит особняком). */}
       <div className="flex items-center gap-2 min-w-0">
         {canLeaveGame ? (
           <button
@@ -38,16 +39,6 @@ export function PhaseHeader({
           </button>
         ) : (
           <span />
-        )}
-        {viewerIsJudge && onOpenLog && (
-          <button
-            type="button"
-            onClick={onOpenLog}
-            title={t('game.ui.logTitle')}
-            className="text-xs sm:text-sm text-muted hover:text-fg hover:underline"
-          >
-            {t('game.ui.logShort')}
-          </button>
         )}
       </div>
 
@@ -63,7 +54,20 @@ export function PhaseHeader({
         {state.dayNumber > 0 ? t('game.ui.day', { n: state.dayNumber }) : ''}
       </p>
 
+      {/* Справа: судейский «Лог» переехал сюда — раньше он был вплотную к
+          «Выйти», что провоцировало случайный клик в leave. Теперь они на
+          противоположных краях экрана. */}
       <div className="flex items-center gap-1 sm:gap-2">
+        {viewerIsJudge && onOpenLog && (
+          <button
+            type="button"
+            onClick={onOpenLog}
+            title={t('game.ui.logTitle')}
+            className="text-xs sm:text-sm text-muted hover:text-fg hover:underline whitespace-nowrap"
+          >
+            {t('game.ui.logShort')}
+          </button>
+        )}
         <FullscreenToggle />
         <RoleBadge role={viewerRole} isJudge={viewerIsJudge} />
       </div>

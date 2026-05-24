@@ -9,14 +9,13 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
-import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { FOUL_MUTE_THRESHOLD, type GameParticipantPublic } from '@mafia/shared';
 
+import { Avatar } from '@/components/ui/Avatar.js';
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { userProfilePath } from '@/routes/paths.js';
 
 interface MobileSeatTileProps {
   seat: number;
@@ -41,7 +40,6 @@ export function MobileSeatTile({
   action,
   onZoom,
 }: MobileSeatTileProps) {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   if (!participant) {
     return (
@@ -120,28 +118,8 @@ export function MobileSeatTile({
 
           {/* Bottom: gradient with nickname + optional action chip. */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1 z-10">
-            {participant.publicCode ? (
-              <span
-                role="link"
-                tabIndex={0}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  navigate(userProfilePath(participant.publicCode as string));
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    navigate(userProfilePath(participant.publicCode as string));
-                  }
-                }}
-                className="block text-[11px] font-medium text-white truncate hover:underline"
-              >
-                {participant.nickname}
-              </span>
-            ) : (
-              <p className="text-[11px] font-medium text-white truncate">{participant.nickname}</p>
-            )}
+            {/* Ник без перехода на профиль — во время игры это только помеха. */}
+            <p className="text-[11px] font-medium text-white truncate">{participant.nickname}</p>
             {action && (
               <span
                 onClick={(event) => {
@@ -218,13 +196,7 @@ function TileMedia({
       )}
       {!showCamera && (
         <div className="absolute inset-0 flex items-center justify-center bg-card">
-          <div className="w-10 h-10 rounded-full bg-card-deep flex items-center justify-center overflow-hidden">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-sm font-semibold text-fg">{extractInitial(nickname)}</span>
-            )}
-          </div>
+          <Avatar avatarUrl={avatarUrl} nickname={nickname} size={40} />
         </div>
       )}
     </>
@@ -238,11 +210,4 @@ function DeadOverlay({ seat }: { seat: number }) {
       <div className="absolute inset-0 flex items-center justify-center text-muted">💀</div>
     </>
   );
-}
-
-function extractInitial(nickname: string): string {
-  for (const ch of nickname) {
-    if (/[\p{L}\p{N}]/u.test(ch)) return ch.toUpperCase();
-  }
-  return '?';
 }

@@ -5,15 +5,14 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { GameStateProjected } from '@mafia/shared';
 
+import { Avatar } from '@/components/ui/Avatar.js';
 import { cn } from '@/lib/cn.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
-import { userProfilePath } from '@/routes/paths.js';
 
 interface JudgeTileProps {
   state: GameStateProjected;
@@ -91,19 +90,10 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
         </div>
       )}
 
-      {/* Bottom strip with nickname */}
+      {/* Bottom strip with nickname — простой текст, без перехода на профиль:
+          случайный клик во время игры не должен уводить со страницы. */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-        {judge.publicCode ? (
-          <Link
-            to={userProfilePath(judge.publicCode)}
-            onClick={(event) => event.stopPropagation()}
-            className="block text-sm font-medium text-white truncate hover:underline"
-          >
-            {judge.nickname}
-          </Link>
-        ) : (
-          <p className="text-sm font-medium text-white truncate">{judge.nickname}</p>
-        )}
+        <p className="text-sm font-medium text-white truncate">{judge.nickname}</p>
       </div>
     </div>
   );
@@ -112,20 +102,7 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
 function Placeholder({ nickname, avatarUrl }: { nickname: string; avatarUrl: string | null }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-card">
-      <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center overflow-hidden">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-lg font-semibold text-fg">{firstLetter(nickname)}</span>
-        )}
-      </div>
+      <Avatar avatarUrl={avatarUrl} nickname={nickname} size={48} />
     </div>
   );
-}
-
-function firstLetter(s: string): string {
-  for (const ch of s) {
-    if (/[\p{L}\p{N}]/u.test(ch)) return ch.toUpperCase();
-  }
-  return '?';
 }

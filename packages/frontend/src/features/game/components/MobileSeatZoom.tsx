@@ -6,16 +6,15 @@
 import { useEffect } from 'react';
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import type { GameParticipantPublic } from '@mafia/shared';
 
+import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
 import { restartCameraSubscription } from '@/features/game/lib/restart-video.js';
-import { userProfilePath } from '@/routes/paths.js';
 
 interface MobileSeatZoomProps {
   participant: GameParticipantPublic;
@@ -85,17 +84,7 @@ export function MobileSeatZoom({
         <div className="flex-none bg-bg/95 border-t border-border p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              {participant.publicCode ? (
-                <Link
-                  to={userProfilePath(participant.publicCode)}
-                  onClick={(event) => event.stopPropagation()}
-                  className="block text-lg font-semibold text-fg truncate hover:underline"
-                >
-                  {participant.nickname}
-                </Link>
-              ) : (
-                <p className="text-lg font-semibold text-fg truncate">{participant.nickname}</p>
-              )}
+              <p className="text-lg font-semibold text-fg truncate">{participant.nickname}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {participant.role && (
                   <span className="text-xs uppercase tracking-wider text-muted">
@@ -178,13 +167,7 @@ function ZoomedMedia({
       )}
       {!showCamera && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg">
-          <div className="w-32 h-32 rounded-full bg-card-deep flex items-center justify-center overflow-hidden">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-5xl font-semibold text-fg">{extractInitial(nickname)}</span>
-            )}
-          </div>
+          <Avatar avatarUrl={avatarUrl} nickname={nickname} size={128} />
         </div>
       )}
     </>
@@ -222,11 +205,4 @@ function RestartVideoButton({ participantUserId }: { participantUserId: string }
       </svg>
     </button>
   );
-}
-
-function extractInitial(nickname: string): string {
-  for (const ch of nickname) {
-    if (/[\p{L}\p{N}]/u.test(ch)) return ch.toUpperCase();
-  }
-  return '?';
 }
