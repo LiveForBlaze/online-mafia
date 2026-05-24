@@ -16,3 +16,14 @@ body,
 #root {
   height: 100%;
 }
+
+/* Глобальное правило: кликабельные элементы (кнопки и ссылки) показывают
+ * pointer-курсор. Tailwind v4 / preflight оставляет button/a без явного
+ * cursor:pointer на всех браузерах кроме того, что обрабатывает <a href>;
+ * это создаёт визуальный диссонанс — кнопка не «отзывается» на наведение.
+ * Disabled-элементы курсор не меняют (стандартное not-allowed/default). */
+button:not(:disabled),
+a,
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}

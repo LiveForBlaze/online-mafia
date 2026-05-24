@@ -41,6 +41,7 @@ import {
   judgeAdvancePhase,
   judgeAdvanceSpeaker,
   judgeIssueFoul,
+  judgeRevert,
   judgeRevokeFoul,
   judgeRemovePlayer,
   leaveGameAsParticipant,
@@ -145,6 +146,15 @@ export function registerGameGateway(app: FastifyInstance): void {
         return;
       }
       const result = await judgeAdvancePhase({ gameId, userId });
+      respondAndBroadcast(gameId, result, ack);
+    });
+    socket.on(CLIENT_EVENT.JUDGE_REVERT, async (_payload, ack) => {
+      const gameId = getGameIdFromSocket(socket);
+      if (!gameId) {
+        ack?.({ ok: false, error: 'no_game' });
+        return;
+      }
+      const result = await judgeRevert({ gameId, userId });
       respondAndBroadcast(gameId, result, ack);
     });
     socket.on(GAME_EVENT_NAME.ADVANCE_SPEAKER, async (_payload, ack) => {

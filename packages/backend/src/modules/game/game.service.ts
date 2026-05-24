@@ -38,7 +38,13 @@ import {
   projectFor,
 } from './game.engine.js';
 import { GAME_ERROR, type GameErrorCode } from './game.errors.js';
-import { getGame, registerGame, setGame } from './game.registry.js';
+import {
+  getGame,
+  popHistorySnapshot,
+  pushHistorySnapshot,
+  registerGame,
+  setGame,
+} from './game.registry.js';
 import { INITIAL_PHASE, findByUserId, type GameParticipant, type GameState } from './game.state.js';
 
 // ---- Result ----
@@ -73,6 +79,8 @@ export const GAME_EVENT_TYPE = {
   PLAYER_REMOVED: 'player_removed',
   // Судья снял один фол. Payload: { targetUserId }.
   FOUL_REVOKED: 'foul_revoked',
+  // Судья откатил последний шаг (revert). Payload: { restoredPhase }.
+  REVERTED: 'reverted',
   // Лучший Ход (best-move guess) cast by an eliminated player during their
   // last word. Payload: { byUserId, guessedSeats: number[] }.
   BEST_MOVE_GUESSED: 'best_move_guessed',
@@ -791,6 +799,8 @@ export async function judgeAdvancePhase(ctx: ActionContext): Promise<ServiceResu
     if (!judgeCheck.ok) return judgeCheck;
 
     const before = loaded.data.state;
+    // Снимок до изменения — чтобы судья мог откатить случайное нажатие.
+    pushHistorySnapshot(before);
     const next = applyAdvancePhase(before);
     let withEvent = await persistEvent(next, GAME_EVENT_TYPE.PHASE_CHANGED, ctx.userId, {
       from: before.phase,
@@ -828,6 +838,7 @@ export async function judgeAdvanceSpeaker(ctx: ActionContext): Promise<ServiceRe
     const judgeCheck = requireJudge(loaded.data.state, ctx.userId);
     if (!judgeCheck.ok) return judgeCheck;
 
+    pushHistorySnapshot(loaded.data.state);
     const { state: advanced, speechesDone } = applyNextSpeaker(loaded.data.state);
     // Persist a speaker-advance event so recovery can restore the current speaker
     // mid-day rather than starting the round from seat 1.
@@ -868,6 +879,30 @@ export async function judgeIssueFoul(
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.FOUL_ISSUED, ctx.userId, { targetUserId });
     return ok(await commit(next));
+  });
+}
+
+// Отмена последнего судейского шага. Не event-log replay — мы храним
+// stack снимков GameState'a в registry и просто pop'аем последний.
+// Игровые события в БД (PHASE_CHANGED, PLAYER_VOTED, …) остаются как
+// были — для аудита; следующий advance их перепишет естественным путём.
+export async function judgeRevert(ctx: ActionContext): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+    const judgeCheck = requireJudge(loaded.data.state, ctx.userId);
+    if (!judgeCheck.ok) return judgeCheck;
+
+    const prev = popHistorySnapshot(ctx.gameId);
+    if (!prev) return fail('wrong_phase');
+
+    let next = prev;
+    next = await persistEvent(next, GAME_EVENT_TYPE.REVERTED, ctx.userId, {
+      restoredPhase: prev.phase,
+    });
+    setGame(next);
+    void syncMediaPermissions(next);
+    return ok(next);
   });
 }
 

@@ -301,6 +301,8 @@
       "advancePhase": "Перейти к следующей фазе",
       "nextSpeaker": "Следующая речь",
       "advanceStep": "Дальше",
+      "revert": "Назад",
+      "revertHint": "Отменить последний шаг",
       "restartVideo": "Перезапустить видео",
       "issueFoul": "Фол",
       "removeFoul": "−Фол",

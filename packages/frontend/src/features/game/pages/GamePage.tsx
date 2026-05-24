@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { GameLogDialog } from '@/features/game/components/GameLogDialog.js';
 import { InfoTile } from '@/features/game/components/InfoTile.js';
-import { JudgePanel, JudgeSeatControls } from '@/features/game/components/JudgePanel.js';
+import { JudgeSeatControls } from '@/features/game/components/JudgePanel.js';
 import { JudgeTile } from '@/features/game/components/JudgeTile.js';
 import { MediaRoom } from '@/features/game/components/MediaRoom.js';
 import { MobileSeatZoom } from '@/features/game/components/MobileSeatZoom.js';
@@ -27,6 +27,7 @@ import { actionForSeatInCurrentPhase } from '@/features/game/components/PhasePan
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
 import { useVoteHotkey } from '@/features/game/hooks/useVoteHotkey.js';
+import { useJudgeStepHotkey } from '@/features/game/hooks/useJudgeStepHotkey.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
@@ -90,6 +91,10 @@ export function GamePage() {
   // no-ops when state isn't ready or the viewer isn't eligible to vote.
   const viewerForHotkey = state?.participants.find((p) => p.userId === user?.id);
   useVoteHotkey(state, viewerForHotkey?.seat ?? null, viewerForHotkey?.isAlive ?? false);
+  // Судья нажимает пробел → один шаг партии (next speaker / round / phase).
+  // Хоткей и кнопка работают только когда viewer судья — игроки и судьи
+  // никогда не пересекаются в одной партии, конфликта с useVoteHotkey нет.
+  useJudgeStepHotkey(state, viewerForHotkey?.isJudge ?? false);
 
   if (!user || !gameId) return null;
 
@@ -177,7 +182,9 @@ export function GamePage() {
             />
           </div>
 
-          {viewerIsJudge && <JudgePanel state={state} />}
+          {/* JudgePanel убран из header — кнопка «Дальше» теперь живёт
+              внутри InfoTile / MobileStage рядом с кнопками голосования,
+              а пробел двигает партию (useJudgeStepHotkey). */}
         </div>
 
         <div className="flex-1 min-h-0 px-3 sm:px-6 pb-3 overflow-hidden">

@@ -295,6 +295,8 @@
       "advancePhase": "Advance to next phase",
       "nextSpeaker": "Next speech",
       "advanceStep": "Next",
+      "revert": "Back",
+      "revertHint": "Undo last step",
       "restartVideo": "Restart video",
       "issueFoul": "Foul",
       "removeFoul": "−Foul",

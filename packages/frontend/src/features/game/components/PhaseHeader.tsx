@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { TEAM, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher.js';
 import { FullscreenToggle } from '@/features/game/components/FullscreenToggle.js';
 
 interface PhaseHeaderProps {
@@ -63,11 +64,15 @@ export function PhaseHeader({
             type="button"
             onClick={onOpenLog}
             title={t('game.ui.logTitle')}
-            className="text-xs sm:text-sm text-muted hover:text-fg hover:underline whitespace-nowrap"
+            className="text-xs sm:text-sm text-muted hover:text-fg hover:underline whitespace-nowrap cursor-pointer"
           >
             {t('game.ui.logShort')}
           </button>
         )}
+        {/* Переключатель языка должен быть доступен прямо в игре —
+            раньше его можно было сменить только из главного header'а,
+            что приводило к выходу из партии. */}
+        <LanguageSwitcher />
         <FullscreenToggle />
         <RoleBadge role={viewerRole} isJudge={viewerIsJudge} />
       </div>

@@ -64,6 +64,9 @@ export const CLIENT_EVENT = {
   // Judge actions
   JUDGE_ADVANCE_PHASE: 'client:judge_advance_phase',
   JUDGE_ADVANCE_SPEAKER: 'client:judge_advance_speaker',
+  // Отмена последнего судейского шага (advance phase / advance speaker).
+  // Пополняется в registry до изменения и pop'ается по этому event'у.
+  JUDGE_REVERT: 'client:judge_revert',
   JUDGE_ISSUE_FOUL: 'client:judge_issue_foul',
   JUDGE_REVOKE_FOUL: 'client:judge_revoke_foul',
   JUDGE_REMOVE_PLAYER: 'client:judge_remove_player',

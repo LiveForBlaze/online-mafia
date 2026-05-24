@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { GameOverReview } from '@/features/game/components/GameOverReview.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
+import { judgeStep } from '@/features/game/hooks/useJudgeStepHotkey.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 
 interface MobileStageProps {
@@ -66,7 +67,30 @@ export function MobileStage({
         viewerIsAlive={viewerIsAlive}
         viewerIsJudge={viewerIsJudge}
       />
+      {viewerIsJudge && <MobileJudgeStepControls state={state} />}
     </section>
+  );
+}
+
+function MobileJudgeStepControls({ state }: { state: GameStateProjected }) {
+  const { t } = useTranslation();
+  const disabled = state.status === 'finished';
+  return (
+    <div className="flex gap-2 pt-1.5 border-t border-border/60">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="px-2 text-xs"
+        onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_REVERT)}
+        disabled={disabled}
+        title={t('game.ui.revertHint')}
+      >
+        ↶
+      </Button>
+      <Button size="sm" className="flex-1" onClick={() => judgeStep(state)} disabled={disabled}>
+        {t('game.ui.advanceStep')}
+      </Button>
+    </div>
   );
 }
 
