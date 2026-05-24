@@ -294,6 +294,7 @@ function MobileVoteBody({
 }) {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
+  const { expired } = useCountdown(state.phaseDeadline);
   const hasVoted =
     viewerSeat !== null && Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
   const currentCandidate = state.nominationSeats[state.voteRoundIdx];
@@ -306,6 +307,7 @@ function MobileVoteBody({
     viewerIsAlive &&
     !hasVoted &&
     !votingClosed &&
+    !expired &&
     currentCandidate !== undefined &&
     viewerSeat !== currentCandidate;
 
@@ -441,8 +443,13 @@ function MobileLiftVoteBody({
 }) {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
+  const { expired: liftExpired } = useCountdown(state.phaseDeadline);
   const canVote =
-    !viewerIsJudge && viewerIsAlive && viewerSeat !== null && state.myLiftAllVote === null;
+    !viewerIsJudge &&
+    viewerIsAlive &&
+    viewerSeat !== null &&
+    state.myLiftAllVote === null &&
+    !liftExpired;
 
   async function vote(yes: boolean) {
     if (!canVote || pending) return;

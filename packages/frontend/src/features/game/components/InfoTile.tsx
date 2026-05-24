@@ -375,6 +375,11 @@ function VoteBody({
 }) {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
+  // Если таймер текущего раунда истёк — кнопку прячем (раунд закрыт,
+  // судья сейчас нажмёт «Дальше»). `expired` тикает каждую секунду
+  // через useCountdown, так что переход состояния визуален и не требует
+  // server-push.
+  const { expired } = useCountdown(state.phaseDeadline);
   const hasVoted =
     viewerSeat !== null && Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
   const currentCandidate = state.nominationSeats[state.voteRoundIdx];
@@ -388,6 +393,7 @@ function VoteBody({
     viewerIsAlive &&
     !hasVoted &&
     !votingClosed &&
+    !expired &&
     currentCandidate !== undefined &&
     viewerSeat !== currentCandidate;
 
@@ -524,8 +530,13 @@ function LiftVoteBody({
 }) {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
+  const { expired } = useCountdown(state.phaseDeadline);
   const canVote =
-    !viewerIsJudge && viewerIsAlive && viewerSeat !== null && state.myLiftAllVote === null;
+    !viewerIsJudge &&
+    viewerIsAlive &&
+    viewerSeat !== null &&
+    state.myLiftAllVote === null &&
+    !expired;
 
   async function vote(yes: boolean) {
     if (!canVote || pending) return;
