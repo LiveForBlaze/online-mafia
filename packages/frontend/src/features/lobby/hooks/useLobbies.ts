@@ -15,11 +15,23 @@ export const LOBBY_QUERY_KEY = {
 
 const LIST_REFETCH_INTERVAL_MS = 5_000;
 
+// Refresh aggressively on every entry — without this, users coming back
+// from a lobby (after leave / kick / game end) could land on a stale empty
+// snapshot until the 5s polling tick fires. `refetchOnMount: 'always'`
+// guarantees the home page is fresh the moment it renders, and
+// `refetchOnWindowFocus` covers users who tab away and back.
+const ALWAYS_FRESH = {
+  refetchInterval: LIST_REFETCH_INTERVAL_MS,
+  refetchOnMount: 'always' as const,
+  refetchOnWindowFocus: true,
+  staleTime: 0,
+};
+
 export function useLobbies() {
   return useQuery({
     queryKey: LOBBY_QUERY_KEY.list(),
     queryFn: () => lobbyApi.list(),
-    refetchInterval: LIST_REFETCH_INTERVAL_MS,
+    ...ALWAYS_FRESH,
   });
 }
 
@@ -27,6 +39,6 @@ export function useActiveLobbies() {
   return useQuery({
     queryKey: LOBBY_QUERY_KEY.active(),
     queryFn: () => lobbyApi.listActive(),
-    refetchInterval: LIST_REFETCH_INTERVAL_MS,
+    ...ALWAYS_FRESH,
   });
 }
