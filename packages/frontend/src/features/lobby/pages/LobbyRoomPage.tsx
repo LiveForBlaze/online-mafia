@@ -88,6 +88,14 @@ export function LobbyRoomPage() {
     if (gameId) navigate(gameRoomPath(gameId));
   }, [gameId, navigate]);
 
+  // Хост ушёл → лобби CLOSED. Гости должны автоматически уйти на главную;
+  // иначе они продолжают смотреть на «фантомное» лобби. Сервер уже
+  // прислал broadcast c lobby.status='closed', осталось среагировать.
+  const lobbyStatus = lobbyData?.status ?? null;
+  useEffect(() => {
+    if (lobbyStatus === 'closed') navigate(ROUTE_PATH.HOME);
+  }, [lobbyStatus, navigate]);
+
   // Best-effort cleanup: when the user closes the tab, beacon /leave.
   useEffect(() => {
     if (!lobbyId || gameId) return;
