@@ -14,6 +14,7 @@ import { CLIENT_EVENT, GAME_PHASE, ROLE, type GameStateProjected, type Role } fr
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { GameOverReview } from '@/features/game/components/GameOverReview.js';
+import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
 import { judgeStep } from '@/features/game/hooks/useJudgeStepHotkey.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
@@ -43,6 +44,12 @@ export function MobileStage({
           {t(`game.phase.${state.phase}`)}
         </p>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Микрофон/камера для своего стрима. На десктопе живёт на
+              SeatVideoTile/JudgeTile, на мобиле тайлы маленькие и кнопок там
+              нет — пользователю было неоткуда включить медиа. Поднимаем сюда
+              в header стейджа: всегда видны и не зависят от того, открыт ли
+              zoom своего seat. */}
+          <SelfMediaButtons />
           {state.dayNumber > 0 && (
             <p className="text-[10px] uppercase tracking-wider text-muted">
               {t('game.ui.day', { n: state.dayNumber })}
