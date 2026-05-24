@@ -8,15 +8,19 @@
  */
 
 @theme {
-  /* Brand. Pure cherry-red sampled from the brightest network dots on the
-     splash (~#ff2e3e). Slightly more luminous and less orange than the
-     previous tone so CTA buttons, role badges, the splash vignette and
-     the ОНЛАЙН headline all read as the same colour family as the
-     world-map markers. */
+  /* Brand — насыщенный вишнёвый (~#ff2e3e). Используется только в
+     БРЕНДОВЫХ местах: лого/hero, бейдж команды красных, иконка «ВЫ» в
+     своём seat-тайле. НЕ для CTA-кнопок — иначе всё на экране кричит. */
   --color-accent: oklch(0.62 0.25 24);
   --color-accent-fg: oklch(0.98 0 0);
   --color-team-red: oklch(0.62 0.25 24);
   --color-team-black: oklch(0.25 0.02 270);
+
+  /* Primary CTA — холодный сапфирово-синий. Это «нейтральное действие»:
+     «Дальше», «Выставить», «Готов». Контрастно с тёмным фоном, не
+     конкурирует с брендовым красным за внимание. */
+  --color-primary: oklch(0.62 0.15 245);
+  --color-primary-fg: oklch(0.98 0 0);
 
   /* Surface. The page background is deep dark — it matches the dim splash
      artwork on the home page so the hero blends seamlessly into the page

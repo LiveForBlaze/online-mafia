@@ -5,7 +5,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '@/lib/cn.js';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,9 +14,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-accent-fg hover:opacity-90 disabled:opacity-50',
+  // CTA-цвет — холодный синий. Не конкурирует с брендовым красным за
+  // внимание игрока; «всё красное» больше не вгоняет в стресс.
+  primary: 'bg-primary text-primary-fg hover:opacity-90 disabled:opacity-50',
   secondary: 'bg-card text-fg border border-border hover:bg-bg disabled:opacity-50',
   ghost: 'text-fg hover:bg-card disabled:opacity-50',
+  // Опасные действия — голосование «ЗА», подъём «ДА», killshot.
+  danger: 'bg-danger text-accent-fg hover:opacity-90 disabled:opacity-50',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

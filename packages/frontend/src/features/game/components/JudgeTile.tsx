@@ -72,11 +72,13 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
 
       {/* СУДЬЯ badge in the top-left */}
       <div className="absolute top-1 left-1 flex items-center gap-1.5 text-xs">
-        <span className="rounded bg-accent text-accent-fg px-1.5 py-0.5 font-semibold uppercase tracking-wider">
+        {/* Бейдж «СУДЬЯ» — золотой, не красный: важная роль, но это не
+            «опасность». Раньше совпадал с цветом leave-кнопки и сливался. */}
+        <span className="rounded bg-warning text-bg px-1.5 py-0.5 font-semibold uppercase tracking-wider">
           {t('game.ui.judge')}
         </span>
         {isSelf && (
-          <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5">
+          <span className="rounded bg-primary/85 text-primary-fg px-1.5 py-0.5">
             {t('game.ui.you')}
           </span>
         )}

@@ -109,7 +109,7 @@ export function SeatVideoTile({
             </span>
             <div className="flex flex-col gap-1 text-xs">
               {isSelf && (
-                <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5">
+                <span className="rounded bg-primary/85 text-primary-fg px-1.5 py-0.5">
                   {t('game.ui.you')}
                 </span>
               )}
