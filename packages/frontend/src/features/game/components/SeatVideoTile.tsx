@@ -102,9 +102,10 @@ export function SeatVideoTile({
 
           {/* Top-left: large seat number + small secondary badges (you / vote count).
               Seat number is the primary identifier when scanning the table, so it gets
-              prominent typography and a drop-shadow for legibility over any video. */}
+              prominent typography. Live players: bright green so it pops over any
+              background. Dead players: same size but grey (см. DeadOverlay). */}
           <div className="absolute top-1 left-2 flex items-center gap-2">
-            <span className="text-3xl font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+            <span className="text-4xl font-extrabold text-success leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
               {participant.seat}
             </span>
             <div className="flex flex-col gap-1 text-xs">
@@ -242,9 +243,11 @@ function DeadOverlay({ seat, isSelf }: { seat: number | null; isSelf: boolean })
   return (
     <>
       <div className="absolute top-1 left-2 flex items-center gap-2">
-        <span className="text-3xl font-bold text-fg leading-none">{seat}</span>
+        {/* Тот же размер что и у живых — но приглушённый серый, чтобы
+            мёртвых seats читалось как «выбыл» с одного взгляда. */}
+        <span className="text-4xl font-extrabold text-muted/70 leading-none">{seat}</span>
         {isSelf && (
-          <span className="rounded bg-accent/80 text-accent-fg px-1.5 py-0.5 text-xs">
+          <span className="rounded bg-primary/85 text-primary-fg px-1.5 py-0.5 text-xs">
             {t('game.ui.you')}
           </span>
         )}

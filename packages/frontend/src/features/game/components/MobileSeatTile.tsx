@@ -77,9 +77,10 @@ export function MobileSeatTile({
             avatarUrl={participant.avatarUrl}
           />
 
-          {/* Top: seat number on left, vote-count chip on right. */}
+          {/* Top: seat number on left — крупный зелёный для живых, чтобы
+              видеть с расстояния даже на мелком тайле. */}
           <div className="absolute top-0.5 left-1 z-10">
-            <span className="text-lg font-bold text-white leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+            <span className="text-xl font-extrabold text-success leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               {seat}
             </span>
           </div>
@@ -206,7 +207,11 @@ function TileMedia({
 function DeadOverlay({ seat }: { seat: number }) {
   return (
     <>
-      <span className="absolute top-0.5 left-1 text-lg font-bold text-fg leading-none">{seat}</span>
+      {/* Тот же размер и жирность что у живых — но серый, чтоб «выбыл»
+          считывалось с расстояния не по черепу, а по цвету номера. */}
+      <span className="absolute top-0.5 left-1 text-xl font-extrabold text-muted/70 leading-none">
+        {seat}
+      </span>
       <div className="absolute inset-0 flex items-center justify-center text-muted">💀</div>
     </>
   );
