@@ -295,6 +295,7 @@
       "advancePhase": "Advance to next phase",
       "nextSpeaker": "Next speech",
       "advanceStep": "Next",
+      "restartVideo": "Restart video",
       "issueFoul": "Foul",
       "removeFoul": "−Foul",
       "foulLocked": "4 fouls",

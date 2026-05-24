@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { restartCameraSubscription } from '@/features/game/lib/restart-video.js';
 import { userProfilePath } from '@/routes/paths.js';
 
 interface SeatVideoTileProps {
@@ -135,6 +136,24 @@ export function SeatVideoTile({
             </div>
           )}
 
+          {/* Перезапуск чужого видеопотока — если кадр у этого игрока «завис»
+              у меня на экране, я могу пере-подписаться на его камеру без
+              перезагрузки страницы. На собственный seat кнопка не нужна. */}
+          {!isSelf && hasCameraTrack && lkParticipant && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                restartCameraSubscription(lkParticipant);
+              }}
+              aria-label={t('game.ui.restartVideo')}
+              title={t('game.ui.restartVideo')}
+              className="absolute bottom-1 right-1 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white opacity-60 hover:opacity-100 transition"
+            >
+              <RestartIcon />
+            </button>
+          )}
+
           {/* Muted players (3+ fouls) get a prominent corner badge so the judge
               can scan the table and immediately see who's lost their right to
               speak. The badge stacks on top of the role label in the top-right. */}
@@ -190,6 +209,27 @@ export function SeatVideoTile({
         </>
       )}
     </div>
+  );
+}
+
+function RestartIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
   );
 }
 

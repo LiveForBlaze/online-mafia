@@ -14,6 +14,7 @@ import type { GameParticipantPublic } from '@mafia/shared';
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
+import { restartCameraSubscription } from '@/features/game/lib/restart-video.js';
 import { userProfilePath } from '@/routes/paths.js';
 
 interface MobileSeatZoomProps {
@@ -57,6 +58,9 @@ export function MobileSeatZoom({
         >
           ✕
         </button>
+
+        {/* Перезапустить чужой видеопоток у себя (на случай зависшего кадра). */}
+        <RestartVideoButton participantUserId={participant.userId} />
 
         <div className="flex-1 min-h-0 relative">
           <ZoomedMedia
@@ -184,6 +188,39 @@ function ZoomedMedia({
         </div>
       )}
     </>
+  );
+}
+
+function RestartVideoButton({ participantUserId }: { participantUserId: string }) {
+  const { t } = useTranslation();
+  const liveKitParticipants = useParticipants();
+  const lkParticipant = liveKitParticipants.find((p) => p.identity === participantUserId);
+  if (!lkParticipant) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => restartCameraSubscription(lkParticipant)}
+      aria-label={t('game.ui.restartVideo')}
+      title={t('game.ui.restartVideo')}
+      className="absolute top-3 right-14 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+        <path d="M3 21v-5h5" />
+      </svg>
+    </button>
   );
 }
 
