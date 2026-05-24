@@ -8,10 +8,10 @@ import { useQuery } from '@tanstack/react-query';
 import { lobbyApi } from '@/features/lobby/api/lobby.api.js';
 import { LOBBY_QUERY_KEY } from './useLobbies.js';
 
-// With realtime push via Socket.IO covering updates, the polling acts only as a
-// safety fallback in case a push is missed (e.g. due to a transient disconnect).
-const ROOM_REFETCH_INTERVAL_MS = 30_000;
-
+// Лобби — pure WebSocket push. Polling по таймеру убран: useLobbyConnection
+// подписан на LOBBY_UPDATED и инвалидирует кэш при каждом reconnect/mount,
+// что покрывает оба сценария (transient disconnect, late mount). Сохраняем
+// refetchOnMount/Focus как страховочные триггеры — никаких опросных циклов.
 export function useLobby(lobbyId: string | undefined) {
   return useQuery({
     queryKey: lobbyId ? LOBBY_QUERY_KEY.details(lobbyId) : ['lobby', 'none'],
@@ -20,6 +20,8 @@ export function useLobby(lobbyId: string | undefined) {
       return lobbyApi.details(lobbyId);
     },
     enabled: Boolean(lobbyId),
-    refetchInterval: ROOM_REFETCH_INTERVAL_MS,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 }
