@@ -58,8 +58,9 @@ export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   [GAME_PHASE.DAY_SPEECH]: 60,
   // Per-candidate window during the sequential vote: judge says "кто за
   // игрока N" and counts hands for 3 seconds before moving to the next.
-  [GAME_PHASE.DAY_VOTE]: 3,
-  [GAME_PHASE.DAY_REVOTE]: 3,
+  // 5 секунд: 3 ощущалось слишком резко — нажимаешь и сразу истёк.
+  [GAME_PHASE.DAY_VOTE]: 5,
+  [GAME_PHASE.DAY_REVOTE]: 5,
   // Per ФИИМ: каждому в перестрелке даётся 30 секунд (а не полная минута речи).
   [GAME_PHASE.DAY_SHOOTOUT]: 30,
   [GAME_PHASE.DAY_LIFT_VOTE]: 30,

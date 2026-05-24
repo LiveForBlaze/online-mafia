@@ -35,7 +35,7 @@ export function MobileStage({
   viewerIsJudge,
 }: MobileStageProps) {
   const { t } = useTranslation();
-  const { secondsLeft, expired, hasTimer } = useCountdown(state.phaseDeadline);
+  const { secondsLeft, expired, warning, hasTimer } = useCountdown(state.phaseDeadline);
 
   return (
     <section className="rounded-md border border-border bg-card-deep p-3 space-y-1.5">
@@ -59,7 +59,7 @@ export function MobileStage({
             <p
               className={cn(
                 'text-base font-bold tabular-nums leading-none',
-                expired ? 'text-danger' : 'text-fg',
+                expired ? 'text-danger' : warning ? 'text-warning' : 'text-fg',
               )}
             >
               {formatCountdown(secondsLeft)}
@@ -224,7 +224,10 @@ function StageBody({
     }
 
     case GAME_PHASE.NIGHT_DON: {
-      if (state.myCheckResult) {
+      // Только дону показываем результат проверки. Иначе у дона в
+      // соседней фазе отображался его старый donCheck, но шерифскими
+      // словами — путаница.
+      if (viewerRole === ROLE.DON && state.myCheckResult) {
         const label = state.myCheckResult.result
           ? t('game.ui.donCheckSheriff')
           : t('game.ui.donCheckNotSheriff');
@@ -248,7 +251,7 @@ function StageBody({
     }
 
     case GAME_PHASE.NIGHT_SHERIFF: {
-      if (state.myCheckResult) {
+      if (viewerRole === ROLE.SHERIFF && state.myCheckResult) {
         const label = state.myCheckResult.result
           ? t('game.ui.sheriffCheckBlack')
           : t('game.ui.sheriffCheckRed');

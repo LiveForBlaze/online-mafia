@@ -4,7 +4,7 @@
 // and a 12-tile video grid that fills the rest of the viewport. The grid contains the
 // 10 player seats, the judge tile, and an info tile with current-phase context.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -76,15 +76,11 @@ export function GamePage() {
     });
   }
 
-  // When the game ends — naturally or because the judge bailed out — everyone
-  // is sent back to the lobby list. A small delay lets the final state flash
-  // briefly so it's not just a screen-snap to home.
-  const gameStatus = state?.status;
-  useEffect(() => {
-    if (gameStatus !== 'finished') return;
-    const timer = window.setTimeout(() => goHome(), 1500);
-    return () => window.clearTimeout(timer);
-  }, [gameStatus, goHome]);
+  // После победы остаёмся на странице игры — там открыты все микрофоны и
+  // камеры (см. media-visibility.ts: status==='finished' / GAME_OVER → всё
+  // видно/слышно). Игроки сами кликают «Выйти» когда наговорятся. Раньше
+  // авто-редирект через 1500ms прерывал обсуждение и был для пользователя
+  // как «бросили под открытым небом».
 
   // Spacebar = "ЗА" during the sequential vote. Mounted unconditionally
   // (state may still be null while we wait for the first delta); the hook

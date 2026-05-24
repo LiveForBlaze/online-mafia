@@ -86,7 +86,7 @@ function InfoGlyph() {
 
 function Header({ state }: { state: GameStateProjected }) {
   const { t } = useTranslation();
-  const { secondsLeft, expired, hasTimer } = useCountdown(state.phaseDeadline);
+  const { secondsLeft, expired, warning, hasTimer } = useCountdown(state.phaseDeadline);
 
   return (
     <div>
@@ -100,7 +100,7 @@ function Header({ state }: { state: GameStateProjected }) {
         <p
           className={cn(
             'mt-2 text-3xl sm:text-4xl font-bold tabular-nums leading-none',
-            expired ? 'text-danger' : 'text-fg',
+            expired ? 'text-danger' : warning ? 'text-warning' : 'text-fg',
           )}
         >
           {formatCountdown(secondsLeft)}
@@ -279,7 +279,10 @@ function Body({
           kind="don"
           allowed={viewerRole === ROLE.DON && viewerIsAlive}
           prompt={t('game.ui.chooseDonTarget')}
-          checkResult={state.myCheckResult}
+          // Результат показываем только тому, кто эту проверку и делал.
+          // Иначе у дона в фазе NIGHT_SHERIFF был виден его старый
+          // donCheck, отрисованный «sheriff»-формулировкой → бред.
+          checkResult={viewerRole === ROLE.DON ? state.myCheckResult : null}
         />
       );
 
@@ -289,7 +292,7 @@ function Body({
           kind="sheriff"
           allowed={viewerRole === ROLE.SHERIFF && viewerIsAlive}
           prompt={t('game.ui.chooseSheriffTarget')}
-          checkResult={state.myCheckResult}
+          checkResult={viewerRole === ROLE.SHERIFF ? state.myCheckResult : null}
         />
       );
 

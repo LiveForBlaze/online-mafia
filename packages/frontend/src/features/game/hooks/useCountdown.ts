@@ -10,6 +10,8 @@ interface CountdownResult {
   secondsLeft: number;
   expired: boolean;
   hasTimer: boolean;
+  /** True когда осталось ≤ 10 сек и таймер ещё не истёк — UI показывает жёлтым. */
+  warning: boolean;
 }
 
 export function useCountdown(deadlineIso: string | null): CountdownResult {
@@ -25,11 +27,17 @@ export function useCountdown(deadlineIso: string | null): CountdownResult {
   }, [deadlineIso]);
 
   if (!deadlineIso) {
-    return { secondsLeft: 0, expired: false, hasTimer: false };
+    return { secondsLeft: 0, expired: false, hasTimer: false, warning: false };
   }
   const remainingMs = new Date(deadlineIso).getTime() - Date.now();
   const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1000));
-  return { secondsLeft, expired: remainingMs <= 0, hasTimer: true };
+  const expired = remainingMs <= 0;
+  return {
+    secondsLeft,
+    expired,
+    hasTimer: true,
+    warning: !expired && secondsLeft <= 10,
+  };
 }
 
 /** Format a positive seconds value as M:SS for display. */

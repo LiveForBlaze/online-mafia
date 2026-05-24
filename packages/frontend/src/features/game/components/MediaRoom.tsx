@@ -15,7 +15,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { LiveKitRoom, RoomContext } from '@livekit/components-react';
-import { Room } from 'livekit-client';
+import { Room, type RoomOptions } from 'livekit-client';
 import '@livekit/components-styles';
 
 import { gameApi } from '@/features/game/api/game.api.js';
@@ -25,6 +25,18 @@ interface MediaRoomProps {
   gameId: string;
   children: React.ReactNode;
 }
+
+// Принудительно включаем AEC / NS / AGC на захвате микрофона. Без этого
+// у игрока с громкими колонками голос судьи возвращался обратно в комнату
+// → акустическая петля «фонит». Echo-cancellation подавляет это на стороне
+// браузера ещё до отправки трека.
+const ROOM_OPTIONS: RoomOptions = {
+  audioCaptureDefaults: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+};
 
 export function MediaRoom({ gameId, children }: MediaRoomProps) {
   const { t } = useTranslation();
@@ -65,6 +77,7 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
       connect
       video={false}
       audio={false}
+      options={ROOM_OPTIONS}
       data-lk-theme="default"
     >
       {children}
