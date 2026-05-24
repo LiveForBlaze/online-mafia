@@ -44,14 +44,32 @@ export function SelfMediaButtons() {
     <div className="flex gap-1">
       <IconButton
         on={isMicrophoneEnabled}
-        onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+        onClick={async () => {
+          // Если устройство недоступно (permission deny, занятый mic,
+          // выпавший Bluetooth), setMicrophoneEnabled бросит. Без catch
+          // кнопка визуально переключилась бы, а трек не опубликовался —
+          // классическая жалоба «меня не слышат».
+          try {
+            await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+          } catch (err) {
+            console.error('mic toggle failed', err);
+            window.alert(t('game.media.micFailed'));
+          }
+        }}
         label={isMicrophoneEnabled ? t('game.ui.micDisable') : t('game.ui.micEnable')}
       >
         {isMicrophoneEnabled ? <MicOnIcon /> : <MicOffIcon />}
       </IconButton>
       <IconButton
         on={isCameraEnabled}
-        onClick={() => localParticipant.setCameraEnabled(!isCameraEnabled)}
+        onClick={async () => {
+          try {
+            await localParticipant.setCameraEnabled(!isCameraEnabled);
+          } catch (err) {
+            console.error('camera toggle failed', err);
+            window.alert(t('game.media.cameraFailed'));
+          }
+        }}
         label={isCameraEnabled ? t('game.ui.cameraDisable') : t('game.ui.cameraEnable')}
       >
         {isCameraEnabled ? <CameraOnIcon /> : <CameraOffIcon />}

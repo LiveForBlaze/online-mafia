@@ -18,6 +18,7 @@ import {
 function useMediaArgs(targetUserId: string, now: number): MediaVisibilityArgs | null {
   const viewerId = useAuthStore((s) => s.user?.id);
   const state = useGameStore((s) => s.state);
+  const judgeOverhearAll = useGameStore((s) => s.judgeOverhearAll);
 
   if (!viewerId || !state) return null;
 
@@ -43,6 +44,7 @@ function useMediaArgs(targetUserId: string, now: number): MediaVisibilityArgs | 
     outOfTurnSpeaker: state.outOfTurnSpeaker,
     farewellSeat: state.farewellSeat ?? null,
     lastWordSeat: state.lastWordSeat ?? null,
+    judgeOverhearAll,
   };
 }
 

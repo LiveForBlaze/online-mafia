@@ -53,6 +53,12 @@ export interface MediaVisibilityArgs {
   // dead-but-audible semantic as farewellSeat, distinct field so the UI
   // can label the two situations differently if it wants to.
   lastWordSeat: number | null;
+  // Судейский тогл «слышать всё / только игровой процесс». По умолчанию
+  // false — судья слышит только разрешённое (current speaker, out-of-turn,
+  // farewell/lastWord), как обычный живой игрок. Это снижает шанс эхо-петли
+  // (см. жалобу пользователя про feedback loop через колонки) и убирает
+  // «сбивает с толку, ведущий слышит вообще всё».
+  judgeOverhearAll: boolean;
 }
 
 // Video projection: what the viewer SEES.
@@ -153,9 +159,17 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
   // Speak-to-yourself is never useful and produces feedback — drop own audio.
   if (targetUserId === viewerUserId) return false;
 
-  // Judge is always audible (announcements, calls) and can always hear everyone.
+  // Судья ВСЕГДА слышим (объявления, фолы) — это не отключается.
   if (targetIsJudge) return true;
-  if (viewerIsJudge) return true;
+  // А вот что слышит сам судья — зависит от тогла. Default: игровой процесс.
+  // Если включен overhearAll — old behaviour: слышит всех. Без этого тогла
+  // громкие колонки судьи возвращали голоса игроков обратно в комнату.
+  if (viewerIsJudge) {
+    if (args.judgeOverhearAll) return true;
+    // Иначе судья слышит те же треки, что и обычный игрок: проваливаемся
+    // вниз и идём через стандартный пайплайн (current speaker / out-of-turn /
+    // farewell / lastWord), будто судья — не судья.
+  }
 
   // Active "out of turn" window — that one player is heard by everyone,
   // НО ТОЛЬКО:
@@ -214,9 +228,15 @@ export function shouldHearParticipantAudio(args: MediaVisibilityArgs): boolean {
   return false;
 }
 
+// Grace-window: после истечения серверного дедлайна оставляем спикеру
+// 1.5 секунды звука. Это покрывает дрейф между клиентскими и серверными
+// часами и сетевую задержку до следующей проекции — иначе у говорящего
+// «обрезает последний слог» ровно на тике 500ms.
+const DEADLINE_GRACE_MS = 1500;
+
 function isDeadlinePast(deadline: string | null, now: number): boolean {
   if (!deadline) return false;
   const dl = Date.parse(deadline);
   if (Number.isNaN(dl)) return false;
-  return now > dl;
+  return now > dl + DEADLINE_GRACE_MS;
 }

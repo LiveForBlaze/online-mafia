@@ -298,6 +298,10 @@
       "revert": "Back",
       "revertHint": "Undo last step",
       "restartVideo": "Restart video",
+      "judgeListenAll": "Hear all",
+      "judgeListenProcess": "Hear game",
+      "judgeListenAllHint": "Hearing everyone. Click → hear game flow only.",
+      "judgeListenProcessHint": "Hearing as players do. Click → hear everyone.",
       "issueFoul": "Foul",
       "removeFoul": "−Foul",
       "foulLocked": "4 fouls",
@@ -377,7 +381,10 @@
     },
     "media": {
       "connecting": "Connecting to the voice room…",
-      "connectError": "Could not connect to the voice room. The game continues without video."
+      "connectError": "Could not connect to the voice room. The game continues without video.",
+      "allowAudio": "Tap to enable audio",
+      "micFailed": "Microphone failed to start. Check permissions and device.",
+      "cameraFailed": "Camera failed to start. Check permissions and device."
     },
     "fullscreen": {
       "enter": "Fullscreen",

@@ -59,6 +59,7 @@ export function PhaseHeader({
           «Выйти», что провоцировало случайный клик в leave. Теперь они на
           противоположных краях экрана. */}
       <div className="flex items-center gap-1 sm:gap-2">
+        {viewerIsJudge && <JudgeListenToggle />}
         {viewerIsJudge && onOpenLog && (
           <button
             type="button"
@@ -112,3 +113,36 @@ function Badge({
 }
 
 void TEAM;
+
+// Тогл для судьи: «слышать всё» vs «слышать только игровой процесс».
+// Default — process-only: судья слышит current speaker, out-of-turn,
+// farewell/lastWord. Включая overhear судья слышит абсолютно всё, как раньше.
+function JudgeListenToggle() {
+  const { t } = useTranslation();
+  const overhear = useGameStoreJudgeOverhear();
+  const setOverhear = useGameStoreSetJudgeOverhear();
+  return (
+    <button
+      type="button"
+      onClick={() => setOverhear(!overhear)}
+      title={t(overhear ? 'game.ui.judgeListenAllHint' : 'game.ui.judgeListenProcessHint')}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] uppercase tracking-wider transition cursor-pointer',
+        overhear
+          ? 'border-warning/60 bg-warning/15 text-warning hover:bg-warning/25'
+          : 'border-border bg-card text-muted hover:text-fg hover:bg-bg',
+      )}
+    >
+      {overhear ? t('game.ui.judgeListenAll') : t('game.ui.judgeListenProcess')}
+    </button>
+  );
+}
+
+// Узкие селекторы, чтоб компонент не ре-рендерился на каждый GAME_STATE_DELTA.
+import { useGameStore } from '@/features/game/store/game.store.js';
+function useGameStoreJudgeOverhear() {
+  return useGameStore((s) => s.judgeOverhearAll);
+}
+function useGameStoreSetJudgeOverhear() {
+  return useGameStore((s) => s.setJudgeOverhearAll);
+}

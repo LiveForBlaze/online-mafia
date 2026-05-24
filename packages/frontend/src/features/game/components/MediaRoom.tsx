@@ -14,12 +14,13 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { LiveKitRoom, RoomContext } from '@livekit/components-react';
+import { LiveKitRoom, RoomContext, StartAudio } from '@livekit/components-react';
 import { Room, type RoomOptions } from 'livekit-client';
 import '@livekit/components-styles';
 
 import { gameApi } from '@/features/game/api/game.api.js';
 import { MediaAudioRouter } from './MediaAudioRouter.js';
+import { AudioRecovery } from './AudioRecovery.js';
 
 interface MediaRoomProps {
   gameId: string;
@@ -84,6 +85,17 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
       {/* Audio is rendered per-participant subject to phase/role visibility rules,
           not by RoomAudioRenderer — otherwise civilians would hear the mafia at night. */}
       <MediaAudioRouter />
+      {/* Если у игрока не получилось включить свой mic, браузер блокирует
+          autoplay воспроизведения чужого аудио. StartAudio рисует
+          пере-полноэкранную кнопку «нажмите чтобы включить звук» — она
+          сама исчезает, когда блок снят. */}
+      <StartAudio
+        label={t('game.media.allowAudio')}
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-md bg-primary text-primary-fg px-4 py-2 text-sm font-semibold shadow-lg"
+      />
+      {/* Recovery после reconnect — пересубскрайбит все remote audio
+          публикации, чтобы пропавший звук вернулся без F5. */}
+      <AudioRecovery />
     </LiveKitRoom>
   );
 }
