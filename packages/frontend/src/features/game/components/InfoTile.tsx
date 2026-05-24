@@ -241,14 +241,6 @@ function Body({
       );
 
     case GAME_PHASE.DAY_LAST_WORD: {
-      // Post-vote tally so the judge (and everyone else) sees the full
-      // breakdown of who got how many "ЗА" votes, in addition to the
-      // eliminated speaker.
-      const tally = new Map<number, number>();
-      for (const candidate of Object.values(state.votes)) {
-        tally.set(candidate, (tally.get(candidate) ?? 0) + 1);
-      }
-      const sorted = [...tally.entries()].sort((a, b) => b[1] - a[1]);
       return (
         <div className="space-y-2">
           {state.lastWordSeat !== null && (
@@ -256,21 +248,7 @@ function Body({
               {t('game.ui.lastWordSpeaker', { seat: state.lastWordSeat })}
             </p>
           )}
-          {sorted.length > 0 && (
-            <div className="text-xs">
-              <p className="uppercase tracking-wider text-muted mb-1">
-                {t('game.ui.voteTallyTitle')}
-              </p>
-              <ul className="space-y-0.5">
-                {sorted.map(([seat, count]) => (
-                  <li key={seat} className="flex items-center gap-2">
-                    <span className="font-mono text-muted w-6">№{seat}</span>
-                    <span className="font-semibold text-fg">{count}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <VotesBreakdown state={state} />
         </div>
       );
     }
@@ -462,6 +440,44 @@ function VoteBody({
       )}
 
       {viewerIsAlive && hasVoted && <p className="text-base text-success">{t('game.ui.voted')}</p>}
+
+      {/* Открытое голосование — все видят кто за кого. Полный список
+          voters даже когда раунды ещё идут (votes накапливаются по мере
+          того, как судья проходит фазы). */}
+      <VotesBreakdown state={state} />
+    </div>
+  );
+}
+
+// Список «кто за кого проголосовал». Используется и во время голосования,
+// и в DAY_LAST_WORD для итогового табло. Группируем voters по кандидату,
+// внутри — упорядочены по seat для предсказуемости.
+function VotesBreakdown({ state }: { state: GameStateProjected }) {
+  const { t } = useTranslation();
+  const groups = new Map<number, number[]>();
+  for (const [voterSeat, candidateSeat] of Object.entries(state.votes)) {
+    const arr = groups.get(candidateSeat) ?? [];
+    arr.push(Number(voterSeat));
+    groups.set(candidateSeat, arr);
+  }
+  if (groups.size === 0) return null;
+  const rows = [...groups.entries()]
+    .map(([candidate, voters]) => ({ candidate, voters: voters.sort((a, b) => a - b) }))
+    .sort((a, b) => b.voters.length - a.voters.length);
+  return (
+    <div className="text-xs mt-2 border-t border-border/60 pt-2">
+      <p className="uppercase tracking-wider text-muted mb-1">{t('game.ui.voteTallyTitle')}</p>
+      <ul className="space-y-0.5">
+        {rows.map(({ candidate, voters }) => (
+          <li key={candidate} className="flex items-baseline gap-2">
+            <span className="font-mono text-warning w-10">№{candidate}</span>
+            <span className="font-semibold text-fg w-6">{voters.length}</span>
+            <span className="text-muted font-mono truncate">
+              {voters.map((v) => `№${v}`).join(', ')}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -199,12 +199,13 @@ function StageBody({
 
     case GAME_PHASE.DAY_LAST_WORD:
       return (
-        <div className="flex items-baseline gap-2 flex-wrap">
+        <div className="space-y-1">
           {state.lastWordSeat !== null && (
             <p className="text-base font-bold text-warning">
               {t('game.ui.lastWordSpeaker', { seat: state.lastWordSeat })}
             </p>
           )}
+          <MobileVotesBreakdown state={state} />
         </div>
       );
 
@@ -373,6 +374,34 @@ function MobileVoteBody({
         </Button>
       )}
       {viewerIsAlive && hasVoted && <p className="text-xs text-success">{t('game.ui.voted')}</p>}
+      <MobileVotesBreakdown state={state} />
+    </div>
+  );
+}
+
+// Открытое голосование — компактная live-таблица «кто за кого» под
+// кнопкой «ЗА» в мобильной полосе. Тот же контент что VotesBreakdown
+// на десктопе, в более узком layout'е.
+function MobileVotesBreakdown({ state }: { state: GameStateProjected }) {
+  const groups = new Map<number, number[]>();
+  for (const [voterSeat, candidateSeat] of Object.entries(state.votes)) {
+    const arr = groups.get(candidateSeat) ?? [];
+    arr.push(Number(voterSeat));
+    groups.set(candidateSeat, arr);
+  }
+  if (groups.size === 0) return null;
+  const rows = [...groups.entries()]
+    .map(([c, voters]) => ({ c, voters: voters.sort((a, b) => a - b) }))
+    .sort((a, b) => b.voters.length - a.voters.length);
+  return (
+    <div className="w-full mt-1 text-[10px] font-mono text-muted">
+      {rows.map(({ c, voters }) => (
+        <p key={c} className="truncate">
+          <span className="text-warning">№{c}</span>
+          <span className="text-fg ml-1">({voters.length})</span>
+          <span className="ml-1">{voters.map((v) => `№${v}`).join(', ')}</span>
+        </p>
+      ))}
     </div>
   );
 }
