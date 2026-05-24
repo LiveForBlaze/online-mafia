@@ -74,6 +74,15 @@ export const authenticatedUserSchema = z.object({
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 
+// Wins broken down by the winning role. Sums to `wins`.
+export const winsByRoleSchema = z.object({
+  civilian: z.number().int().nonnegative().default(0),
+  sheriff: z.number().int().nonnegative().default(0),
+  mafia: z.number().int().nonnegative().default(0),
+  don: z.number().int().nonnegative().default(0),
+});
+export type WinsByRole = z.infer<typeof winsByRoleSchema>;
+
 // Public profile — what /api/v1/users/:code returns. No email exposed.
 export const publicUserProfileSchema = z.object({
   id: z.string().uuid(),
@@ -84,6 +93,12 @@ export const publicUserProfileSchema = z.object({
   country: z.string().nullable(),
   clubName: z.string().nullable(),
   createdAt: z.string().datetime(),
+  // Lifetime stats — incremented exactly once per finished game.
+  gamesPlayed: z.number().int().nonnegative(),
+  wins: z.number().int().nonnegative(),
+  losses: z.number().int().nonnegative(),
+  gamesAsJudge: z.number().int().nonnegative(),
+  winsByRole: winsByRoleSchema,
 });
 export type PublicUserProfile = z.infer<typeof publicUserProfileSchema>;
 

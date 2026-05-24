@@ -9,9 +9,10 @@
   },
   "players": {
     "title": "Players",
-    "subtitle": "online-mafia community. Click a card to open the profile.",
+    "subtitle": "Community leaderboard, sorted by wins.",
     "searchPlaceholder": "Search by nickname, name, or code",
     "shownOf": "Showing {{shown}} of {{total}}",
+    "statWins": "{{wins}} / {{played}}",
     "empty": {
       "none": "Nobody here yet",
       "search": "Nothing matched your search"
@@ -490,7 +491,14 @@
     "joined": "Joined",
     "edit_link": "That's you — edit your profile",
     "not_found": "Player not found",
-    "not_found_back": "Back"
+    "not_found_back": "Back",
+    "statsTitle": "Stats",
+    "statsEmpty": "No games played yet",
+    "statGames": "Games",
+    "statWins": "Wins",
+    "statLosses": "Losses",
+    "statWinRate": "Win rate",
+    "statJudge": "Hosted {{count}} game(s) as judge"
   },
   "coming_soon": {
     "clubs_title": "Clubs",

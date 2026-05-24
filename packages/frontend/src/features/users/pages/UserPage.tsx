@@ -15,7 +15,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 
-import { STANDARD_AVATARS, isStandardAvatar, type StandardAvatarId } from '@mafia/shared';
+import {
+  STANDARD_AVATARS,
+  isStandardAvatar,
+  type PublicUserProfile,
+  type StandardAvatarId,
+} from '@mafia/shared';
 
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
@@ -590,6 +595,8 @@ function PublicProfileSection({ code }: { code: string }) {
             {profile.clubName && <Row label={t('public_profile.club')} value={profile.clubName} />}
           </dl>
 
+          <PublicProfileStats profile={profile} />
+
           {joinedRel && (
             <p className="text-xs text-muted">
               {t('public_profile.joined')}: {joinedRel}
@@ -612,6 +619,65 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex items-baseline justify-between gap-3">
       <dt className="shrink-0 text-xs uppercase tracking-wider text-muted">{label}</dt>
       <dd className="min-w-0 truncate text-right text-fg">{value}</dd>
+    </div>
+  );
+}
+
+// Блок «Статистика» в публичном профиле: тотал игр / побед / поражений /
+// win-rate + разбивка побед по роли + отдельная строчка про судейство.
+// Прячется целиком, если игрок ещё ни одной партии не отыграл.
+function PublicProfileStats({ profile }: { profile: PublicUserProfile }) {
+  const { t } = useTranslation();
+  if (profile.gamesPlayed === 0 && profile.gamesAsJudge === 0) {
+    return <p className="text-xs text-muted">{t('public_profile.statsEmpty')}</p>;
+  }
+  const winRate =
+    profile.gamesPlayed > 0 ? Math.round((profile.wins / profile.gamesPlayed) * 100) : null;
+  const hasRoleWins =
+    profile.winsByRole.civilian > 0 ||
+    profile.winsByRole.sheriff > 0 ||
+    profile.winsByRole.mafia > 0 ||
+    profile.winsByRole.don > 0;
+  return (
+    <section className="mt-4 rounded-md border border-border bg-card-deep p-3 space-y-2">
+      <h2 className="text-xs uppercase tracking-wider text-muted font-semibold">
+        {t('public_profile.statsTitle')}
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <Stat label={t('public_profile.statGames')} value={profile.gamesPlayed} />
+        <Stat label={t('public_profile.statWins')} value={profile.wins} />
+        <Stat label={t('public_profile.statLosses')} value={profile.losses} />
+        <Stat
+          label={t('public_profile.statWinRate')}
+          value={winRate !== null ? `${winRate}%` : '—'}
+        />
+      </div>
+      {hasRoleWins && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+          <Stat label={t('game.role.civilian')} value={profile.winsByRole.civilian} small />
+          <Stat label={t('game.role.sheriff')} value={profile.winsByRole.sheriff} small />
+          <Stat label={t('game.role.mafia')} value={profile.winsByRole.mafia} small />
+          <Stat label={t('game.role.don')} value={profile.winsByRole.don} small />
+        </div>
+      )}
+      {profile.gamesAsJudge > 0 && (
+        <p className="text-xs text-muted text-center">
+          {t('public_profile.statJudge', { count: profile.gamesAsJudge })}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value, small }: { label: string; value: number | string; small?: boolean }) {
+  return (
+    <div>
+      <p
+        className={cn('font-semibold', small ? 'text-sm text-fg' : 'text-xl text-fg leading-none')}
+      >
+        {value}
+      </p>
+      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }

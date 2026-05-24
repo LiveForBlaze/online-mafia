@@ -63,6 +63,14 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
 
 /** Public projection — no email exposed. */
 export function toPublicUserProfile(user: User): PublicUserProfile {
+  // `winsByRole` хранится как Json — Prisma отдаёт его типом `JsonValue`.
+  // Нам нужно строго `{ civilian, sheriff, mafia, don }`. Извлекаем
+  // безопасно: если поле не объект (старые записи, ручной import) или
+  // отсутствуют какие-то роли — подставляем 0.
+  const raw = (user.winsByRole ?? {}) as Record<string, unknown>;
+  const intOrZero = (v: unknown): number =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+
   return {
     id: user.id,
     publicCode: user.publicCode,
@@ -72,6 +80,16 @@ export function toPublicUserProfile(user: User): PublicUserProfile {
     country: user.country ?? null,
     clubName: user.clubName ?? null,
     createdAt: user.createdAt.toISOString(),
+    gamesPlayed: user.gamesPlayed,
+    wins: user.wins,
+    losses: user.losses,
+    gamesAsJudge: user.gamesAsJudge,
+    winsByRole: {
+      civilian: intOrZero(raw.civilian),
+      sheriff: intOrZero(raw.sheriff),
+      mafia: intOrZero(raw.mafia),
+      don: intOrZero(raw.don),
+    },
   };
 }
 
@@ -239,10 +257,13 @@ export async function listPublicUsers(
       }
     : baseWhere;
 
+  // Лидерборд: сначала по победам (больше → выше), потом по gamesPlayed
+  // (отделяет «1 победа из 1 партии» от «10 побед из 10»), потом стабильно
+  // по дате регистрации, чтобы порядок не «прыгал» между запросами.
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where: whereWithSearch,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ wins: 'desc' }, { gamesPlayed: 'desc' }, { createdAt: 'desc' }],
       take: limit,
       skip: offset,
     }),

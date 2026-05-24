@@ -9,9 +9,10 @@
   },
   "players": {
     "title": "Игроки",
-    "subtitle": "Сообщество online-mafia. Кликни на карточку, чтобы открыть профиль.",
+    "subtitle": "Рейтинг сообщества online-mafia. Сортировка по победам.",
     "searchPlaceholder": "Поиск по нику, имени или коду",
     "shownOf": "Показано {{shown}} из {{total}}",
+    "statWins": "{{wins}} / {{played}}",
     "empty": {
       "none": "Здесь пока никого",
       "search": "По запросу ничего не нашли"
@@ -508,7 +509,14 @@
     "joined": "Зарегистрирован",
     "edit_link": "Это вы — редактировать",
     "not_found": "Игрок не найден",
-    "not_found_back": "Назад"
+    "not_found_back": "Назад",
+    "statsTitle": "Статистика",
+    "statsEmpty": "Пока не сыграно ни одной партии",
+    "statGames": "Игры",
+    "statWins": "Победы",
+    "statLosses": "Поражения",
+    "statWinRate": "Win rate",
+    "statJudge": "Провёл {{count}} партию(й) как судья"
   },
   "coming_soon": {
     "clubs_title": "Клубы",

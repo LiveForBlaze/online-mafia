@@ -45,6 +45,7 @@ import {
   registerGame,
   setGame,
 } from './game.registry.js';
+import { finalizeGameStats } from './game.stats.js';
 import { INITIAL_PHASE, findByUserId, type GameParticipant, type GameState } from './game.state.js';
 
 // ---- Result ----
@@ -433,6 +434,9 @@ export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
     where: { id: game.id },
     data: { endedAt: new Date() },
   });
+  // Финализируем статистику — winner=null, поэтому все игроки получат
+  // losses+1. Хост ушёл, никто не победил.
+  await finalizeGameStats(game.id);
 
   const state = getGame(game.id);
   if (state && state.status !== 'finished') {
@@ -606,6 +610,10 @@ async function commit(state: GameState): Promise<GameState> {
       where: { id: state.id },
       data: { endedAt: new Date(), winnerTeam: state.winner },
     });
+    // Bumps gamesPlayed/wins/losses/winsByRole/gamesAsJudge for each
+    // participant exactly once. Guarded by Game.statsApplied inside
+    // finalizeGameStats, so retries and double-finishes are safe.
+    await finalizeGameStats(state.id);
   }
   return state;
 }

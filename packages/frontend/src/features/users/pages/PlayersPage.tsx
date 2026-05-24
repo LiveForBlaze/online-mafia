@@ -66,8 +66,8 @@ export function PlayersPage() {
         ) : (
           <>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {users.map((user) => (
-                <PlayerCard key={user.id} user={user} />
+              {users.map((user, i) => (
+                <PlayerCard key={user.id} user={user} rank={i + 1} />
               ))}
             </ul>
             {total > users.length && (
@@ -82,20 +82,22 @@ export function PlayersPage() {
   );
 }
 
-function PlayerCard({ user }: { user: PublicUserProfile }) {
+function PlayerCard({ user, rank }: { user: PublicUserProfile; rank: number }) {
+  const { t } = useTranslation();
+  const winRate = user.gamesPlayed > 0 ? Math.round((user.wins / user.gamesPlayed) * 100) : null;
   return (
     <li>
       <Link
         to={userProfilePath(user.publicCode)}
         className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 hover:bg-bg hover:border-accent/40 transition-colors"
       >
+        <span className="w-6 text-center text-xs font-mono text-muted shrink-0">{rank}</span>
         <Avatar avatarUrl={user.avatarUrl} nickname={user.nickname} size={48} />
         <div className="min-w-0 flex-1">
           <p className="text-base font-semibold text-fg truncate">{user.nickname}</p>
           <p className="text-xs text-muted truncate flex items-center gap-1">
             {user.country && (
               <>
-                {/* CountryLabel сам подбирает локаль; флаг рисует. */}
                 <CountryLabel code={user.country} />
                 {user.clubName && <span> · </span>}
               </>
@@ -103,6 +105,12 @@ function PlayerCard({ user }: { user: PublicUserProfile }) {
             {user.clubName && <span>{user.clubName}</span>}
             {!user.country && !user.clubName && <span>#{user.publicCode}</span>}
           </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-sm font-semibold text-fg">
+            {t('players.statWins', { wins: user.wins, played: user.gamesPlayed })}
+          </p>
+          {winRate !== null && <p className="text-xs text-muted">{winRate}%</p>}
         </div>
       </Link>
     </li>

@@ -68,7 +68,19 @@ model User {
 
   // Filled in later by the rating module. Nullable so it can be added without migration.
   eloRating    Int?
+
+  // Lifetime stats. Incremented exactly once per finished game in
+  // finalizeGameStats() — guarded by Game.statsApplied so replays /
+  // double-finalize never inflate the numbers.
   gamesPlayed  Int      @default(0)
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  // Judge-side counter, independent of the player one above.
+  gamesAsJudge Int      @default(0)
+  // Per-role wins: { civilian, sheriff, mafia, don } as a JSON map.
+  // Sums to `wins`. Stored as Json so adding a new role doesn't require
+  // a column migration.
+  winsByRole   Json     @default("{}")
 
   hostedLobbies   Lobby[]            @relation("LobbyHost")
   lobbyMembers    LobbyMember[]
@@ -135,6 +147,11 @@ model Game {
   startedAt    DateTime @default(now())
   endedAt      DateTime?
   winnerTeam   String? // 'red' or 'black'; nullable while the game is in progress
+
+  // True once per-user stats have been bumped for this game. Guards against
+  // duplicate increments when the finalize path runs more than once (revert
+  // → re-finish, event-log replay on boot, retries on a failed broadcast).
+  statsApplied Boolean  @default(false)
 
   // Filled in later by the tournament module. Nullable so it can be added without migration.
   tournamentId String?
