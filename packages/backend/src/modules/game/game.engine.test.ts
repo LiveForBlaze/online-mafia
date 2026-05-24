@@ -845,6 +845,35 @@ describe('day_last_word after vote elimination', () => {
     expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
   });
 
+  it('DAY_SPEECH с nominations идёт в DAY_VOTE_INTRO, потом в DAY_VOTE', () => {
+    // Закончились речи, есть выставленные → перед голосованием стадия
+    // объявления (без таймера). Судья жмёт «Дальше» → собственно голосование.
+    const speechDone = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      currentSpeakerSeat: null,
+      nominationSeats: [3, 5],
+      participants: buildState().participants.map((p) => ({ ...p, hasSpokenThisDay: true })),
+    });
+    const afterSpeech = applyAdvancePhase(speechDone);
+    expect(afterSpeech.phase).toBe(GAME_PHASE.DAY_VOTE_INTRO);
+    expect(afterSpeech.nominationSeats).toEqual([3, 5]);
+
+    const afterIntro = applyAdvancePhase(afterSpeech);
+    expect(afterIntro.phase).toBe(GAME_PHASE.DAY_VOTE);
+    expect(afterIntro.voteRoundIdx).toBe(0);
+  });
+
+  it('DAY_SPEECH без nominations пропускает intro и идёт в ночь', () => {
+    const speechDone = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      currentSpeakerSeat: null,
+      nominationSeats: [],
+      participants: buildState().participants.map((p) => ({ ...p, hasSpokenThisDay: true })),
+    });
+    const next = applyAdvancePhase(speechDone);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+  });
+
   it('applyJudgeRemove во время DAY_VOTE ставит disqualifiedThisDay', () => {
     const state = buildState({
       phase: GAME_PHASE.DAY_VOTE,

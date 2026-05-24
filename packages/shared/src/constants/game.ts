@@ -56,6 +56,9 @@ export const DEFAULT_PHASE_DURATION_SEC: Record<GamePhase, number> = {
   // The day_speech timer is per-speaker, not for the whole day. It resets every
   // time the judge advances to the next speaker.
   [GAME_PHASE.DAY_SPEECH]: 60,
+  // Interlude между речами и голосованием. Без таймера: судья объявляет
+  // выставленных и сам жмёт «Дальше».
+  [GAME_PHASE.DAY_VOTE_INTRO]: 0,
   // Per-candidate window during the sequential vote: judge says "кто за
   // игрока N" and counts hands for 3 seconds before moving to the next.
   // 5 секунд: 3 ощущалось слишком резко — нажимаешь и сразу истёк.

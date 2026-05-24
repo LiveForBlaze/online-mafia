@@ -227,12 +227,16 @@ export function nextPhase(state: GameState): GamePhase {
     case GAME_PHASE.NIGHT_ZERO:
       return GAME_PHASE.DAY_SPEECH;
     case GAME_PHASE.DAY_SPEECH:
-      // Speeches end → vote if there are nominations, else go to night.
+      // Speeches end → если есть выставленные, идём в DAY_VOTE_INTRO
+      // (ведущий объявляет порядок), иначе сразу в ночь.
       // Exception (ФИИМ): if a player was disqualified during the speeches
       // — judge-removed, foul-removed, or self-leave — the day's vote is
       // cancelled and the table goes straight to night.
       if (state.disqualifiedThisDay) return GAME_PHASE.NIGHT_MAFIA;
-      return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE : GAME_PHASE.NIGHT_MAFIA;
+      return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE_INTRO : GAME_PHASE.NIGHT_MAFIA;
+    case GAME_PHASE.DAY_VOTE_INTRO:
+      // Судья объявил порядок → голосование.
+      return GAME_PHASE.DAY_VOTE;
     case GAME_PHASE.DAY_VOTE:
       // After vote resolution one of three outcomes is in `state`:
       //   - lastWordSeats non-empty → clear winner, route to last word

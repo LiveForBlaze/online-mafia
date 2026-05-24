@@ -157,6 +157,19 @@ function StageBody({
       );
     }
 
+    case GAME_PHASE.DAY_VOTE_INTRO:
+      return (
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-fg">{t('game.ui.voteIntroTitle')}</p>
+          <p className="text-xs text-muted">{t('game.ui.voteIntroHint')}</p>
+          {state.nominationSeats.length > 0 && (
+            <p className="text-sm text-warning font-mono">
+              {state.nominationSeats.map((s, i) => `${i + 1}. №${s}`).join('   ')}
+            </p>
+          )}
+        </div>
+      );
+
     case GAME_PHASE.DAY_VOTE:
     case GAME_PHASE.DAY_REVOTE:
       return (

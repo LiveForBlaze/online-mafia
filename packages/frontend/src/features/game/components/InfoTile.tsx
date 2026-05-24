@@ -183,6 +183,26 @@ function Body({
         </div>
       );
 
+    case GAME_PHASE.DAY_VOTE_INTRO:
+      return (
+        <div className="space-y-2">
+          <p className="text-xl sm:text-2xl font-bold text-fg leading-tight">
+            {t('game.ui.voteIntroTitle')}
+          </p>
+          <p className="text-sm text-muted">{t('game.ui.voteIntroHint')}</p>
+          {state.nominationSeats.length > 0 && (
+            <ol className="space-y-1 mt-1">
+              {state.nominationSeats.map((seat, i) => (
+                <li key={seat} className="flex items-center gap-2 text-base font-semibold text-fg">
+                  <span className="text-xs font-mono text-muted w-6">{i + 1}.</span>
+                  <span className="text-warning">№{seat}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      );
+
     case GAME_PHASE.DAY_VOTE:
     case GAME_PHASE.DAY_REVOTE:
       return (

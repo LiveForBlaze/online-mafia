@@ -23,6 +23,13 @@ export const GAME_PHASE = {
   // A player gives their speech during the day.
   DAY_SPEECH: 'day_speech',
 
+  // Interlude между концом речей и началом голосования. Ведущий объявляет
+  // список выставленных в порядке их выставления, говорит «начинаем
+  // голосование» и нажимает «Дальше». Без таймера. Введено по требованию
+  // пользователя: переход «речи → сразу таймер 5 сек» был слишком резким,
+  // игроки не успевали увидеть кто и в каком порядке.
+  DAY_VOTE_INTRO: 'day_vote_intro',
+
   // Players who were nominated face open voting.
   DAY_VOTE: 'day_vote',
 
@@ -61,6 +68,7 @@ export type GamePhase = (typeof GAME_PHASE)[keyof typeof GAME_PHASE];
 // Phases that happen during the day. Useful for UI to render the day-time table layout.
 export const DAY_PHASES: ReadonlyArray<GamePhase> = [
   GAME_PHASE.DAY_SPEECH,
+  GAME_PHASE.DAY_VOTE_INTRO,
   GAME_PHASE.DAY_VOTE,
   GAME_PHASE.DAY_REVOTE,
   GAME_PHASE.DAY_SHOOTOUT,
