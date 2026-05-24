@@ -48,6 +48,13 @@ export function useVoteHotkey(
       const alreadyVoted = Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));
       if (alreadyVoted) return;
 
+      // Окно текущего раунда могло истечь — кнопка пропадает, и Space
+      // тоже не должен срабатывать. Сверяемся с серверным дедлайном.
+      if (state.phaseDeadline) {
+        const deadline = Date.parse(state.phaseDeadline);
+        if (!Number.isNaN(deadline) && Date.now() > deadline) return;
+      }
+
       event.preventDefault();
       void emitGameAction(CLIENT_EVENT.CAST_VOTE, { candidateSeat: candidate });
     }
