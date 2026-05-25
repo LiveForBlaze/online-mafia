@@ -11,7 +11,7 @@
 // retyping the email.
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 
@@ -45,6 +45,7 @@ import {
 } from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
+import { useGoBack } from '@/lib/use-go-back.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 // Picker selection: a standard slot or no avatar.
@@ -687,7 +688,10 @@ function OwnProfileSection() {
 
 function PublicProfileSection({ code }: { code: string }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  // Кнопка «Назад» использует историю браузера — открыли профиль из
+  // /players → вернёмся в /players. На прямом заходе по share-ссылке
+  // fallback на /players (директорию игроков — самое осмысленное место).
+  const goBack = useGoBack(ROUTE_PATH.PLAYERS);
 
   const query = useQuery({
     queryKey: ['public-user', code],
@@ -713,7 +717,7 @@ function PublicProfileSection({ code }: { code: string }) {
       <div className="p-4 sm:p-6">
         <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center space-y-4">
           <p className="text-base text-fg">{t('public_profile.not_found')}</p>
-          <Button variant="secondary" onClick={() => navigate(ROUTE_PATH.HOME)}>
+          <Button variant="secondary" onClick={goBack}>
             {t('public_profile.not_found_back')}
           </Button>
         </div>
@@ -774,9 +778,13 @@ function PublicProfileSection({ code }: { code: string }) {
           )}
 
           <p className="pt-1 text-sm">
-            <Link to={ROUTE_PATH.HOME} className="text-muted hover:text-fg hover:underline">
+            <button
+              type="button"
+              onClick={goBack}
+              className="text-muted hover:text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
+            >
               ← {t('common.back')}
-            </Link>
+            </button>
           </p>
         </div>
       </div>
