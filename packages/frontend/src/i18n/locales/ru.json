@@ -530,7 +530,8 @@
     "statWins": "Победы",
     "statLosses": "Поражения",
     "statWinRate": "Win rate",
-    "statJudge": "Провёл {{count}} партию(й) как судья"
+    "statJudge": "Провёл {{count}} партию(й) как судья",
+    "achievementsTitle": "Достижения"
   },
   "coming_soon": {
     "clubs_title": "Клубы",

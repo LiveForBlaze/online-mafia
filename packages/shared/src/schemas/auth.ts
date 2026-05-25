@@ -83,6 +83,14 @@ export const winsByRoleSchema = z.object({
 });
 export type WinsByRole = z.infer<typeof winsByRoleSchema>;
 
+// Получение записанного достижения. Каталог описаний живёт в
+// shared/constants/achievements.ts, здесь — только факт получения.
+export const earnedAchievementSchema = z.object({
+  id: z.string(),
+  earnedAt: z.string().datetime(),
+});
+export type EarnedAchievementPayload = z.infer<typeof earnedAchievementSchema>;
+
 // Public profile — what /api/v1/users/:code returns. No email exposed.
 export const publicUserProfileSchema = z.object({
   id: z.string().uuid(),
@@ -99,6 +107,7 @@ export const publicUserProfileSchema = z.object({
   losses: z.number().int().nonnegative(),
   gamesAsJudge: z.number().int().nonnegative(),
   winsByRole: winsByRoleSchema,
+  achievements: z.array(earnedAchievementSchema),
 });
 export type PublicUserProfile = z.infer<typeof publicUserProfileSchema>;
 

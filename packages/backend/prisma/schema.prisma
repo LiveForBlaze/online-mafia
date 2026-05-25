@@ -82,6 +82,11 @@ model User {
   // a column migration.
   winsByRole   Json     @default("{}")
 
+  // Заработанные достижения. JSON-массив { id, earnedAt }. Каталог
+  // достижений живёт в shared/constants/achievements.ts — здесь только
+  // сами факты выдачи. Никогда не выдаём один и тот же id дважды.
+  achievements Json     @default("[]")
+
   hostedLobbies   Lobby[]            @relation("LobbyHost")
   lobbyMembers    LobbyMember[]
   gamesAsParticipant GameParticipant[]

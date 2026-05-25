@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { COUNTRIES, type PublicUserProfile } from '@mafia/shared';
 
+import { AchievementBadge } from '@/components/ui/AchievementBadge.js';
 import { Avatar } from '@/components/ui/Avatar.js';
 import { CountryLabel } from '@/components/ui/CountryLabel.js';
 import { Input } from '@/components/ui/Input.js';
@@ -211,7 +212,12 @@ function LeaderboardTable({
                   >
                     <Avatar avatarUrl={user.avatarUrl} nickname={user.nickname} size={32} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-fg truncate">{user.nickname}</p>
+                      <p className="font-semibold text-fg truncate flex items-center gap-1">
+                        <span className="truncate">{user.nickname}</span>
+                        {user.achievements.map((a) => (
+                          <AchievementBadge key={a.id} id={a.id} />
+                        ))}
+                      </p>
                       <p className="text-[10px] font-mono text-muted truncate">
                         #{user.publicCode}
                       </p>

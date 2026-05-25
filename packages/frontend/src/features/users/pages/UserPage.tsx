@@ -22,6 +22,7 @@ import {
   type StandardAvatarId,
 } from '@mafia/shared';
 
+import { AchievementBadge } from '@/components/ui/AchievementBadge.js';
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { CountryLabel } from '@/components/ui/CountryLabel.js';
@@ -596,6 +597,19 @@ function PublicProfileSection({ code }: { code: string }) {
           </dl>
 
           <PublicProfileStats profile={profile} />
+
+          {profile.achievements.length > 0 && (
+            <section className="mt-4 space-y-2">
+              <h2 className="text-xs uppercase tracking-wider text-muted font-semibold">
+                {t('public_profile.achievementsTitle')}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {profile.achievements.map((a) => (
+                  <AchievementBadge key={a.id} id={a.id} size="card" />
+                ))}
+              </div>
+            </section>
+          )}
 
           {joinedRel && (
             <p className="text-xs text-muted">

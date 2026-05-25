@@ -71,6 +71,20 @@ export function toPublicUserProfile(user: User): PublicUserProfile {
   const intOrZero = (v: unknown): number =>
     typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
 
+  // Достижения тоже хранятся как JSON-массив; защищаемся от мусора
+  // (старые записи / ручной импорт): дроп всё, что не похоже на
+  // { id: string, earnedAt: string-ISO }.
+  const achievementsRaw = (user.achievements ?? []) as unknown;
+  const achievements: PublicUserProfile['achievements'] = Array.isArray(achievementsRaw)
+    ? (achievementsRaw.filter(
+        (a): a is { id: string; earnedAt: string } =>
+          typeof a === 'object' &&
+          a !== null &&
+          typeof (a as Record<string, unknown>).id === 'string' &&
+          typeof (a as Record<string, unknown>).earnedAt === 'string',
+      ) as PublicUserProfile['achievements'])
+    : [];
+
   return {
     id: user.id,
     publicCode: user.publicCode,
@@ -90,6 +104,7 @@ export function toPublicUserProfile(user: User): PublicUserProfile {
       mafia: intOrZero(raw.mafia),
       don: intOrZero(raw.don),
     },
+    achievements,
   };
 }
 

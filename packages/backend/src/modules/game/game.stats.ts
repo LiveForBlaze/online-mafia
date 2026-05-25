@@ -16,6 +16,7 @@ import { ROLE_TO_TEAM, type Role, type Team } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
 import { logger } from '../../lib/logger.js';
+import { applyAchievementsForFinishedGame } from './game.achievements.js';
 
 /**
  * Однократно применить пользовательскую статистику для завершённой игры.
@@ -92,6 +93,12 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
 
       await tx.user.update({ where: { id: p.userId }, data });
     }
+
+    // После того, как счётчики обновлены, прокатываем правила выдачи
+    // ачивментов. Внутри той же транзакции — либо всё применилось,
+    // либо ничего, и `statsApplied` останется false на ретрае.
+    const userIdsToCheck = game.participants.filter((p) => !p.user.isBot).map((p) => p.userId);
+    await applyAchievementsForFinishedGame(userIdsToCheck, tx);
   });
 
   logger.info({ gameId, winner }, 'game stats finalised');

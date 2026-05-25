@@ -512,7 +512,8 @@
     "statWins": "Wins",
     "statLosses": "Losses",
     "statWinRate": "Win rate",
-    "statJudge": "Hosted {{count}} game(s) as judge"
+    "statJudge": "Hosted {{count}} game(s) as judge",
+    "achievementsTitle": "Achievements"
   },
   "coming_soon": {
     "clubs_title": "Clubs",
