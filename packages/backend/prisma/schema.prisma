@@ -20,94 +20,107 @@ datasource db {
 // A user can authenticate with a password and/or with linked OAuth providers (Google for now).
 // Test bots are also Users — they have isBot=true, no password, no email login.
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id         String @id @default(uuid())
+  email      String @unique
   // Nicknames are intentionally NOT unique — multiple players can share the
   // same display name. Use `publicCode` for unique addressing.
-  nickname     String
+  nickname   String
   // Short human-friendly identifier (6 chars, alphanumeric, uppercase) used
   // for /u/:code URLs and "find me by code" sharing. Stable across nickname
   // changes; assigned on user creation.
-  publicCode   String   @unique
+  publicCode String @unique
 
   // Optional public profile fields. All free text for V0; country is a free
   // string until we ship a proper picker, clubName likewise becomes a FK
   // once the clubs module exists.
-  realName     String?
-  country      String?
-  clubName     String?
+  realName String?
+  country  String?
+  clubName String?
 
   // Nullable to support users who sign up only via OAuth (no password set) and bots.
   passwordHash String?
 
   // Linked Google account, if any. We store the Google "sub" claim, which is stable and unique.
-  googleId     String? @unique
+  googleId String? @unique
 
   // Bots are auto-controlled users used to fill empty seats during testing.
   // They never log in or own a cookie — the server acts on their behalf.
-  isBot        Boolean @default(false)
+  isBot Boolean @default(false)
 
   // True once the user has proven control of the email (Google-verified or
   // future email-link verification). Account-linking from Google to an
   // existing password user is refused unless emailVerified is true.
   emailVerified Boolean @default(false)
 
-  // Incremented on logout to invalidate older JWTs. The session check compares
-  // the token's `v` claim against this value.
-  tokenVersion  Int     @default(0)
+  // Incremented on explicit "log out everywhere" and account deletion to
+  // invalidate all older JWTs in one shot. NOT bumped by the default
+  // POST /logout — that one just clears the cookie of the current tab so a
+  // user with multiple devices keeps the others signed in. The session check
+  // compares the token's `v` claim against this value.
+  tokenVersion Int @default(0)
 
   // Currently-displayed avatar. May be a standard avatar slug ("avatar-01"…),
   // a full URL (Google profile picture on first sign-in), or null.
-  avatarUrl    String?
+  avatarUrl       String?
   // The user's latest Google profile picture URL, captured on every Google
   // sign-in. Kept separately from `avatarUrl` so users who pick a standard
   // avatar can later restore their Google photo without re-OAuth.
   googleAvatarUrl String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Filled in later by the rating module. Nullable so it can be added without migration.
-  eloRating    Int?
+  eloRating Int?
 
   // Lifetime stats. Incremented exactly once per finished game in
   // finalizeGameStats() — guarded by Game.statsApplied so replays /
   // double-finalize never inflate the numbers.
-  gamesPlayed  Int      @default(0)
-  wins         Int      @default(0)
-  losses       Int      @default(0)
+  gamesPlayed  Int  @default(0)
+  wins         Int  @default(0)
+  losses       Int  @default(0)
   // Judge-side counter, independent of the player one above.
-  gamesAsJudge Int      @default(0)
+  gamesAsJudge Int  @default(0)
   // Per-role wins: { civilian, sheriff, mafia, don } as a JSON map.
   // Sums to `wins`. Stored as Json so adding a new role doesn't require
   // a column migration.
-  winsByRole   Json     @default("{}")
+  winsByRole   Json @default("{}")
 
   // Заработанные достижения. JSON-массив { id, earnedAt }. Каталог
   // достижений живёт в shared/constants/achievements.ts — здесь только
   // сами факты выдачи. Никогда не выдаём один и тот же id дважды.
-  achievements Json     @default("[]")
+  achievements Json @default("[]")
 
-  hostedLobbies   Lobby[]            @relation("LobbyHost")
-  lobbyMembers    LobbyMember[]
+  hostedLobbies      Lobby[]           @relation("LobbyHost")
+  lobbyMembers       LobbyMember[]
   gamesAsParticipant GameParticipant[]
-  gameEventsActed GameEvent[]        @relation("EventActor")
+  gameEventsActed    GameEvent[]       @relation("EventActor")
+
+  // Лидерборд / директория игроков отсортированы по победам и количеству
+  // партий: один индекс покрывает оба сценария (Postgres использует префикс
+  // wins для всех `ORDER BY wins ...` запросов).
+  @@index([wins, gamesPlayed])
 }
 
 // A waiting room before a game starts. A lobby may be public or private.
 model Lobby {
-  id           String        @id @default(uuid())
+  id           String      @id @default(uuid())
   name         String
-  isPrivate    Boolean       @default(false)
+  isPrivate    Boolean     @default(false)
   passwordHash String?
   hostId       String
-  host         User          @relation("LobbyHost", fields: [hostId], references: [id])
-  rulesetSlug  String        @default("classic")
-  status       LobbyStatus   @default(WAITING)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  host         User        @relation("LobbyHost", fields: [hostId], references: [id])
+  rulesetSlug  String      @default("classic")
+  status       LobbyStatus @default(WAITING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   members LobbyMember[]
   game    Game?
+
+  // FK на User не индексируется автоматически в Postgres. Без индекса
+  // `findMany({ where: { hostId } })` (например в deleteOwnAccount при
+  // закрытии всех лобби, или при админских выборках) делает seqscan.
+  @@index([hostId])
 }
 
 enum LobbyStatus {
@@ -123,40 +136,46 @@ enum LobbyStatus {
 // The application also enforces "at most one judge per lobby" — there is no clean DB-level
 // constraint for that without a partial index, which Prisma cannot model directly.
 model LobbyMember {
-  lobbyId  String
-  lobby    Lobby  @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User   @relation(fields: [userId], references: [id])
-  seat     Int? // null when this member is the judge
-  isJudge  Boolean @default(false)
+  lobbyId         String
+  lobby           Lobby    @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  seat            Int? // null when this member is the judge
+  isJudge         Boolean  @default(false)
   // "Готов" toggle — everyone must mark themselves ready before the host
   // can start the game. Bots are seeded ready=true on insert; humans flip
   // it via POST /api/v1/lobby/:id/ready.
-  isReady  Boolean @default(false)
-  joinedAt DateTime @default(now())
+  isReady         Boolean  @default(false)
+  joinedAt        DateTime @default(now())
   // Host-only role pre-assignment (dev/test convenience). When set, the engine
   // honors this role instead of randomizing. Null = randomize as usual.
   preassignedRole String?
 
   @@id([lobbyId, userId])
   @@unique([lobbyId, seat])
+  // Постгресовый PK на (lobbyId, userId) индексирует префикс по lobbyId
+  // (быстрая выборка участников лобби), но НЕ покрывает обратный путь
+  // «все лобби этого юзера», который зовут в createLobby/joinLobby
+  // (auto-evict), deleteOwnAccount и broadcastLobbiesContainingUser.
+  // Без явного индекса Postgres делает seqscan на горячем пути логина.
+  @@index([userId])
 }
 
 // A single game session. Lifecycle: started -> ... -> ended.
 // Reconstructable from GameEvent rows.
 model Game {
-  id           String   @id @default(uuid())
-  lobbyId      String   @unique
-  lobby        Lobby    @relation(fields: [lobbyId], references: [id])
-  rulesetSlug  String
-  startedAt    DateTime @default(now())
-  endedAt      DateTime?
-  winnerTeam   String? // 'red' or 'black'; nullable while the game is in progress
+  id          String    @id @default(uuid())
+  lobbyId     String    @unique
+  lobby       Lobby     @relation(fields: [lobbyId], references: [id])
+  rulesetSlug String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  winnerTeam  String? // 'red' or 'black'; nullable while the game is in progress
 
   // True once per-user stats have been bumped for this game. Guards against
   // duplicate increments when the finalize path runs more than once (revert
   // → re-finish, event-log replay on boot, retries on a failed broadcast).
-  statsApplied Boolean  @default(false)
+  statsApplied Boolean @default(false)
 
   // Filled in later by the tournament module. Nullable so it can be added without migration.
   tournamentId String?
@@ -168,18 +187,22 @@ model Game {
 // A player or judge taking part in one specific game.
 // Role is null for the judge and for participants before role distribution.
 model GameParticipant {
-  gameId      String
-  game        Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User   @relation(fields: [userId], references: [id])
-  seat        Int? // null for judge
-  isJudge     Boolean @default(false)
-  role        String? // 'civilian' | 'sheriff' | 'mafia' | 'don', or null until distributed
-  isAlive     Boolean @default(true)
-  isRemoved   Boolean @default(false) // judge removed them from the table
-  foulsCount  Int     @default(0)
+  gameId     String
+  game       Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User    @relation(fields: [userId], references: [id])
+  seat       Int? // null for judge
+  isJudge    Boolean @default(false)
+  role       String? // 'civilian' | 'sheriff' | 'mafia' | 'don', or null until distributed
+  isAlive    Boolean @default(true)
+  isRemoved  Boolean @default(false) // judge removed them from the table
+  foulsCount Int     @default(0)
 
   @@id([gameId, userId])
+  // То же что и в LobbyMember: префикс PK покрывает gameId, но не userId.
+  // finalizeGameStats и любые «все игры юзера»-запросы (статистика профиля)
+  // без индекса делают seqscan.
+  @@index([userId])
 }
 
 // Append-only event log. A game is fully reproducible by replaying these in order.
@@ -188,10 +211,10 @@ model GameEvent {
   id        String   @id @default(uuid())
   gameId    String
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  seq       Int      // monotonically increasing within a game, starting at 0
-  phase     String   // see GamePhase in @mafia/shared
-  type      String   // event type (e.g. 'role_assigned', 'player_voted')
-  actorId   String?  // user who performed the action; null for system events
+  seq       Int // monotonically increasing within a game, starting at 0
+  phase     String // see GamePhase in @mafia/shared
+  type      String // event type (e.g. 'role_assigned', 'player_voted')
+  actorId   String? // user who performed the action; null for system events
   actor     User?    @relation("EventActor", fields: [actorId], references: [id])
   payload   Json
   createdAt DateTime @default(now())

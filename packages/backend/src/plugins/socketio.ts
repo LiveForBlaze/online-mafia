@@ -91,9 +91,13 @@ export const socketioPlugin = fp(
       next();
     });
 
-    // Per-socket rate limiter. Защищаем оба пути (lobby chat + game actions) от
-    // спама/DoS. Реализован как packet-middleware: при превышении пакет
-    // отбивается с ошибкой в ack, но СОКЕТ ОСТАЁТСЯ ЖИВ. Раньше я делал
+    // Per-USER rate limiter (раньше был per-socket — одна вкладка ≠ один
+    // лимит, две вкладки давали N×лимит). Теперь ключ = `${userId}:${event}`,
+    // одни ведра шарятся между всеми сокетами одного юзера. Защищаем оба
+    // пути (lobby chat + game actions) от спама/DoS.
+    //
+    // Реализовано как packet-middleware: при превышении пакет отбивается с
+    // ошибкой в ack, но СОКЕТ ОСТАЁТСЯ ЖИВ. Раньше я делал
     // `socket.disconnect(true)`, и клиент уходил на exponential-backoff
     // реконнект (1→2→5→10s) — это ломало редирект игроков в момент старта
     // игры (хост шлёт broadcast, а у других сокет «отдыхает» 10s).
@@ -105,16 +109,31 @@ export const socketioPlugin = fp(
       // (клик-клик-клик при назначении, переподключения, mount флёшы).
       __default__: 200,
     };
+    // Shared module-scope map of buckets, keyed by `${userId}:${event}`.
+    // Анонимные/незаауентифицированные сокеты (не должны сюда долетать — их
+    // отрубает io.use auth выше — но defence-in-depth) валятся в socket.id.
+    const buckets = new Map<string, { count: number; resetAt: number }>();
+    // Лёгкая периодическая чистка: каждые 30 секунд удаляем bucket'ы, чьё
+    // окно истекло и нет нового трафика — иначе Map пухнет на длинных
+    // сессиях. Лимит сам по себе тоже expire-on-read, эта чистка — для
+    // GC долгоживущих узлов.
+    const sweepTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [k, v] of buckets) {
+        if (v.resetAt <= now) buckets.delete(k);
+      }
+    }, 30_000);
     io.use((socket, next) => {
-      const buckets = new Map<string, { count: number; resetAt: number }>();
       socket.use((packet, dispatch) => {
         const event = packet[0];
         if (typeof event !== 'string') return dispatch();
         const limit = RATE_LIMITS[event] ?? RATE_LIMITS.__default__ ?? 200;
+        const ownerKey = socket.data.user?.sub ?? `socket:${socket.id}`;
+        const bucketKey = `${ownerKey}:${event}`;
         const now = Date.now();
-        const bucket = buckets.get(event);
+        const bucket = buckets.get(bucketKey);
         if (!bucket || bucket.resetAt <= now) {
-          buckets.set(event, { count: 1, resetAt: now + RATE_WINDOW_MS });
+          buckets.set(bucketKey, { count: 1, resetAt: now + RATE_WINDOW_MS });
           return dispatch();
         }
         bucket.count += 1;
@@ -154,6 +173,7 @@ export const socketioPlugin = fp(
 
     app.addHook('onClose', async () => {
       clearInterval(recheckTimer);
+      clearInterval(sweepTimer);
       await io.close();
     });
   },

@@ -47,6 +47,15 @@ const envSchema = z.object({
   // through is preferable to the whole signup/lobby-create flow breaking when
   // Anthropic has an incident.
   ANTHROPIC_API_KEY: z.string().optional(),
+
+  // Опт-ин на `trustProxy` для Fastify. Включайте ТОЛЬКО если перед бекендом
+  // стоит доверенный reverse-proxy (Caddy / nginx / cloud LB), который сам
+  // переписывает X-Forwarded-For. Иначе атакующий подменит заголовок и
+  // обойдёт все IP-rate-limit'ы. По умолчанию выключено.
+  TRUST_PROXY: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
 });
 
 const parsed = envSchema.safeParse(process.env);

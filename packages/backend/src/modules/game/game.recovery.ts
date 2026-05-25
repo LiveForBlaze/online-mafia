@@ -35,6 +35,7 @@ import { GAME_PHASE } from '@mafia/shared';
 import { syncMediaPermissions } from './game.media-permissions.js';
 import { registerGame } from './game.registry.js';
 import { GAME_EVENT_TYPE, schedulePickTimer } from './game.service.js';
+import { applySnapshotToState, parseSnapshot } from './game.snapshot.js';
 import { INITIAL_PHASE, type GameParticipant, type GameState } from './game.state.js';
 
 interface EventLike {
@@ -254,9 +255,37 @@ function applyEvent(state: GameState, event: EventLike): GameState {
       // phase transition that ended the game; this event is purely audit.
       return state;
 
+    case GAME_EVENT_TYPE.REVERTED: {
+      // REVERTED событие несёт сериализованный snapshot pre-revert состояния
+      // (см. game.snapshot.ts). Без этого recovery после крэша между revert
+      // и следующим действием воссоздавал бы PRE-revert state из всех
+      // предыдущих событий, что неверно: судья отменил действие, оно не
+      // должно «вернуться» после рестарта.
+      //
+      // Если snapshot не парсится (старое REVERTED-событие до этой правки,
+      // или битый payload), отступаем к старому поведению — оставляем state
+      // как есть. Игра в этом случае пойдёт от pre-revert — то же, что и
+      // было раньше, не хуже.
+      const snap = extractObject(event.payload, 'snapshot');
+      if (!snap) return state;
+      const parsed = parseSnapshot(snap);
+      if (!parsed) return state;
+      return applySnapshotToState(state, parsed);
+    }
+
     default:
       return state;
   }
+}
+
+function extractObject(payload: Prisma.JsonValue, field: string): Record<string, unknown> | null {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const value = (payload as Record<string, unknown>)[field];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+  }
+  return null;
 }
 
 function extractSeat(payload: Prisma.JsonValue, field: string): number | null {

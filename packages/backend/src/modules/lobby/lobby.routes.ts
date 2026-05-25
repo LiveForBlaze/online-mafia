@@ -100,6 +100,16 @@ const LOBBY_JOIN_RATE_LIMIT = {
     request.user?.sub ?? request.ip,
 } as const;
 
+// Заполнение лобби ботами создаёт до 9 User-строк за запрос. Чтобы хост не
+// мог гонять «выкинуть всех → дозалить ботов» бесконечно, ограничиваем
+// 10 запросов в минуту на конкретного юзера.
+const LOBBY_FILL_BOTS_RATE_LIMIT = {
+  max: 10,
+  timeWindow: '1 minute',
+  keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
+    request.user?.sub ?? request.ip,
+} as const;
+
 export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Create lobby ----
   app.post(
@@ -139,7 +149,10 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Fill remaining seats with bots (host only) ----
   app.post<{ Params: { id: string } }>(
     '/:id/fill-bots',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: LOBBY_FILL_BOTS_RATE_LIMIT },
+    },
     async (request, reply) => {
       const result = await fillLobbyWithBots(request.params.id, request.user.sub);
       if (!result.ok) {

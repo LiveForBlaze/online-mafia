@@ -28,6 +28,7 @@ import {
   findOrCreateUserFromGoogle,
   getUserById,
   loginWithPassword,
+  logoutEverywhere,
   registerWithPassword,
   toAuthenticatedUser,
   updateNickname,
@@ -83,8 +84,11 @@ function authErrorToHttpStatus(code: AuthErrorCode): number {
 }
 
 // Tight per-endpoint rate limits override the global 200/min for routes that
-// either burn CPU (argon2) or affect account integrity. Keyed by IP via
-// @fastify/rate-limit's default keyGenerator.
+// either burn CPU (argon2) or affect account integrity. Pre-auth routes
+// (login, register, oauth callback) are keyed by IP via @fastify/rate-limit's
+// default keyGenerator. Authenticated routes (deleteAccount, logoutEverywhere)
+// are keyed by user.sub so that two users behind the same NAT don't share a
+// budget.
 const AUTH_RATE_LIMITS = {
   // Login: enough for honest fat-finger retries, way too tight for credential
   // stuffing.
@@ -95,8 +99,21 @@ const AUTH_RATE_LIMITS = {
   // some retry headroom for OAuth-flow weirdness without becoming a DoS vector.
   googleCallback: { max: 20, timeWindow: '1 minute' },
   // Account deletion: even with a stolen cookie an attacker shouldn't get many
-  // shots at the email-retype confirmation.
-  deleteAccount: { max: 5, timeWindow: '1 minute' },
+  // shots at the email-retype confirmation. Keyed by user.sub.
+  deleteAccount: {
+    max: 5,
+    timeWindow: '1 minute',
+    keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
+      request.user?.sub ?? request.ip,
+  },
+  // Logout-everywhere bumps tokenVersion — a write op. Same shape as delete,
+  // 5/min/user.
+  logoutEverywhere: {
+    max: 5,
+    timeWindow: '1 minute',
+    keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
+      request.user?.sub ?? request.ip,
+  },
 } as const;
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
@@ -150,7 +167,11 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.code(HTTP_STATUS.OK).send({ user: toAuthenticatedUser(result.user) });
   });
 
-  // ---- Logout ----
+  // ---- Logout (this device only) ----
+  // Чистит cookie текущей вкладки. Другие устройства того же юзера остаются
+  // авторизованы — это сознательный UX-выбор: «выйти везде» — отдельный
+  // эндпоинт ниже, чтобы случайный logout в одной вкладке не отрубал все
+  // активные сессии.
   app.post('/logout', async (request, reply) => {
     // Если есть сессия — попробуем выкинуть пользователя из всех его активных
     // LiveKit-комнат. Без этого старый LK-токен (TTL 30 минут) продолжает
@@ -167,6 +188,26 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     clearSessionCookie(reply);
     return reply.code(HTTP_STATUS.NO_CONTENT).send();
   });
+
+  // ---- Logout everywhere (invalidate every active session of this user) ----
+  // Бампает tokenVersion → все существующие JWT этого юзера становятся
+  // невалидны на handshake. Активные Socket.IO-сокеты отвалятся в течение
+  // RECHECK_INTERVAL_MS (5 минут). LK-сессия тоже принудительно отзывается.
+  // Cookie этой вкладки тоже очищаем — пользователь сам инициировал глобальный
+  // logout и должен быть выкинут немедленно.
+  app.post(
+    '/logout/everywhere',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: AUTH_RATE_LIMITS.logoutEverywhere },
+    },
+    async (request, reply) => {
+      await logoutEverywhere(request.user.sub);
+      void revokeLiveKitForUser(request.user.sub);
+      clearSessionCookie(reply);
+      return reply.code(HTTP_STATUS.NO_CONTENT).send();
+    },
+  );
 
   // ---- Current user ----
   app.get('/me', { preHandler: [app.authenticate] }, async (request, reply) => {

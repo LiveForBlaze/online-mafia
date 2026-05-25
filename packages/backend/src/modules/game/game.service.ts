@@ -45,6 +45,7 @@ import {
   registerGame,
   setGame,
 } from './game.registry.js';
+import { snapshotState } from './game.snapshot.js';
 import { finalizeGameStats } from './game.stats.js';
 import { INITIAL_PHASE, findByUserId, type GameParticipant, type GameState } from './game.state.js';
 
@@ -916,8 +917,13 @@ export async function judgeRevert(ctx: ActionContext): Promise<ServiceResult<Gam
     });
     const nextSeq = (latest?.seq ?? -1) + 1;
     let next: GameState = { ...prev, nextEventSeq: nextSeq };
+    // Snapshot включаем В payload REVERTED — это превращает revert в
+    // self-contained событие. На recovery после крэша оно полностью
+    // восстанавливает pre-revert состояние, не полагаясь на in-memory
+    // historyStacks (который улетел вместе с рестартом).
     next = await persistEvent(next, GAME_EVENT_TYPE.REVERTED, ctx.userId, {
       restoredPhase: prev.phase,
+      snapshot: snapshotState(prev),
     });
     setGame(next);
     void syncMediaPermissions(next);

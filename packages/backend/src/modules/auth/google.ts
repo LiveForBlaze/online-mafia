@@ -8,24 +8,28 @@
 //                                     find-or-create local user, set session cookie
 
 import { Google, generateState, generateCodeVerifier } from 'arctic';
+import { z } from 'zod';
 
 import { env } from '../../config/env.js';
 
 // OpenID Connect scopes needed to obtain a user's email, profile picture, and stable subject ID.
 export const GOOGLE_SCOPES = ['openid', 'email', 'profile'] as const;
 
-// User info endpoint returns these fields. Documented at:
-// https://developers.google.com/identity/openid-connect/openid-connect#obtainuserinfo
-export interface GoogleUserInfo {
-  sub: string; // stable, unique Google user ID — primary key for linking accounts
-  email: string;
-  email_verified: boolean;
-  name?: string;
-  given_name?: string;
-  family_name?: string;
-  picture?: string;
-  locale?: string;
-}
+// Strict shape of the userinfo response. We parse this — never blindly trust
+// `(json as GoogleUserInfo)` — because `if (!profile.email_verified)` would
+// treat the string `"false"` as truthy, silently accepting an unverified
+// email. Google sends a real boolean today; this is defence-in-depth.
+const googleUserInfoSchema = z.object({
+  sub: z.string().min(1),
+  email: z.string().email(),
+  email_verified: z.boolean(),
+  name: z.string().optional(),
+  given_name: z.string().optional(),
+  family_name: z.string().optional(),
+  picture: z.string().url().optional(),
+  locale: z.string().optional(),
+});
+export type GoogleUserInfo = z.infer<typeof googleUserInfoSchema>;
 
 const USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
@@ -61,7 +65,14 @@ export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleUs
     throw new Error(`Google userinfo request failed with status ${response.status}`);
   }
 
-  return (await response.json()) as GoogleUserInfo;
+  const json = (await response.json()) as unknown;
+  const parsed = googleUserInfoSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error(
+      `Google userinfo response did not match expected shape: ${parsed.error.message}`,
+    );
+  }
+  return parsed.data;
 }
 
 export { generateState, generateCodeVerifier };

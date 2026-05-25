@@ -188,6 +188,12 @@ export async function updateNickname(userId: string, nickname: string): Promise<
 // means "leave alone", null means "clear". Strings are trimmed; an empty
 // string after trim is also treated as "clear" so blank textboxes do what
 // users expect.
+//
+// realName и clubName проходят AI-модерацию ровно на тех же правилах что и
+// nickname (см. lib/moderation.ts). Без неё юзер, у которого ник заблочен
+// модерацией, может вписать ту же фразу в realName и она отрендерится на
+// публичном профиле. Модерируем только когда поле реально меняется — не
+// гоняем платный API при сохранении того же значения.
 export async function updateProfile(
   userId: string,
   input: UpdateProfileInput,
@@ -207,6 +213,27 @@ export async function updateProfile(
   if (input.realName !== undefined) data.realName = norm(input.realName) ?? null;
   if (input.country !== undefined) data.country = norm(input.country) ?? null;
   if (input.clubName !== undefined) data.clubName = norm(input.clubName) ?? null;
+
+  // Модерируем realName / clubName, если они а) приходят в апдейте,
+  // б) непусты, в) отличаются от текущих в БД. Argon2 здесь не задействован,
+  // зато каждый вызов = один HTTP к Anthropic — экономим обращения.
+  const needsRealNameCheck = data.realName !== undefined && data.realName !== null;
+  const needsClubNameCheck = data.clubName !== undefined && data.clubName !== null;
+  if (needsRealNameCheck || needsClubNameCheck) {
+    const current = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { realName: true, clubName: true },
+    });
+    if (needsRealNameCheck && current?.realName !== data.realName) {
+      const verdict = await moderateName(data.realName!, 'nickname');
+      if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
+    }
+    if (needsClubNameCheck && current?.clubName !== data.clubName) {
+      const verdict = await moderateName(data.clubName!, 'club');
+      if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
+    }
+  }
+
   if (input.avatarId !== undefined) {
     if (input.avatarId === 'google') {
       // Resolve the sentinel to the user's cached Google photo URL. If we
@@ -363,6 +390,23 @@ export async function loginWithPassword(input: LoginInput): Promise<AuthResult> 
 
 export async function getUserById(id: string): Promise<User | null> {
   return prisma.user.findUnique({ where: { id } });
+}
+
+// «Выйти со всех устройств». Бампает tokenVersion на User-строке —
+// сравниваем `v` JWT-токена с этим значением при handshake (socketio.ts) и
+// в HTTP-`authenticate` декораторе. Эффект:
+//   * Все существующие cookie/JWT для этого юзера становятся невалидны.
+//   * Активные Socket.IO-сокеты падают через RECHECK_INTERVAL_MS (5 минут).
+//   * Активные LiveKit-сессии: отдельный revoke вызывается из роута.
+//
+// Это отдельный эндпоинт (а не дефолт `/logout`), потому что обычный logout
+// в одной вкладке не должен выкидывать пользователя из остальных. Имя
+// `logout-everywhere` — явное согласие на разлогин всех устройств.
+export async function logoutEverywhere(userId: string): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { tokenVersion: { increment: 1 } },
+  });
 }
 
 /**

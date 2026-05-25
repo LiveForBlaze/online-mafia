@@ -40,6 +40,29 @@ export async function buildServer(): Promise<FastifyInstance> {
         ],
         censor: '[Redacted]',
       },
+      // В prod не пишем remoteAddress / remotePort в access-log: IP — PII, а
+      // диагностической ценности на хост-уровне у нас мало (proxy метрика
+      // живёт у Caddy/nginx). В dev оставляем дефолтный сериализатор —
+      // удобно отлаживать локально.
+      ...(env.NODE_ENV === 'production'
+        ? {
+            serializers: {
+              req(req: {
+                method: string;
+                url: string;
+                hostname: string;
+                headers: Record<string, string | string[] | undefined>;
+              }) {
+                return {
+                  method: req.method,
+                  url: req.url,
+                  hostname: req.hostname,
+                  userAgent: req.headers['user-agent'],
+                };
+              },
+            },
+          }
+        : {}),
       ...(env.NODE_ENV === 'development'
         ? {
             transport: {
@@ -54,8 +77,11 @@ export async function buildServer(): Promise<FastifyInstance> {
         : {}),
     },
     disableRequestLogging: false,
-    // Trust X-Forwarded-* headers — needed for accurate request.ip behind Caddy/nginx.
-    trustProxy: env.NODE_ENV === 'production',
+    // Trust X-Forwarded-* headers — needed for accurate request.ip behind a
+    // trusted reverse-proxy (Caddy/nginx/cloud LB). Включать ТОЛЬКО когда
+    // proxy реально стоит впереди: иначе атакующий подменит заголовок и
+    // обойдёт IP-rate-limit'ы. Управляется env-переменной TRUST_PROXY.
+    trustProxy: env.TRUST_PROXY,
   });
 
   await app.register(helmet, {
