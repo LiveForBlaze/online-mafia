@@ -12,12 +12,17 @@ import { prisma } from '../../db/prisma.client.js';
 import { logger } from '../../lib/logger.js';
 
 /**
- * Применить все ачивменты для участников завершённой игры. Аргументы —
- * массив userId'ов, для которых нужно прогнать проверки (обычно это
- * non-bot участники + судья).
+ * Применить все ачивменты для участников завершённой игры.
+ *
+ * @param userIds non-bot участники + судья — для них проверяем правила.
+ * @param humanPlayerCount Сколько за столом сидело реальных людей (не считая
+ *   судью и ботов). Передаётся caller'ом из finalizeGameStats, чтобы
+ *   game-wide условия (например «партия не была тестом с ботами»)
+ *   проверялись по фактическому составу стола.
  */
 export async function applyAchievementsForFinishedGame(
   userIds: string[],
+  humanPlayerCount: number,
   tx: Prisma.TransactionClient = prisma,
 ): Promise<void> {
   if (userIds.length === 0) return;
@@ -27,8 +32,6 @@ export async function applyAchievementsForFinishedGame(
     select: {
       id: true,
       isBot: true,
-      gamesPlayed: true,
-      gamesAsJudge: true,
       achievements: true,
     },
   });
@@ -39,11 +42,12 @@ export async function applyAchievementsForFinishedGame(
     const earned = parseEarnedList(user.achievements);
     const newlyEarned: EarnedAchievement[] = [];
 
-    // alpha_tester: сыграл / отсудил хотя бы одну партию.
-    if (!hasAchievement(earned, 'alpha_tester')) {
-      if (user.gamesPlayed >= 1 || user.gamesAsJudge >= 1) {
-        newlyEarned.push({ id: 'alpha_tester', earnedAt: new Date().toISOString() });
-      }
+    // alpha_tester: дошёл до конца партии, где сидело ≥5 живых игроков
+    // (без судьи и ботов). Защищает ачивку от соло-тестов «1 человек +
+    // 9 ботов» — её должны получать те, кто помог реально оттестировать
+    // игру с настоящими людьми.
+    if (!hasAchievement(earned, 'alpha_tester') && humanPlayerCount >= 5) {
+      newlyEarned.push({ id: 'alpha_tester', earnedAt: new Date().toISOString() });
     }
 
     if (newlyEarned.length === 0) continue;

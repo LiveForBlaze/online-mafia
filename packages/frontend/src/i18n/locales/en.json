@@ -530,10 +530,15 @@
     "hint": "Choose from the standard set. Custom photos are not supported yet.",
     "none": "No avatar",
     "selected": "Selected",
-    "useGoogle": "From Google",
     "dialogTitle": "Choose avatar",
     "changeShort": "Change",
-    "lockedHint": "Locked — requires an achievement"
+    "lockedHint": "Locked — requires an achievement",
+    "previewLabel": "Avatar preview",
+    "noRewards": "No reward avatars yet — earn achievements to unlock.",
+    "tabs": {
+      "standard": "Standard",
+      "rewards": "Rewards"
+    }
   },
   "home": {
     "features": {

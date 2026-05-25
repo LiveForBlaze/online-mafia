@@ -33,7 +33,11 @@ export function AchievementBadge({ id, size = 'inline' }: AchievementBadgeProps)
 
   return (
     <span
-      title={`${a[locale].name} — ${a[locale].description}`}
+      // Tooltip — только название. Полное описание (как ачивка достаётся)
+      // живёт в библиотеке аватарок (секция «Наградные») и на странице
+      // профиля как карточка. Длинная подсказка на маленьком emoji-бейдже
+      // у никнейма в лидерборде неуместна — мешает читать строку.
+      title={a[locale].name}
       aria-label={a[locale].name}
       className={cn(
         'inline-flex items-center justify-center w-5 h-5 text-sm leading-none cursor-help',

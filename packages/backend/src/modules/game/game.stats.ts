@@ -97,8 +97,13 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
     // После того, как счётчики обновлены, прокатываем правила выдачи
     // ачивментов. Внутри той же транзакции — либо всё применилось,
     // либо ничего, и `statsApplied` останется false на ретрае.
+    //
+    // humanPlayerCount — настоящие игроки за столом (не судья и не боты).
+    // Нужен для критериев вроде alpha_tester: ачивка выдаётся только за
+    // партии, где сидело ≥5 живых, а не за тесты с ботами.
     const userIdsToCheck = game.participants.filter((p) => !p.user.isBot).map((p) => p.userId);
-    await applyAchievementsForFinishedGame(userIdsToCheck, tx);
+    const humanPlayerCount = game.participants.filter((p) => !p.user.isBot && !p.isJudge).length;
+    await applyAchievementsForFinishedGame(userIdsToCheck, humanPlayerCount, tx);
   });
 
   logger.info({ gameId, winner }, 'game stats finalised');

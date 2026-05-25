@@ -21,12 +21,13 @@ export type UpdateNicknameInput = z.infer<typeof updateNicknameInputSchema>;
 // null in any field to clear it. Omitted fields are left untouched.
 const optionalShortText = z.string().trim().max(80).nullable().optional();
 
-// 'google' is a sentinel: server resolves it to the user's cached Google photo
-// URL. Lets the client switch avatars without ever sending a raw URL.
-export const avatarIdSchema = z
-  .union([z.enum(STANDARD_AVATARS), z.literal('google')])
-  .nullable()
-  .optional();
+// Только курируемый набор стандартных аватарок + null (без аватара).
+// Раньше принимался также литерал 'google', но он убран: пользовательские
+// фото из Google-аккаунтов как аватары больше не поддерживаются — это
+// открывало путь к подделке reward-аватарок через подмену картинки на
+// стороне Google. Аватарки должны нести смысл; для этого набор должен
+// быть курируемым, а не «что угодно из вашего Google».
+export const avatarIdSchema = z.enum(STANDARD_AVATARS).nullable().optional();
 
 // Страна хранится как ISO 3166-1 alpha-2 код. Допускаем `null`/пусто
 // (поле опционально). Не валидируем список здесь чтобы не таскать

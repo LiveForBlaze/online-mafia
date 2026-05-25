@@ -256,16 +256,7 @@ export async function updateProfile(
   }
 
   if (input.avatarId !== undefined) {
-    if (input.avatarId === 'google') {
-      // Resolve the sentinel to the user's cached Google photo URL. If we
-      // don't have one cached the request silently no-ops on this field —
-      // the client should only offer "google" when googleAvatarUrl is set.
-      const current = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { googleAvatarUrl: true },
-      });
-      if (current?.googleAvatarUrl) data.avatarUrl = current.googleAvatarUrl;
-    } else if (input.avatarId === null) {
+    if (input.avatarId === null) {
       data.avatarUrl = null;
     } else {
       // Locked-под-достижение аватары требуют наличия конкретной ачивки.
@@ -474,20 +465,15 @@ export async function findOrCreateUserFromGoogle(
 
   const byGoogleId = await prisma.user.findUnique({ where: { googleId: profile.sub } });
   if (byGoogleId) {
-    // Refresh cached Google photo on every sign-in. If the user is currently
-    // showing their Google avatar (avatarUrl equals the previously-cached
-    // googleAvatarUrl, or avatarUrl is null), follow Google's new URL too.
+    // Кэш `googleAvatarUrl` обновляем (на случай если когда-нибудь вернём
+    // фичу или дадим админский экспорт), но `avatarUrl` НЕ трогаем —
+    // курируемый набор стандартных + reward-аватарок мы не должны
+    // подменять Google-фоткой.
     const newGooglePhoto = profile.picture ?? null;
-    const followsGoogle =
-      byGoogleId.avatarUrl === null ||
-      (byGoogleId.googleAvatarUrl !== null && byGoogleId.avatarUrl === byGoogleId.googleAvatarUrl);
     if (newGooglePhoto !== byGoogleId.googleAvatarUrl) {
       const refreshed = await prisma.user.update({
         where: { id: byGoogleId.id },
-        data: {
-          googleAvatarUrl: newGooglePhoto,
-          ...(followsGoogle ? { avatarUrl: newGooglePhoto } : {}),
-        },
+        data: { googleAvatarUrl: newGooglePhoto },
       });
       return { ok: true, user: refreshed };
     }
@@ -504,11 +490,10 @@ export async function findOrCreateUserFromGoogle(
       data: {
         googleId: profile.sub,
         emailVerified: true,
-        // Always refresh the cached Google photo so users can restore it later.
+        // Кэшируем Google-фото в `googleAvatarUrl` для аудита, но `avatarUrl`
+        // оставляем как было: пользователь видит свою стартовую инициалку и
+        // выбирает аватар из курируемого набора в /user.
         googleAvatarUrl: profile.picture ?? null,
-        // Only seed avatarUrl from Google if it was empty — don't override an
-        // explicit standard avatar the user already picked.
-        avatarUrl: byEmail.avatarUrl ?? profile.picture ?? null,
       },
     });
     return { ok: true, user: updated };
@@ -539,7 +524,8 @@ export async function findOrCreateUserFromGoogle(
           nickname,
           publicCode,
           googleId: profile.sub,
-          avatarUrl: profile.picture ?? null,
+          // avatarUrl остаётся null: новые юзеры выбирают аватар из
+          // курируемого набора в профиле. Google-фото кэшируем отдельно.
           googleAvatarUrl: profile.picture ?? null,
           emailVerified: true,
         },

@@ -31,12 +31,12 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     ru: {
       name: 'Участник альфа-теста',
       description:
-        'Сыграл хотя бы одну партию во время альфа-версии online-mafia. Спасибо, что помогаешь проекту расти!',
+        'Выдаётся за партию до конца в составе минимум 5 живых игроков. Спасибо за участие в альфе!',
     },
     en: {
       name: 'Alpha tester',
       description:
-        'Played at least one game during the online-mafia alpha. Thank you for helping the project grow!',
+        'Awarded for finishing a match with at least 5 real players at the table. Thank you for being part of the alpha!',
     },
   },
 ];

@@ -16,7 +16,8 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 
 import {
-  STANDARD_AVATARS,
+  COMMON_AVATARS,
+  REWARD_AVATARS,
   isStandardAvatar,
   requiredAchievementForAvatar,
   type PublicUserProfile,
@@ -24,6 +25,7 @@ import {
 } from '@mafia/shared';
 
 import { AchievementBadge } from '@/components/ui/AchievementBadge.js';
+import { getAchievement } from '@mafia/shared';
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { CountryLabel } from '@/components/ui/CountryLabel.js';
@@ -45,15 +47,19 @@ import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
-// Picker selection: a standard slot, the user's Google photo, or no avatar.
-type AvatarSelection = StandardAvatarId | 'google' | null;
+// Picker selection: a standard slot or no avatar.
+// «Google photo» as a selection no longer exists — curated avatar set only.
+// See ADR-equivalent rationale: avatars must be a meaningful curated reward,
+// not whatever a user shoved into their Google profile.
+type AvatarSelection = StandardAvatarId | null;
 
 /** Modal-based avatar picker. Confirm/cancel preserve the previous selection
  *  until the user clicks Apply, so accidental taps don't mutate state. */
+type AvatarTab = 'standard' | 'reward';
+
 function AvatarPickerDialog({
   open,
   initial,
-  googleAvatarUrl,
   nickname,
   ownedAchievements,
   onClose,
@@ -61,7 +67,6 @@ function AvatarPickerDialog({
 }: {
   open: boolean;
   initial: AvatarSelection;
-  googleAvatarUrl: string | null;
   nickname: string;
   ownedAchievements: ReadonlySet<string>;
   onClose: () => void;
@@ -69,15 +74,48 @@ function AvatarPickerDialog({
 }) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<AvatarSelection>(initial);
+  // Дефолтная вкладка зависит от текущего выбора: если у юзера сейчас
+  // награда — открываем пикер на «Наградных», чтобы её сразу было видно.
+  const initialTab: AvatarTab =
+    initial !== null && (REWARD_AVATARS as readonly string[]).includes(initial)
+      ? 'reward'
+      : 'standard';
+  const [tab, setTab] = useState<AvatarTab>(initialTab);
 
   useEffect(() => {
-    if (open) setDraft(initial);
-  }, [open, initial]);
+    if (open) {
+      setDraft(initial);
+      setTab(initialTab);
+    }
+    // Намеренно зависим только от `open` — initial/initialTab меняются как
+    // результат `initial`, но переключать вкладку нужно только в момент
+    // открытия диалога, не на каждый рендер.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function handleApply() {
     onApply(draft);
     onClose();
   }
+
+  // Что показывать в preview-окне по текущему draft'у.
+  const previewAvatarUrl = draft;
+  const previewCaption = draft === null ? t('avatar.none') : t('avatar.selected');
+
+  // Если выбран reward-аватар — показываем карточку с описанием ачивки,
+  // которая его разблокирует. Помогает понять «зачем эта картинка
+  // заблокирована» и «как её получить».
+  const draftRewardAchievementId = draft !== null ? requiredAchievementForAvatar(draft) : null;
+  const draftRewardAchievement = draftRewardAchievementId
+    ? getAchievement(draftRewardAchievementId)
+    : null;
+
+  // Сколько ачивок-аватарок реально доступно — показываем точку на вкладке,
+  // если у юзера есть хоть одна разблокированная награда.
+  const hasUnlockedReward = REWARD_AVATARS.some((id) => {
+    const need = requiredAchievementForAvatar(id);
+    return need !== null && ownedAchievements.has(need);
+  });
 
   return (
     <Dialog
@@ -93,100 +131,193 @@ function AvatarPickerDialog({
         </>
       }
     >
+      {/* Preview — большой превью текущего draft. Показывает что именно
+          сохранится при нажатии «Применить» до того, как пользователь это
+          сделает. */}
+      <div className="flex flex-col items-center gap-2 py-2">
+        <div
+          aria-label={t('avatar.previewLabel')}
+          className="h-32 w-32 overflow-hidden rounded-lg ring-2 ring-accent/40 ring-offset-2 ring-offset-card"
+        >
+          <Avatar avatarUrl={previewAvatarUrl} nickname={nickname} size={null} shape="square" />
+        </div>
+        <span className="text-xs text-muted">{previewCaption}</span>
+      </div>
+
+      {/* Инфо-блок про ачивку, разблокирующую выбранный reward-аватар.
+          Видно только когда в превью — награда; для обычных аватарок
+          ничего лишнего не показываем. */}
+      {draftRewardAchievement && (
+        <div className="my-2">
+          <AchievementBadge id={draftRewardAchievement.id} size="card" />
+        </div>
+      )}
+
+      {/* Tabs — категории. «Стандартные» (включая Google и «без аватара»)
+          и «Наградные» (за достижения). */}
+      <div
+        role="tablist"
+        aria-label={t('avatar.dialogTitle')}
+        className="mb-3 flex gap-1 border-b border-border"
+      >
+        <PickerTabButton
+          active={tab === 'standard'}
+          onClick={() => setTab('standard')}
+          label={t('avatar.tabs.standard')}
+        />
+        <PickerTabButton
+          active={tab === 'reward'}
+          onClick={() => setTab('reward')}
+          label={t('avatar.tabs.rewards')}
+          dot={hasUnlockedReward}
+        />
+      </div>
+
       <p className="text-xs text-muted">{t('avatar.hint')}</p>
+
       <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-        {/* Google option — only visible if the user has signed in via Google
-            (and we therefore have a cached photo URL to restore later). */}
-        {googleAvatarUrl && (
-          <button
-            type="button"
-            onClick={() => setDraft('google')}
-            aria-label={t('avatar.useGoogle')}
-            aria-pressed={draft === 'google'}
-            title={t('avatar.useGoogle')}
-            className={cn(
-              'relative aspect-square w-full overflow-hidden rounded-md transition-all',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-              draft === 'google'
-                ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
-                : 'opacity-80 hover:opacity-100',
-            )}
-          >
-            <Avatar avatarUrl={googleAvatarUrl} nickname={nickname} size={null} shape="square" />
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/65 py-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-white">
-              Google
-            </span>
-          </button>
-        )}
-        {STANDARD_AVATARS.map((id) => {
-          const isSelected = draft === id;
-          // Locked-под-достижение аватары рендерим затемнёнными с замочком
-          // и не даём кликнуть. Сервер всё равно перепроверит, но UI должен
-          // быть честным — не предлагать то, что нельзя.
-          const requiredAch = requiredAchievementForAvatar(id);
-          const locked = requiredAch !== null && !ownedAchievements.has(requiredAch);
-          return (
+        {tab === 'standard' && (
+          <>
+            {COMMON_AVATARS.map((id) => (
+              <AvatarTile
+                key={id}
+                id={id}
+                selected={draft === id}
+                locked={false}
+                onPick={() => setDraft(id)}
+              />
+            ))}
             <button
-              key={id}
               type="button"
-              onClick={() => {
-                if (locked) return;
-                setDraft(id);
-              }}
-              aria-label={id}
-              aria-pressed={isSelected}
-              aria-disabled={locked}
-              disabled={locked}
-              title={locked ? t('avatar.lockedHint') : undefined}
+              onClick={() => setDraft(null)}
+              aria-label={t('avatar.none')}
+              aria-pressed={draft === null}
               className={cn(
-                'relative aspect-square w-full overflow-hidden rounded-md transition-all',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                locked
-                  ? 'cursor-not-allowed opacity-40 grayscale'
-                  : isSelected
-                    ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
-                    : 'opacity-80 hover:opacity-100',
+                'flex aspect-square w-full items-center justify-center rounded-md border border-dashed border-muted text-sm text-muted transition-all',
+                'hover:border-fg hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                draft === null &&
+                  'border-accent text-accent ring-2 ring-accent ring-offset-2 ring-offset-card',
               )}
             >
-              <Avatar avatarUrl={id} nickname={id} size={null} shape="square" />
-              {locked && (
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl"
-                >
-                  🔒
-                </span>
-              )}
+              ✕
             </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => setDraft(null)}
-          aria-label={t('avatar.none')}
-          aria-pressed={draft === null}
-          className={cn(
-            'flex aspect-square w-full items-center justify-center rounded-md border border-dashed border-muted text-sm text-muted transition-all',
-            'hover:border-fg hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-            draft === null &&
-              'border-accent text-accent ring-2 ring-accent ring-offset-2 ring-offset-card',
-          )}
-        >
-          ✕
-        </button>
+          </>
+        )}
+
+        {tab === 'reward' &&
+          REWARD_AVATARS.map((id) => {
+            const requiredAch = requiredAchievementForAvatar(id);
+            const locked = requiredAch !== null && !ownedAchievements.has(requiredAch);
+            return (
+              <AvatarTile
+                key={id}
+                id={id}
+                selected={draft === id}
+                locked={locked}
+                lockedTitle={locked ? t('avatar.lockedHint') : undefined}
+                onPick={() => {
+                  if (!locked) setDraft(id);
+                }}
+              />
+            );
+          })}
+        {tab === 'reward' && REWARD_AVATARS.length === 0 && (
+          <p className="col-span-full text-center text-sm text-muted py-6">
+            {t('avatar.noRewards')}
+          </p>
+        )}
       </div>
     </Dialog>
   );
 }
 
+function PickerTabButton({
+  active,
+  onClick,
+  label,
+  dot,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  dot?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        'relative -mb-px px-3 py-2 text-sm font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-t-md',
+        active
+          ? 'border-b-2 border-accent text-fg'
+          : 'border-b-2 border-transparent text-muted hover:text-fg',
+      )}
+    >
+      {label}
+      {dot && (
+        <span
+          aria-hidden="true"
+          className="absolute right-1 top-1.5 h-1.5 w-1.5 rounded-full bg-accent"
+        />
+      )}
+    </button>
+  );
+}
+
+function AvatarTile({
+  id,
+  selected,
+  locked,
+  lockedTitle,
+  onPick,
+}: {
+  id: StandardAvatarId;
+  selected: boolean;
+  locked: boolean;
+  lockedTitle?: string;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-label={id}
+      aria-pressed={selected}
+      aria-disabled={locked}
+      disabled={locked}
+      title={lockedTitle}
+      className={cn(
+        'relative aspect-square w-full overflow-hidden rounded-md transition-all',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        locked
+          ? 'cursor-not-allowed opacity-40 grayscale'
+          : selected
+            ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
+            : 'opacity-80 hover:opacity-100',
+      )}
+    >
+      <Avatar avatarUrl={id} nickname={id} size={null} shape="square" />
+      {locked && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl"
+        >
+          🔒
+        </span>
+      )}
+    </button>
+  );
+}
+
 /** Translate the current user state into the picker's selection model. */
-function deriveAvatarSelection(
-  avatarUrl: string | null | undefined,
-  googleAvatarUrl: string | null | undefined,
-): AvatarSelection {
+function deriveAvatarSelection(avatarUrl: string | null | undefined): AvatarSelection {
   if (isStandardAvatar(avatarUrl)) return avatarUrl;
-  // Currently showing the Google photo if avatarUrl matches the cached one.
-  if (googleAvatarUrl && avatarUrl === googleAvatarUrl) return 'google';
+  // Anything else (including a stale Google photo URL on legacy accounts)
+  // gets treated as "no selection". The data-cleanup migration nullifies
+  // such avatarUrls, but render-side we're defensive.
   return null;
 }
 
@@ -214,7 +345,7 @@ function OwnProfileSection() {
   const [country, setCountry] = useState(user?.country ?? '');
   const [clubName, setClubName] = useState(user?.clubName ?? '');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarSelection>(
-    deriveAvatarSelection(user?.avatarUrl, user?.googleAvatarUrl),
+    deriveAvatarSelection(user?.avatarUrl),
   );
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savedRecently, setSavedRecently] = useState(false);
@@ -228,10 +359,10 @@ function OwnProfileSection() {
     setRealName(user.realName ?? '');
     setCountry(user.country ?? '');
     setClubName(user.clubName ?? '');
-    setSelectedAvatar(deriveAvatarSelection(user.avatarUrl, user.googleAvatarUrl));
+    setSelectedAvatar(deriveAvatarSelection(user.avatarUrl));
   }, [user]);
 
-  const currentAvatar = deriveAvatarSelection(user?.avatarUrl, user?.googleAvatarUrl);
+  const currentAvatar = deriveAvatarSelection(user?.avatarUrl);
 
   // Достижения юзера = unlock-ключи для locked-аватарок. Берём из /me, не из
   // публичного профиля — это own profile, владелец должен видеть всё что
@@ -323,13 +454,8 @@ function OwnProfileSection() {
   }
 
   // Show the currently-staged selection in the header so the user sees a live
-  // preview before clicking Save on the form. Resolves 'google' to the URL.
-  const headerAvatarUrl =
-    selectedAvatar === null
-      ? null
-      : selectedAvatar === 'google'
-        ? (user.googleAvatarUrl ?? null)
-        : selectedAvatar;
+  // preview before clicking Save on the form.
+  const headerAvatarUrl = selectedAvatar;
 
   return (
     <div className="p-4 sm:p-6">
@@ -497,7 +623,6 @@ function OwnProfileSection() {
       <AvatarPickerDialog
         open={avatarPickerOpen}
         initial={selectedAvatar}
-        googleAvatarUrl={user.googleAvatarUrl}
         nickname={user.nickname}
         ownedAchievements={ownedAchievements}
         onClose={() => setAvatarPickerOpen(false)}

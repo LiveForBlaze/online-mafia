@@ -3,8 +3,9 @@
 // Use isStandardAvatar() to distinguish them from external URLs (Google, etc.).
 
 // Базовые аватары — доступны всем. Если расширяешь список, нумерация
-// продолжается естественно (avatar-11, avatar-12, …).
-const COMMON_AVATARS = [
+// продолжается естественно (avatar-11, avatar-12, …). Экспорт нужен для
+// UI-категоризации в пикере (вкладка «Стандартные»).
+export const COMMON_AVATARS = [
   'avatar-01',
   'avatar-02',
   'avatar-03',
@@ -27,10 +28,11 @@ export const AVATARS_BY_ACHIEVEMENT = {
   alpha_tester: ['avatar-alpha-m', 'avatar-alpha-f'],
 } as const;
 
-// Плоский список заблокированных аватарок для быстрого lookup'а.
-const LOCKED_AVATARS = Object.values(AVATARS_BY_ACHIEVEMENT).flat();
+// Плоский список аватарок-наград для быстрого lookup'а и для UI-категории
+// «Наградные» в пикере.
+export const REWARD_AVATARS = Object.values(AVATARS_BY_ACHIEVEMENT).flat();
 
-export const STANDARD_AVATARS = [...COMMON_AVATARS, ...LOCKED_AVATARS] as const;
+export const STANDARD_AVATARS = [...COMMON_AVATARS, ...REWARD_AVATARS] as const;
 
 export type StandardAvatarId = (typeof STANDARD_AVATARS)[number];
 
