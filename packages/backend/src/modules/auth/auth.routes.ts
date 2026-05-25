@@ -68,6 +68,7 @@ function authErrorToHttpStatus(code: AuthErrorCode): number {
     case AUTH_ERROR.NICKNAME_TAKEN:
       return HTTP_STATUS.CONFLICT;
     case AUTH_ERROR.NICKNAME_REJECTED:
+    case AUTH_ERROR.AVATAR_LOCKED:
       return HTTP_STATUS.BAD_REQUEST;
     case AUTH_ERROR.INVALID_CREDENTIALS:
     case AUTH_ERROR.PASSWORD_NOT_SET:

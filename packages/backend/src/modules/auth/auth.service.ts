@@ -13,6 +13,7 @@ import type {
   RegisterInput,
   UpdateProfileInput,
 } from '@mafia/shared';
+import { requiredAchievementForAvatar } from '@mafia/shared';
 import type { User } from '@prisma/client';
 
 import { prisma } from '../../db/prisma.client.js';
@@ -32,6 +33,10 @@ export const AUTH_ERROR = {
   PASSWORD_NOT_SET: 'password_not_set',
   OAUTH_LINK_REFUSED: 'oauth_link_refused',
   OAUTH_EMAIL_NOT_VERIFIED: 'oauth_email_not_verified',
+  // Юзер пытается надеть аватар, который unlock'ается достижением, которого
+  // у него нет. UI обычно не даёт нажать на такие slot'ы — этот код для
+  // случая, когда клиент собрал руками или старый кешированный.
+  AVATAR_LOCKED: 'avatar_locked',
 } as const;
 export type AuthErrorCode = (typeof AUTH_ERROR)[keyof typeof AUTH_ERROR];
 
@@ -58,7 +63,23 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
     country: user.country ?? null,
     clubName: user.clubName ?? null,
     hasPassword: Boolean(user.passwordHash),
+    achievements: parseAchievements(user.achievements),
   };
+}
+
+// achievements хранится как Json. Защищаемся от мусора (старые записи /
+// ручной импорт): дропаем всё, что не похоже на { id: string, earnedAt:
+// ISO-string }. Та же логика что в toPublicUserProfile — выделена в
+// отдельный хелпер чтобы её не дублировать дважды.
+function parseAchievements(raw: unknown): { id: string; earnedAt: string }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (a): a is { id: string; earnedAt: string } =>
+      typeof a === 'object' &&
+      a !== null &&
+      typeof (a as Record<string, unknown>).id === 'string' &&
+      typeof (a as Record<string, unknown>).earnedAt === 'string',
+  );
 }
 
 /** Public projection — no email exposed. */
@@ -244,8 +265,29 @@ export async function updateProfile(
         select: { googleAvatarUrl: true },
       });
       if (current?.googleAvatarUrl) data.avatarUrl = current.googleAvatarUrl;
+    } else if (input.avatarId === null) {
+      data.avatarUrl = null;
     } else {
-      // Standard avatar ID stored directly; null clears the avatar.
+      // Locked-под-достижение аватары требуют наличия конкретной ачивки.
+      // Сверяемся с user.achievements перед записью; иначе возвращаем
+      // AVATAR_LOCKED. Этот гейт страхует UI: даже если клиент вручную
+      // соберёт PATCH с заблокированным id, сервер не пропустит.
+      const required = requiredAchievementForAvatar(input.avatarId);
+      if (required) {
+        const current = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { achievements: true },
+        });
+        const owned = Array.isArray(current?.achievements)
+          ? (current!.achievements as unknown[]).some(
+              (a) =>
+                a !== null &&
+                typeof a === 'object' &&
+                (a as Record<string, unknown>).id === required,
+            )
+          : false;
+        if (!owned) return { ok: false, error: AUTH_ERROR.AVATAR_LOCKED };
+      }
       data.avatarUrl = input.avatarId;
     }
   }

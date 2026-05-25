@@ -25,6 +25,7 @@ const AUTH_ERROR_KEYS = new Set([
   'email_taken',
   'nickname_taken',
   'nickname_rejected',
+  'avatar_locked',
   'password_not_set',
   'google_oauth_not_configured',
   'google_email_not_verified',

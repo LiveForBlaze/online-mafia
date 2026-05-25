@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   STANDARD_AVATARS,
   isStandardAvatar,
+  requiredAchievementForAvatar,
   type PublicUserProfile,
   type StandardAvatarId,
 } from '@mafia/shared';
@@ -54,6 +55,7 @@ function AvatarPickerDialog({
   initial,
   googleAvatarUrl,
   nickname,
+  ownedAchievements,
   onClose,
   onApply,
 }: {
@@ -61,6 +63,7 @@ function AvatarPickerDialog({
   initial: AvatarSelection;
   googleAvatarUrl: string | null;
   nickname: string;
+  ownedAchievements: ReadonlySet<string>;
   onClose: () => void;
   onApply: (id: AvatarSelection) => void;
 }) {
@@ -117,22 +120,43 @@ function AvatarPickerDialog({
         )}
         {STANDARD_AVATARS.map((id) => {
           const isSelected = draft === id;
+          // Locked-под-достижение аватары рендерим затемнёнными с замочком
+          // и не даём кликнуть. Сервер всё равно перепроверит, но UI должен
+          // быть честным — не предлагать то, что нельзя.
+          const requiredAch = requiredAchievementForAvatar(id);
+          const locked = requiredAch !== null && !ownedAchievements.has(requiredAch);
           return (
             <button
               key={id}
               type="button"
-              onClick={() => setDraft(id)}
+              onClick={() => {
+                if (locked) return;
+                setDraft(id);
+              }}
               aria-label={id}
               aria-pressed={isSelected}
+              aria-disabled={locked}
+              disabled={locked}
+              title={locked ? t('avatar.lockedHint') : undefined}
               className={cn(
-                'aspect-square w-full overflow-hidden rounded-md transition-all',
+                'relative aspect-square w-full overflow-hidden rounded-md transition-all',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                isSelected
-                  ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
-                  : 'opacity-80 hover:opacity-100',
+                locked
+                  ? 'cursor-not-allowed opacity-40 grayscale'
+                  : isSelected
+                    ? 'ring-2 ring-accent ring-offset-2 ring-offset-card'
+                    : 'opacity-80 hover:opacity-100',
               )}
             >
               <Avatar avatarUrl={id} nickname={id} size={null} shape="square" />
+              {locked && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl"
+                >
+                  🔒
+                </span>
+              )}
             </button>
           );
         })}
@@ -208,6 +232,14 @@ function OwnProfileSection() {
   }, [user]);
 
   const currentAvatar = deriveAvatarSelection(user?.avatarUrl, user?.googleAvatarUrl);
+
+  // Достижения юзера = unlock-ключи для locked-аватарок. Берём из /me, не из
+  // публичного профиля — это own profile, владелец должен видеть всё что
+  // у него реально есть.
+  const ownedAchievements = useMemo(
+    () => new Set(user?.achievements?.map((a) => a.id) ?? []),
+    [user?.achievements],
+  );
 
   const dirty = useMemo(() => {
     if (!user) return false;
@@ -467,6 +499,7 @@ function OwnProfileSection() {
         initial={selectedAvatar}
         googleAvatarUrl={user.googleAvatarUrl}
         nickname={user.nickname}
+        ownedAchievements={ownedAchievements}
         onClose={() => setAvatarPickerOpen(false)}
         onApply={setSelectedAvatar}
       />

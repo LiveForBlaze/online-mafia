@@ -71,6 +71,11 @@ export const authenticatedUserSchema = z.object({
   country: z.string().nullable(),
   clubName: z.string().nullable(),
   hasPassword: z.boolean(),
+  // Доставляем достижения в /me-ответе чтобы пикер аватаров мог сразу
+  // показать какие slot'ы заблокированы / разблокированы. На публичном
+  // профиле (PublicUserProfile) то же поле — расходимся только по типу
+  // схемы; форма одинаковая, чтобы не плодить парсеров.
+  achievements: z.array(z.object({ id: z.string(), earnedAt: z.string().datetime() })),
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 

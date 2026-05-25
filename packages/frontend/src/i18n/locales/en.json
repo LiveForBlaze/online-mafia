@@ -113,7 +113,8 @@
       "unauthenticated": "Your session has expired. Sign in again.",
       "network": "Connection error. Please try again.",
       "unknown": "Something went wrong",
-      "nickname_rejected": "This nickname didn't pass moderation. Please pick another."
+      "nickname_rejected": "This nickname didn't pass moderation. Please pick another.",
+      "avatar_locked": "This avatar is locked — you haven't earned the required achievement yet."
     }
   },
   "lobby": {
@@ -531,7 +532,8 @@
     "selected": "Selected",
     "useGoogle": "From Google",
     "dialogTitle": "Choose avatar",
-    "changeShort": "Change"
+    "changeShort": "Change",
+    "lockedHint": "Locked — requires an achievement"
   },
   "home": {
     "features": {
