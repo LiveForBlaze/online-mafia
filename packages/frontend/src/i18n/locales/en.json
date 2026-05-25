@@ -527,7 +527,6 @@
   },
   "avatar": {
     "title": "Avatar",
-    "hint": "Choose from the standard set. Custom photos are not supported yet.",
     "none": "No avatar",
     "selected": "Selected",
     "dialogTitle": "Choose avatar",

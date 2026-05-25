@@ -173,8 +173,6 @@ function AvatarPickerDialog({
         />
       </div>
 
-      <p className="text-xs text-muted">{t('avatar.hint')}</p>
-
       <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
         {tab === 'standard' && (
           <>
