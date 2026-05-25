@@ -557,6 +557,12 @@
       "rewards": "Наградные"
     }
   },
+  "achievementUnlock": {
+    "title": "Достижение получено!",
+    "confirm": "Круто",
+    "unlockedAvatars": "Доступны новые аватарки",
+    "libraryHint": "Выбрать можно в библиотеке аватарок (профиль → аватар)."
+  },
   "home": {
     "features": {
       "worldwide": {

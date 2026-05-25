@@ -539,6 +539,12 @@
       "rewards": "Марапатты"
     }
   },
+  "achievementUnlock": {
+    "title": "Жетістік алынды!",
+    "confirm": "Керемет",
+    "unlockedAvatars": "Жаңа аватарлар қол жетімді",
+    "libraryHint": "Аватарлар кітапханасында таңдай аласыз (профиль → аватар)."
+  },
   "home": {
     "features": {
       "worldwide": {

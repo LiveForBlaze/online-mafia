@@ -50,6 +50,39 @@ export function refreshUserInActiveGames(
   }
 }
 
+/**
+ * Доставить персональное unlock-уведомление каждому юзеру, у которого
+ * в эту партию прибавились ачивки. Используется finalizeGameStats после
+ * того, как ачивки уже записаны в БД.
+ *
+ * Эмитим адресно: в game-room лежат сокеты ВСЕХ участников, но событие
+ * получает только тот, чей `socket.data.user.sub` совпадает с ключом в
+ * map'е. Это безопаснее (нельзя «подслушать» чужую ачивку — сокет видит
+ * только событие, адресованное ему) и проще для клиента (никаких
+ * локальных фильтров).
+ */
+export function emitAchievementsUnlocked(
+  gameId: string,
+  newlyByUser: Map<string, { id: string; earnedAt: string }[]>,
+): void {
+  if (newlyByUser.size === 0) return;
+  if (!ioInstance) {
+    logger.warn({ gameId }, 'emitAchievementsUnlocked: no io instance attached');
+    return;
+  }
+  const room = ioInstance.sockets.adapter.rooms.get(gameRoomName(gameId));
+  if (!room) return;
+  for (const socketId of room) {
+    const socket = ioInstance.sockets.sockets.get(socketId);
+    if (!socket) continue;
+    const userId = socket.data.user?.sub;
+    if (!userId) continue;
+    const achievements = newlyByUser.get(userId);
+    if (!achievements || achievements.length === 0) continue;
+    socket.emit(SERVER_EVENT.ACHIEVEMENTS_UNLOCKED, { achievements });
+  }
+}
+
 /** Send the latest state to every socket in the room, projected for that socket's user. */
 export function broadcastGameState(gameId: string): void {
   // Each abort path used to be silent, which made dropped phase updates look

@@ -23,6 +23,7 @@ import { MobileStage } from '@/features/game/components/MobileStage.js';
 import { PhaseHeader } from '@/features/game/components/PhaseHeader.js';
 import { RoleCardPickerDialog } from '@/features/game/components/RoleCardPickerDialog.js';
 import { RotateDeviceOverlay } from '@/features/game/components/RotateDeviceOverlay.js';
+import { AchievementUnlockDialog } from '@/features/users/components/AchievementUnlockDialog.js';
 import { actionForSeatInCurrentPhase } from '@/features/game/lib/actionForSeat.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
 import { useGameConnection } from '@/features/game/hooks/useGameConnection.js';
@@ -253,6 +254,10 @@ export function GamePage() {
         viewerIsJudge={viewerIsJudge}
       />
       <RotateDeviceOverlay />
+      {/* Unlock-уведомление по итогам партии. Слушает очередь из
+          useAchievementUnlockStore — её наполняет useGameConnection
+          по SERVER_EVENT.ACHIEVEMENTS_UNLOCKED. */}
+      <AchievementUnlockDialog />
     </MediaRoom>
   );
 }

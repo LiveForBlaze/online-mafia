@@ -539,6 +539,12 @@
       "rewards": "ჯილდოები"
     }
   },
+  "achievementUnlock": {
+    "title": "მიღწევა მიღებულია!",
+    "confirm": "მაგარია",
+    "unlockedAvatars": "ხელმისაწვდომია ახალი ავატარები",
+    "libraryHint": "აარჩიე ავატარების ბიბლიოთეკაში (პროფილი → ავატარი)."
+  },
   "home": {
     "features": {
       "worldwide": {

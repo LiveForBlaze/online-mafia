@@ -19,13 +19,19 @@ import { logger } from '../../lib/logger.js';
  *   судью и ботов). Передаётся caller'ом из finalizeGameStats, чтобы
  *   game-wide условия (например «партия не была тестом с ботами»)
  *   проверялись по фактическому составу стола.
+ *
+ * @returns Map `userId → list of NEWLY earned achievements` для этой партии.
+ *   Caller использует его чтобы бродкастнуть unlock-модалку пострадавшим
+ *   юзерам. Пустая запись (или отсутствие ключа) = у этого юзера в эту
+ *   партию ничего нового не открылось.
  */
 export async function applyAchievementsForFinishedGame(
   userIds: string[],
   humanPlayerCount: number,
   tx: Prisma.TransactionClient = prisma,
-): Promise<void> {
-  if (userIds.length === 0) return;
+): Promise<Map<string, EarnedAchievement[]>> {
+  const newlyByUser = new Map<string, EarnedAchievement[]>();
+  if (userIds.length === 0) return newlyByUser;
 
   const users = await tx.user.findMany({
     where: { id: { in: userIds } },
@@ -58,7 +64,9 @@ export async function applyAchievementsForFinishedGame(
       data: { achievements: updated as unknown as Prisma.InputJsonValue },
     });
     logger.info({ userId: user.id, ids: newlyEarned.map((a) => a.id) }, 'achievement granted');
+    newlyByUser.set(user.id, newlyEarned);
   }
+  return newlyByUser;
 }
 
 function parseEarnedList(raw: Prisma.JsonValue | null | undefined): EarnedAchievement[] {

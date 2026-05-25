@@ -6,14 +6,25 @@
 
 import { useEffect } from 'react';
 
-import { CLIENT_EVENT, SERVER_EVENT, type GameStateProjected } from '@mafia/shared';
+import {
+  CLIENT_EVENT,
+  SERVER_EVENT,
+  type EarnedAchievementPayload,
+  type GameStateProjected,
+} from '@mafia/shared';
 
 import { connectGameSocket, emitGameAction } from '@/features/game/socket/game.socket.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
+import { useAchievementUnlockStore } from '@/features/users/store/achievement-unlocks.store.js';
 
 interface JoinAck {
   ok: boolean;
   error?: string;
+}
+
+interface AchievementsUnlockedPayload {
+  achievements: EarnedAchievementPayload[];
 }
 
 export function useGameConnection(gameId: string | undefined): void {
@@ -43,11 +54,30 @@ export function useGameConnection(gameId: string | undefined): void {
     function handleConnectError(err: Error) {
       setError(err.message);
     }
+    // Сервер шлёт это event'ом ПОСЛЕ commit'а транзакции finalizeGameStats,
+    // адресно тому socket'у, чьи ачивки реально прибавились. Мы кладём в
+    // очередь (модалка показывает по одной) и оптимистично обновляем
+    // user.achievements в auth-store — чтобы библиотека аватарок мгновенно
+    // отразила разблокированные слоты без перелогина.
+    function handleAchievementsUnlocked(payload: AchievementsUnlockedPayload) {
+      if (!payload?.achievements?.length) return;
+      useAchievementUnlockStore.getState().enqueue(payload.achievements);
+      const current = useAuthStore.getState().user;
+      if (current) {
+        const existingIds = new Set(current.achievements.map((a) => a.id));
+        const merged = [
+          ...current.achievements,
+          ...payload.achievements.filter((a) => !existingIds.has(a.id)),
+        ];
+        useAuthStore.getState().setUser({ ...current, achievements: merged });
+      }
+    }
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
     socket.on(SERVER_EVENT.GAME_STATE_DELTA, handleState);
+    socket.on(SERVER_EVENT.ACHIEVEMENTS_UNLOCKED, handleAchievementsUnlocked);
 
     // If the socket is already connected (e.g. quick navigation), trigger the join manually.
     if (socket.connected) handleConnect();
@@ -57,6 +87,7 @@ export function useGameConnection(gameId: string | undefined): void {
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
       socket.off(SERVER_EVENT.GAME_STATE_DELTA, handleState);
+      socket.off(SERVER_EVENT.ACHIEVEMENTS_UNLOCKED, handleAchievementsUnlocked);
       // Don't disconnect the socket — other pages (lobby) reuse it.
       reset();
     };

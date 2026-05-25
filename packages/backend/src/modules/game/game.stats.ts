@@ -17,6 +17,7 @@ import { ROLE_TO_TEAM, type Role, type Team } from '@mafia/shared';
 import { prisma } from '../../db/prisma.client.js';
 import { logger } from '../../lib/logger.js';
 import { applyAchievementsForFinishedGame } from './game.achievements.js';
+import { emitAchievementsUnlocked } from './game.broadcast.js';
 
 /**
  * Однократно применить пользовательскую статистику для завершённой игры.
@@ -43,6 +44,11 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
   if (!game || game.statsApplied || !game.endedAt) return;
 
   const winner = (game.winnerTeam ?? null) as Team | null;
+
+  // Аккумулируем новые ачивки из транзакции, чтобы после её коммита
+  // бродкастнуть unlock-уведомление по сокетам. Внутри tx эмитить нельзя —
+  // если откат, клиенты увидят несуществующую ачивку.
+  let newlyByUser = new Map<string, { id: string; earnedAt: string }[]>();
 
   await prisma.$transaction(async (tx) => {
     // CAS-guard: проверяем `statsApplied=false` в самом UPDATE. Если
@@ -103,8 +109,15 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
     // партии, где сидело ≥5 живых, а не за тесты с ботами.
     const userIdsToCheck = game.participants.filter((p) => !p.user.isBot).map((p) => p.userId);
     const humanPlayerCount = game.participants.filter((p) => !p.user.isBot && !p.isJudge).length;
-    await applyAchievementsForFinishedGame(userIdsToCheck, humanPlayerCount, tx);
+    const result = await applyAchievementsForFinishedGame(userIdsToCheck, humanPlayerCount, tx);
+    newlyByUser = result;
   });
 
-  logger.info({ gameId, winner }, 'game stats finalised');
+  // Broadcast unlock-уведомления ПОСЛЕ коммита транзакции — так клиент
+  // не увидит «открылась ачивка», если транзакция вдруг откатилась.
+  if (newlyByUser.size > 0) {
+    emitAchievementsUnlocked(gameId, newlyByUser);
+  }
+
+  logger.info({ gameId, winner, unlocked: newlyByUser.size }, 'game stats finalised');
 }

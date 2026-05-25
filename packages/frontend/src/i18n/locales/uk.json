@@ -557,6 +557,12 @@
       "rewards": "Нагородні"
     }
   },
+  "achievementUnlock": {
+    "title": "Досягнення отримано!",
+    "confirm": "Круто",
+    "unlockedAvatars": "Доступні нові аватарки",
+    "libraryHint": "Обрати можна в бібліотеці аватарок (профіль → аватар)."
+  },
   "home": {
     "features": {
       "worldwide": {

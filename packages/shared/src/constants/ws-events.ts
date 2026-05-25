@@ -22,6 +22,13 @@ export const SERVER_EVENT = {
   GAME_STATE_DELTA: 'server:game_state_delta',
   GAME_ENDED: 'server:game_ended',
 
+  // Персональное уведомление по итогам партии: «вы открыли N достижений».
+  // Эмитится прицельно тому сокету юзера, чьи ачивки прибавились (внутри
+  // game-room). Клиент рендерит unlock-модалку и инвалидирует /me, чтобы
+  // в библиотеке аватарок мгновенно появились разблокированные варианты.
+  // Payload: { achievements: { id: string, earnedAt: string }[] }
+  ACHIEVEMENTS_UNLOCKED: 'server:achievements_unlocked',
+
   // Game per-player events
   ROLE_ASSIGNED: 'server:role_assigned',
   PLAYER_KILLED: 'server:player_killed',

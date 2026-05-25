@@ -557,6 +557,12 @@
       "rewards": "Узнагародныя"
     }
   },
+  "achievementUnlock": {
+    "title": "Дасягненне атрымана!",
+    "confirm": "Класна",
+    "unlockedAvatars": "Даступныя новыя аватаркі",
+    "libraryHint": "Выбраць можна ў бібліятэцы аватарак (профіль → аватар)."
+  },
   "home": {
     "features": {
       "worldwide": {

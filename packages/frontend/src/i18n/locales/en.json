@@ -539,6 +539,12 @@
       "rewards": "Rewards"
     }
   },
+  "achievementUnlock": {
+    "title": "Achievement unlocked!",
+    "confirm": "Awesome",
+    "unlockedAvatars": "New avatars available",
+    "libraryHint": "Pick them in your avatar library (profile → avatar)."
+  },
   "home": {
     "features": {
       "worldwide": {
