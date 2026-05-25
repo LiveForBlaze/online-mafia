@@ -13,6 +13,15 @@
     "searchPlaceholder": "Search by nickname, name, or code",
     "shownOf": "Showing {{shown}} of {{total}}",
     "statWins": "{{wins}} / {{played}}",
+    "col": {
+      "nickname": "Player",
+      "country": "Country",
+      "club": "Club",
+      "games": "Games",
+      "wins": "Wins",
+      "losses": "Losses",
+      "winRate": "Win %"
+    },
     "empty": {
       "none": "Nobody here yet",
       "search": "Nothing matched your search"
@@ -26,6 +35,9 @@
     "saved": "Saved",
     "cancel": "Cancel",
     "back": "Back",
+    "search": "Search",
+    "no_results": "Nothing found",
+    "all": "All",
     "soon": "Coming soon",
     "language": "Language",
     "beta_notice": "This is a beta build. Bugs and breakages are possible — this is not what the final product looks like.",
@@ -468,7 +480,9 @@
     "real_name": "Real name",
     "real_name_hint": "Your real name. Visible to other players.",
     "country": "Country",
-    "country_hint": "Country or city. Visible to other players.",
+    "country_hint": "Pick a country from the list. Public.",
+    "country_placeholder": "Not specified",
+    "country_clear": "Clear",
     "club": "Club",
     "club_hint": "Your mafia club or community. Visible to other players.",
     "copy_code": "Copy",
