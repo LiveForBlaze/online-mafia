@@ -1050,6 +1050,19 @@ export function applyJudgeUnfoul(state: GameState, targetUserId: string): Engine
 export const OUT_OF_TURN_WINDOW_MS = 5_000;
 
 export function applyOutOfTurn(state: GameState, userId: string): EngineResult<GameState> {
+  // «Сказать под фол» имеет смысл только когда у стола есть назначенный
+  // говорящий, на которого можно «вмешаться». Это DAY_SPEECH (основной
+  // случай), DAY_SHOOTOUT (короткие речи в перестрелке) и DAY_LAST_WORD
+  // (последнее слово). В остальных фазах (ночь, голосование, утреннее
+  // объявление, ROLE_DISTRIBUTION) кнопка не должна срабатывать — иначе
+  // случайный клик мобильного игрока выдаёт ему фол ни за что.
+  if (
+    state.phase !== GAME_PHASE.DAY_SPEECH &&
+    state.phase !== GAME_PHASE.DAY_SHOOTOUT &&
+    state.phase !== GAME_PHASE.DAY_LAST_WORD
+  ) {
+    return fail(ENGINE_ERROR.WRONG_PHASE);
+  }
   const actor = findByUserId(state, userId);
   if (!actor || actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   if (!actor.isAlive || actor.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
@@ -1178,6 +1191,43 @@ export function applyJudgeRemove(state: GameState, targetUserId: string): Engine
     }
   }
 
+  // ROLE_DISTRIBUTION: если удаляемый игрок СЕЙЧАС держит фишку выбора
+  // карты — пропихиваем фишку к следующему ещё не удалённому seat'у,
+  // иначе игра встаёт колом: applyAdvancePhase блокирует переход, пока
+  // roleCardPickerSeat не null, а applyRoleCardPick не примет клик от
+  // другого seat'а. Если уцелевших впереди нет — фишка падает в null
+  // (по сути «все выбрали»), и судья может двигать фазу дальше.
+  let newRoleCardPickerSeat = state.roleCardPickerSeat;
+  if (
+    state.phase === GAME_PHASE.ROLE_DISTRIBUTION &&
+    state.roleCardPickerSeat === removedSeat &&
+    removedSeat !== null
+  ) {
+    let advanced: number | null = null;
+    for (let seat = removedSeat + 1; seat <= 10; seat += 1) {
+      const p = state.participants.find((x) => x.seat === seat);
+      if (p && !p.isRemoved && p.userId !== targetUserId) {
+        advanced = seat;
+        break;
+      }
+    }
+    newRoleCardPickerSeat = advanced;
+  }
+
+  // Снять «след» удалённого игрока из tie-break / lift-vote состояния. Эти
+  // поля и так чистятся при следующем applyAdvancePhase из-за
+  // disqualifiedThisDay, но если игрока сняли в DAY_LAST_WORD или в ночной
+  // фазе (когда disqualifiedThisDay НЕ ставится) — артефакты могут
+  // утечь в следующий день / в проекцию. Сметаем здесь, защитимся.
+  const newTiedSeats =
+    removedSeat !== null ? state.tiedSeats.filter((s) => s !== removedSeat) : state.tiedSeats;
+  const newLastWordSeats =
+    removedSeat !== null
+      ? state.lastWordSeats.filter((s) => s !== removedSeat)
+      : state.lastWordSeats;
+  const newLiftAllVotes = new Map(state.liftAllVotes);
+  if (removedSeat !== null) newLiftAllVotes.delete(removedSeat);
+
   const next: GameState = {
     ...state,
     participants: state.participants.map((p) =>
@@ -1186,6 +1236,10 @@ export function applyJudgeRemove(state: GameState, targetUserId: string): Engine
     nominationSeats: newNominations,
     votes: newVotes,
     mafiaVotes: newMafiaVotes,
+    tiedSeats: newTiedSeats,
+    lastWordSeats: newLastWordSeats,
+    liftAllVotes: newLiftAllVotes,
+    roleCardPickerSeat: newRoleCardPickerSeat,
     // If the removed player was the current speaker, surrender the floor;
     // the judge will advance to the next speaker manually.
     currentSpeakerSeat: state.currentSpeakerSeat === removedSeat ? null : state.currentSpeakerSeat,

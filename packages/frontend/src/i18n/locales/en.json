@@ -251,7 +251,8 @@
       "title": "Lobby chat",
       "placeholder": "Type a message...",
       "send": "Send",
-      "empty": "No messages yet. Say hi!"
+      "empty": "No messages yet. Say hi!",
+      "sendError": "Could not send message. Please try again."
     }
   },
   "game": {

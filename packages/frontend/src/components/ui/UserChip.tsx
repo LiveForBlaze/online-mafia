@@ -18,6 +18,9 @@ export function UserChip() {
       type="button"
       onClick={() => navigate(userProfilePath(user.publicCode))}
       title={user.nickname}
+      // The nickname text below is hidden on narrow viewports — provide an
+      // explicit aria-label so the button is never a nameless icon for SR users.
+      aria-label={user.nickname}
       className="flex items-center gap-2 rounded-full border border-border bg-card pl-0.5 pr-1 py-0.5 text-sm hover:bg-bg transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
     >
       <Avatar avatarUrl={user.avatarUrl} nickname={user.nickname} size={28} />

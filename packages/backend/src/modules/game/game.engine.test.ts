@@ -1124,3 +1124,147 @@ describe('foul effects', () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe('applyOutOfTurn phase gate (audit F2)', () => {
+  // «Сказать под фол» — кнопка имеет смысл только в дневных речевых фазах.
+  // На ночной фазе / в голосовании / в утреннем объявлении она не должна
+  // ничего делать (случайный клик мобильника не должен штрафовать игрока).
+  it('rejects out-of-turn during NIGHT_MAFIA', () => {
+    const state = buildState({ phase: GAME_PHASE.NIGHT_MAFIA });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+    // Фолы не растут — рекорд игрока чист.
+    const seat1 = state.participants.find((p) => p.seat === 1);
+    expect(seat1?.foulsCount).toBe(0);
+  });
+
+  it('rejects out-of-turn during DAY_VOTE', () => {
+    const state = buildState({ phase: GAME_PHASE.DAY_VOTE, nominationSeats: [3] });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+  });
+
+  it('rejects out-of-turn during MORNING_ANNOUNCEMENT', () => {
+    const state = buildState({ phase: GAME_PHASE.MORNING_ANNOUNCEMENT });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.WRONG_PHASE);
+  });
+
+  it('allows out-of-turn during DAY_SPEECH', () => {
+    const state = buildState({ phase: GAME_PHASE.DAY_SPEECH, currentSpeakerSeat: 2 });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.outOfTurnSpeaker?.userId).toBe('user-1');
+      expect(result.data.participants.find((p) => p.seat === 1)?.foulsCount).toBe(1);
+    }
+  });
+
+  it('allows out-of-turn during DAY_SHOOTOUT (tied speeches)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SHOOTOUT,
+      tiedSeats: [3, 5],
+      currentSpeakerSeat: 3,
+    });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(true);
+  });
+
+  it('allows out-of-turn during DAY_LAST_WORD', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_LAST_WORD,
+      lastWordSeats: [3],
+      currentSpeakerSeat: 3,
+    });
+    const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe('applyJudgeRemove during ROLE_DISTRIBUTION (audit F1)', () => {
+  // Без фикса игра вставала колом: удалённый picker оставался в
+  // roleCardPickerSeat, applyAdvancePhase блокировал переход, applyRoleCardPick
+  // отвергал клик другого seat'а.
+  it('hands the role-card pick to the next eligible seat when picker removed', () => {
+    const state = buildState({
+      phase: GAME_PHASE.ROLE_DISTRIBUTION,
+      roleCardPickerSeat: 3,
+      roleCardsPicked: [0, 1],
+      currentSpeakerSeat: null,
+    });
+    const result = applyJudgeRemove(state, 'user-3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Фишка ушла к seat 4 — следующему «живому» и не удалённому.
+    expect(result.data.roleCardPickerSeat).toBe(4);
+    // Удалённый помечен.
+    const removed = result.data.participants.find((p) => p.seat === 3);
+    expect(removed?.isRemoved).toBe(true);
+  });
+
+  it('clears the picker to null when removed picker is the last seat', () => {
+    // Picker is seat 10 — никакого «следующего» нет, фишка падает в null.
+    const state = buildState({
+      phase: GAME_PHASE.ROLE_DISTRIBUTION,
+      roleCardPickerSeat: 10,
+      roleCardsPicked: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      currentSpeakerSeat: null,
+    });
+    const result = applyJudgeRemove(state, 'user-10');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // null — судья может двигать фазу дальше (gate в applyAdvancePhase открывается).
+    expect(result.data.roleCardPickerSeat).toBe(null);
+  });
+
+  it('does NOT touch the picker when a non-picker seat is removed', () => {
+    // Picker — seat 4, удаляем seat 2: фишка должна остаться у 4.
+    const state = buildState({
+      phase: GAME_PHASE.ROLE_DISTRIBUTION,
+      roleCardPickerSeat: 4,
+      roleCardsPicked: [0, 1, 2],
+      currentSpeakerSeat: null,
+    });
+    const result = applyJudgeRemove(state, 'user-2');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.roleCardPickerSeat).toBe(4);
+  });
+});
+
+describe('applyJudgeRemove cleans tie-break / lift-vote artifacts (audit F4)', () => {
+  it('removes the seat from tiedSeats', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SHOOTOUT,
+      tiedSeats: [3, 5],
+      nominationSeats: [3, 5],
+      currentSpeakerSeat: 3,
+    });
+    const result = applyJudgeRemove(state, 'user-3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.tiedSeats).toEqual([5]);
+  });
+
+  it('removes the seat from lastWordSeats and their lift-vote ballot', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_LAST_WORD,
+      lastWordSeats: [3, 5],
+      lastWordIdx: 0,
+      currentSpeakerSeat: 3,
+      liftAllVotes: new Map([
+        [1, true],
+        [3, false],
+      ]),
+    });
+    const result = applyJudgeRemove(state, 'user-3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.lastWordSeats).toEqual([5]);
+    expect(result.data.liftAllVotes.has(3)).toBe(false);
+    expect(result.data.liftAllVotes.get(1)).toBe(true);
+  });
+});

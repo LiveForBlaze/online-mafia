@@ -266,9 +266,17 @@ function SortableTh({
 }) {
   const active = sort.key === sortKey;
   const arrow = active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : '';
+  // aria-sort lets SR users hear "ascending / descending / none" for the
+  // active column. Without it, the visual ↑ / ↓ arrow is purely decorative.
+  const ariaSort: 'ascending' | 'descending' | 'none' = active
+    ? sort.dir === 'asc'
+      ? 'ascending'
+      : 'descending'
+    : 'none';
   return (
     <th
       scope="col"
+      aria-sort={ariaSort}
       className={cn(
         'px-3 py-2 font-medium select-none',
         align === 'right' ? 'text-right' : 'text-left',
@@ -284,7 +292,9 @@ function SortableTh({
         )}
       >
         {children}
-        <span className="text-[10px] w-3 text-right">{arrow}</span>
+        <span aria-hidden="true" className="text-[10px] w-3 text-right">
+          {arrow}
+        </span>
       </button>
     </th>
   );

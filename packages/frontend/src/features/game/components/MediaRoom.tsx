@@ -15,7 +15,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { LiveKitRoom, RoomContext, StartAudio } from '@livekit/components-react';
-import { Room, type RoomOptions } from 'livekit-client';
+import { AudioPresets, Room, type RoomOptions } from 'livekit-client';
 import '@livekit/components-styles';
 
 import { gameApi } from '@/features/game/api/game.api.js';
@@ -31,12 +31,32 @@ interface MediaRoomProps {
 // у игрока с громкими колонками голос судьи возвращался обратно в комнату
 // → акустическая петля «фонит». Echo-cancellation подавляет это на стороне
 // браузера ещё до отправки трека.
+//
+// publishDefaults.audioPreset = speech: дефолт LiveKit'а — `music` (32 kbps stereo),
+// что для голосового стола из 10 человек избыточно. `speech` (24 kbps mono) даёт
+// разборчивую речь, экономит исходящий канал у игроков с плохим wifi и снижает
+// расход бэндвидта на сервере при росте числа столов. dtx/red — defaults
+// (тишина не отправляется; устойчивость к потерям пакетов), но фиксируем
+// явно чтобы при апгрейде SDK не отвалились.
+//
+// adaptiveStream/dynacast: video-only оптимизации, но критичны для мобильных
+// и больших столов. adaptiveStream автоматически паузит подписку на видео
+// тех тайлов, которые скрыты viewport'ом (мёртвые / прокручены вне экрана);
+// dynacast снижает нагрузку на SFU, не публикуя слои видео, на которые никто
+// не подписан. На аудио не влияет — оно остаётся непрерывным.
 const ROOM_OPTIONS: RoomOptions = {
   audioCaptureDefaults: {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
   },
+  publishDefaults: {
+    audioPreset: AudioPresets.speech,
+    dtx: true,
+    red: true,
+  },
+  adaptiveStream: true,
+  dynacast: true,
 };
 
 export function MediaRoom({ gameId, children }: MediaRoomProps) {
