@@ -117,8 +117,8 @@ function LobbyRow({
       className={cn(
         'group cursor-pointer px-4 py-3 transition-colors hover:bg-bg/60 focus:outline-none focus:bg-bg/60',
         'sm:grid sm:items-center sm:gap-3',
-        'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_6rem]',
-        'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_5rem]',
+        'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
+        'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_9rem]',
       )}
     >
       {/* # — короткий ID. На очень узких экранах скрываем (значимости
