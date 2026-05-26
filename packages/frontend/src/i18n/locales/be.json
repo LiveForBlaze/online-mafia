@@ -67,8 +67,14 @@
     "metaOss": "Open source",
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
-    "statsOpenLobbies": "адкрытых лобі",
-    "statsActiveGames": "актыўных гульняў"
+    "statsOpenLobbies_one": "адкрытае лобі",
+    "statsOpenLobbies_few": "адкрытыя лобі",
+    "statsOpenLobbies_many": "адкрытых лобі",
+    "statsOpenLobbies_other": "адкрытых лобі",
+    "statsActiveGames_one": "актыўная гульня",
+    "statsActiveGames_few": "актыўныя гульні",
+    "statsActiveGames_many": "актыўных гульняў",
+    "statsActiveGames_other": "актыўных гульняў"
   },
   "lobbyTable": {
     "aria": "Спіс адкрытых лобі",

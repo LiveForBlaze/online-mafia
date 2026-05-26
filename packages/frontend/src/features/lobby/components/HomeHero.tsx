@@ -28,8 +28,13 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
     <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center pt-4 sm:pt-8">
       <div className="space-y-6">
         {/* Meta row: альфа-чип + OSS-метки. Капс с тонким tracking — звучит
-            как titlecard, а не как извинение за бета-статус. */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+            как titlecard, а не как извинение за бета-статус. `tabular-nums`
+            фиксирует ширину цифр (MIT / LiveKit имеют буквы и могут плыть
+            от прокси/моно вкраплений — `tnum` гасит дрейф). */}
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-muted tabular-nums"
+          style={{ fontFeatureSettings: '"tnum", "ss01"' }}
+        >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 font-semibold text-warning">
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-warning" />
             {t('hero.alpha_badge')}
@@ -73,27 +78,42 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
 
 function StatsRow({ stats }: { stats: HomeStats | undefined }) {
   const { t } = useTranslation();
-  // Пока статистика грузится — показываем «—» вместо нулей, чтобы пустое
-  // лобби-поле не выглядело как «ничего нет» (а на самом деле просто
-  // запрос ещё не вернулся).
-  const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString('ru-RU'));
-  // Две понятные метрики. Без live-дотов: они стояли только на одном
-  // стате и создавали ощущение «одно — живое, другое — нет», хотя обе
-  // метрики реал-тайм. Лучше симметрия.
+  // Визуальная иерархия: число — крупное и жирное, подпись — тонкая
+  // моноширинная под ним. До этого было наоборот (label крупнее визуально
+  // чем 1px-bump-ом number'а), что хоронило саму метрику.
+  //
+  // Подписи берём через i18n с count — i18next подбирает one/few/many/other
+  // по локали (русский: 1 → активная игра, 2-4 → активные игры,
+  // 5+ → активных игр). Без count'а в строке: число рендерим отдельно
+  // крупным шрифтом, label'у достаётся только существительное.
   return (
-    <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-muted">
-      <Stat label={t('hero.statsOpenLobbies')} value={fmt(stats?.openLobbies)} />
-      <Stat label={t('hero.statsActiveGames')} value={fmt(stats?.activeGames)} />
+    <dl className="flex flex-wrap items-center gap-x-8 gap-y-3">
+      <Stat
+        value={stats?.openLobbies}
+        label={t('hero.statsOpenLobbies', { count: stats?.openLobbies ?? 0 })}
+      />
+      <Stat
+        value={stats?.activeGames}
+        label={t('hero.statsActiveGames', { count: stats?.activeGames ?? 0 })}
+      />
     </dl>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ value, label }: { value: number | undefined; label: string }) {
+  const displayValue = value === undefined ? '—' : value.toLocaleString('ru-RU');
   return (
-    <div className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+    <div className="inline-flex items-baseline gap-2 whitespace-nowrap">
       <dt className="sr-only">{label}</dt>
-      <dd className="text-fg font-semibold text-base">{value}</dd>
-      <span>{label}</span>
+      <dd
+        className="font-extrabold text-2xl sm:text-3xl text-fg tabular-nums"
+        style={{ fontFeatureSettings: '"tnum"' }}
+      >
+        {displayValue}
+      </dd>
+      <span className="text-[11px] sm:text-xs uppercase tracking-wider text-muted font-mono">
+        {label}
+      </span>
     </div>
   );
 }

@@ -67,8 +67,10 @@
     "metaOss": "Open source",
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
-    "statsOpenLobbies": "ღია ლობი",
-    "statsActiveGames": "აქტიური თამაში"
+    "statsOpenLobbies_one": "ღია ლობი",
+    "statsOpenLobbies_other": "ღია ლობი",
+    "statsActiveGames_one": "აქტიური თამაში",
+    "statsActiveGames_other": "აქტიური თამაში"
   },
   "lobbyTable": {
     "aria": "ღია ლობების სია",

@@ -67,8 +67,10 @@
     "metaOss": "Open source",
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
-    "statsOpenLobbies": "ашық лобби",
-    "statsActiveGames": "белсенді ойын"
+    "statsOpenLobbies_one": "ашық лобби",
+    "statsOpenLobbies_other": "ашық лобби",
+    "statsActiveGames_one": "белсенді ойын",
+    "statsActiveGames_other": "белсенді ойын"
   },
   "lobbyTable": {
     "aria": "Ашық лоббилер тізімі",

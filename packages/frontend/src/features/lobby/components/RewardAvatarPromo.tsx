@@ -29,7 +29,7 @@ export function RewardAvatarPromo() {
   }
 
   return (
-    <section className="relative overflow-hidden rounded-xl border border-warning/30 bg-gradient-to-br from-warning/[0.08] to-transparent p-5 sm:p-6">
+    <section className="relative overflow-hidden rounded-xl border border-warning/30 bg-card p-5 sm:p-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
         <div className="flex shrink-0 gap-3">
           <RewardSlot id="avatar-alpha-m" locked={!owned} />

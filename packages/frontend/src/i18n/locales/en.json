@@ -67,8 +67,10 @@
     "metaOss": "Open source",
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
-    "statsOpenLobbies": "open lobbies",
-    "statsActiveGames": "active games"
+    "statsOpenLobbies_one": "open lobby",
+    "statsOpenLobbies_other": "open lobbies",
+    "statsActiveGames_one": "active game",
+    "statsActiveGames_other": "active games"
   },
   "lobbyTable": {
     "aria": "Open lobbies list",

@@ -32,7 +32,11 @@ export function HomeFeatures() {
           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
           {t('home.featuresKicker')}
         </p>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold uppercase tracking-tight text-fg">
+        {/* Заголовок ужат: раньше `md:text-4xl font-extrabold` перетекал
+            в одну строку и спорил по тяжести с hero-словом «МАФИЯ».
+            Теперь max-w-2xl даёт естественный перенос на ~2 строки и
+            font-bold (вместо extrabold) ставит его весом ниже героя. */}
+        <h2 className="max-w-2xl text-2xl sm:text-3xl font-bold uppercase tracking-tight text-fg">
           {t('home.featuresTitle')}
         </h2>
       </header>
@@ -50,9 +54,13 @@ function FeatureCard({ feature }: { feature: Feature }) {
   const { t } = useTranslation();
   const { Icon } = feature;
   return (
-    <article className="rounded-xl border border-border bg-card p-5 space-y-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-card-deep text-muted">
-        <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+    <article className="rounded-xl border border-border bg-card p-5 space-y-4">
+      {/* Иконка крупнее: контейнер 48×48 (было 36), сам символ 24px
+          (было 18). На 36px-кружке выглядела как «слабая декорация» —
+          теперь читается как полноценный визуальный анкор. Цвет/фон
+          скромный (text-muted, bg-card-deep), без яркого акцента. */}
+      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-card-deep text-muted">
+        <Icon size={24} strokeWidth={1.75} aria-hidden="true" />
       </div>
       <h3 className="text-sm font-bold uppercase tracking-tight text-fg">
         {t(`home.features.${feature.key}.title`)}
