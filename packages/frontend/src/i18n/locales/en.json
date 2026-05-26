@@ -104,7 +104,7 @@
       "roles": {
         "kicker": "Deal",
         "title": "Get your role",
-        "body": "Cards are dealt automatically. Mafia, sheriff, don, civilians — each gets their own turn and interface."
+        "body": "Each player picks their own card from the deck in turn. Mafia, sheriff, don, civilians — each gets their own turn and interface."
       },
       "table": {
         "kicker": "Table",
