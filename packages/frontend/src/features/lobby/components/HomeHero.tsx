@@ -91,15 +91,21 @@ function StatsRow({ stats }: { stats: HomeStats | undefined }) {
 }
 
 function Stat({ label, value, live }: { label: string; value: string; live?: boolean }) {
+  // Один flex с `items-baseline` — текст «0» и подпись «СЕЙЧАС ЗА СТОЛОМ»
+  // сидят на одной baseline. Точку (live-индикатор) вырываем из
+  // baseline-потока через `self-center`, чтобы она вертикально
+  // центрировалась относительно высоты строки, а не сидела на baseline
+  // (где у пустого span baseline = bottom-of-box → точка прыгала наверх).
   return (
     <div className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
       <dt className="sr-only">{label}</dt>
-      <dd className="inline-flex items-center gap-1.5">
-        {live && (
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-        )}
-        <span className="text-fg font-semibold text-base">{value}</span>
-      </dd>
+      {live && (
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 self-center rounded-full bg-accent animate-pulse"
+        />
+      )}
+      <dd className="text-fg font-semibold text-base">{value}</dd>
       <span>{label}</span>
     </div>
   );
