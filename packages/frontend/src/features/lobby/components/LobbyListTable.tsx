@@ -40,8 +40,8 @@ export function LobbyListTable({ lobbies, onJoin, joiningId }: LobbyListTablePro
           className={cn(
             showHeader ? 'hidden sm:grid' : 'hidden',
             'items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted',
-            'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_7.5rem]',
-            'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_7.5rem]',
+            'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
+            'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_9rem]',
           )}
         >
           <span role="columnheader" className="hidden md:block">
@@ -200,7 +200,7 @@ function LobbyRow({
           disabled={isJoining || (isFull && !lobby.isViewerMember)}
           variant={lobby.isViewerMember ? 'secondary' : 'primary'}
           size="sm"
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto whitespace-nowrap"
         >
           {lobby.isViewerMember ? t('lobby.card.continue') : t('lobby.card.join')}
         </Button>
