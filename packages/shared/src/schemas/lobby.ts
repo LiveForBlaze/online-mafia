@@ -167,3 +167,14 @@ export const lobbyDetailsResponseSchema = z.object({
   lobby: lobbyDetailsSchema,
 });
 export type LobbyDetailsResponse = z.infer<typeof lobbyDetailsResponseSchema>;
+
+// Сводная статистика для лендинга — рендерится в hero-секции.
+//   openLobbies   — сколько лобби сейчас открыто (WAITING)
+//   waitingPlayers — сколько живых игроков в этих лобби (не считая ботов)
+//   livePlayers    — сколько живых сейчас за активными столами (играют)
+export const homeStatsSchema = z.object({
+  openLobbies: z.number().int().nonnegative(),
+  waitingPlayers: z.number().int().nonnegative(),
+  livePlayers: z.number().int().nonnegative(),
+});
+export type HomeStats = z.infer<typeof homeStatsSchema>;

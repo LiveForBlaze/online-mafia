@@ -18,8 +18,12 @@ import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog
 import { EmptyLobbyState } from '@/features/lobby/components/EmptyLobbyState.js';
 import { HomeFeatures } from '@/features/lobby/components/HomeFeatures.js';
 import { HomeHero } from '@/features/lobby/components/HomeHero.js';
+import { HowItWorksSection } from '@/features/lobby/components/HowItWorksSection.js';
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
-import { LobbyCard } from '@/features/lobby/components/LobbyCard.js';
+import { LobbyListTable } from '@/features/lobby/components/LobbyListTable.js';
+import { RewardAvatarPromo } from '@/features/lobby/components/RewardAvatarPromo.js';
+import { SiteFooter } from '@/features/lobby/components/SiteFooter.js';
+import { useHomeStats } from '@/features/lobby/hooks/useHomeStats.js';
 import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
   useExtractLobbyErrorMessage,
@@ -33,6 +37,7 @@ export function LobbyListPage() {
   const queryClient = useQueryClient();
   const lobbiesQuery = useLobbies();
   const activeGameQuery = useActiveGame();
+  const statsQuery = useHomeStats();
   const join = useJoinLobby();
   const extractLobbyErrorMessage = useExtractLobbyErrorMessage();
 
@@ -95,8 +100,8 @@ export function LobbyListPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <HomeHero onCreateLobby={() => setIsCreateOpen(true)} />
+      <div className="mx-auto max-w-6xl space-y-10">
+        <HomeHero onCreateLobby={() => setIsCreateOpen(true)} stats={statsQuery.data} />
 
         {activeGameId && (
           <section className="rounded-lg border border-accent/40 bg-accent/10 p-4 space-y-3">
@@ -166,19 +171,20 @@ export function LobbyListPage() {
             <EmptyLobbyState onCreate={() => setIsCreateOpen(true)} />
           )
         ) : (
-          <div className="space-y-3">
-            {lobbies.map((lobby) => (
-              <LobbyCard
-                key={lobby.id}
-                lobby={lobby}
-                onJoin={() => handleJoinClick(lobby)}
-                isJoining={join.isPending && join.variables?.lobbyId === lobby.id}
-              />
-            ))}
-          </div>
+          <LobbyListTable
+            lobbies={lobbies}
+            onJoin={handleJoinClick}
+            joiningId={join.isPending ? (join.variables?.lobbyId ?? null) : null}
+          />
         )}
 
+        <RewardAvatarPromo />
+
+        <HowItWorksSection />
+
         <HomeFeatures />
+
+        <SiteFooter />
 
         <CreateLobbyDialog
           open={isCreateOpen}

@@ -62,7 +62,77 @@
     "title_bottom": "Online",
     "tagline_primary": "Sport mafia online",
     "tagline_secondary": "Play with people from all over the world",
-    "alpha_badge": "Alpha version"
+    "tagline_body": "Ten chairs, one judge, video tables on LiveKit. Free, no lootboxes, no role purchases.",
+    "alpha_badge": "Alpha",
+    "metaOss": "Open source",
+    "metaLicense": "MIT",
+    "metaVideo": "LiveKit video",
+    "statsOpenLobbies": "open lobbies",
+    "statsWaitingPlayers": "waiting",
+    "statsLivePlayers": "at the table now"
+  },
+  "lobbyTable": {
+    "aria": "Open lobbies list",
+    "col": {
+      "lobby": "Lobby",
+      "host": "Host",
+      "players": "Players",
+      "status": "Status",
+      "action": "Action"
+    },
+    "statusOpen": "Open",
+    "statusFull": "Full"
+  },
+  "rewardPromo": {
+    "titleLocked": "Alpha avatars — for those who play for real",
+    "titleOwned": "Alpha avatars — yours",
+    "bodyLocked": "Finish one game at a table with at least 5 real players. Exclusive reward avatar — no donations, no lootboxes.",
+    "bodyOwned": "These avatars are now in your library. Thanks for helping us test the alpha!",
+    "ctaLocked": "How to get it",
+    "ctaOwned": "Go to profile"
+  },
+  "howItWorks": {
+    "kicker": "How it works",
+    "title": "Three steps",
+    "subtitle": "From click to first “the city wakes up”.",
+    "steps": {
+      "lobby": {
+        "kicker": "Lobby",
+        "title": "Pick a table",
+        "body": "Open a free table from the list or build your own. The host appoints the judge and roles."
+      },
+      "roles": {
+        "kicker": "Deal",
+        "title": "Get your role",
+        "body": "Cards are dealt automatically. Mafia, sheriff, don, civilians — each gets their own turn and interface."
+      },
+      "table": {
+        "kicker": "Table",
+        "title": "Play on video",
+        "body": "LiveKit video with ten players and the judge. Voting, night actions, timers — all under the hood."
+      }
+    }
+  },
+  "footer": {
+    "brand": "Mafia / Online",
+    "tagline": "OSS, MIT. Self-hostable. No ads, no subscription, no role purchases.",
+    "repo": "github.com/online-mafia",
+    "colProduct": "Product",
+    "colProject": "Project",
+    "builtIn": "hand-built in Tbilisi",
+    "product": {
+      "lobbies": "Lobbies",
+      "players": "Players",
+      "clubs": "Clubs",
+      "tournaments": "Tournaments",
+      "rules": "Rules"
+    },
+    "project": {
+      "github": "GitHub",
+      "issues": "Report a bug",
+      "selfhost": "Self-host guide",
+      "license": "MIT license"
+    }
   },
   "auth": {
     "login": {

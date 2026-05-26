@@ -569,3 +569,43 @@ function isSerializationFailure(error: unknown): boolean {
 export const LOBBY_LIMITS = {
   MAX_MEMBERS: LOBBY.MAX_MEMBERS,
 } as const;
+
+// Агрегированная статистика для лендинга:
+//   openLobbies — сколько лобби в статусе WAITING (открытых для входа)
+//   waitingPlayers — сколько живых (не боты, не [удалён]) сейчас в этих лобби
+//   livePlayers — сколько живых сейчас за активными столами (Game.endedAt IS NULL)
+//
+// Не кэшируем — каждое значение делается одним count'ом, для 100 лобби это
+// миллисекунды. На клиенте react-query держит staleTime 30s, чтобы не дёргать
+// при каждом рендере хедера.
+export interface HomeStats {
+  openLobbies: number;
+  waitingPlayers: number;
+  livePlayers: number;
+}
+
+export async function getHomeStats(): Promise<HomeStats> {
+  const [openLobbies, waitingMembers, liveParticipants] = await Promise.all([
+    prisma.lobby.count({
+      where: { status: 'WAITING' },
+    }),
+    prisma.lobbyMember.count({
+      where: {
+        lobby: { status: 'WAITING' },
+        user: { isBot: false },
+      },
+    }),
+    prisma.gameParticipant.count({
+      where: {
+        game: { endedAt: null },
+        isJudge: false,
+        user: { isBot: false },
+      },
+    }),
+  ]);
+  return {
+    openLobbies,
+    waitingPlayers: waitingMembers,
+    livePlayers: liveParticipants,
+  };
+}

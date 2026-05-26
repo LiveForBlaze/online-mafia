@@ -16,6 +16,7 @@ import {
   claimJudgeSeat,
   closeLobby,
   createLobby,
+  getHomeStats,
   getLobbyDetails,
   joinLobby,
   kickMember,
@@ -144,6 +145,14 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   app.get('/active', { preHandler: [app.authenticate] }, async (request, reply) => {
     const lobbies = await listUserActiveLobbies(request.user.sub);
     return reply.send({ lobbies });
+  });
+
+  // ---- Home stats (для лендинга: «N открытых · M ждут · K за столом») ----
+  // Кладём в lobby-модуль (а не отдельным /stats), потому что вся статистика
+  // лендинга про игровое состояние, а не про юзера — модули лежат рядом.
+  app.get('/stats', { preHandler: [app.authenticate] }, async (_request, reply) => {
+    const stats = await getHomeStats();
+    return reply.send(stats);
   });
 
   // ---- Fill remaining seats with bots (host only) ----
