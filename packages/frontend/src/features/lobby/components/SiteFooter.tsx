@@ -9,13 +9,13 @@
 
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { ExternalLink, Heart } from 'lucide-react';
+import { ExternalLink, Heart, Send } from 'lucide-react';
 
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 const REPO_URL = 'https://github.com/LiveForBlaze/online-mafia';
 const ISSUES_URL = `${REPO_URL}/issues`;
+const TELEGRAM_URL = 'https://t.me/onlinemafiacom';
 
 const PRODUCT_LINKS = [
   { key: 'lobbies', to: ROUTE_PATH.HOME },
@@ -57,7 +57,17 @@ export function SiteFooter() {
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-muted hover:text-fg hover:border-fg transition-colors"
             >
               <ExternalLink size={12} aria-hidden="true" />
-              {t('footer.repo')}
+              GitHub
+            </a>
+            <a
+              href={TELEGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-muted hover:text-fg hover:border-fg transition-colors"
+              aria-label="Telegram"
+            >
+              <Send size={12} aria-hidden="true" />
+              Telegram
             </a>
             <span className="inline-flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-warning">
               <Heart size={12} aria-hidden="true" />
@@ -83,14 +93,9 @@ export function SiteFooter() {
         />
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-xs text-muted">
-        <div className="inline-flex items-center gap-2">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-success" />
-          <span className="font-mono">v{__APP_VERSION__}-alpha</span>
-          <span aria-hidden="true">·</span>
-          <span>{t('footer.builtIn')}</span>
-        </div>
-        <LanguageSwitcher />
+      <div className="mt-8 flex items-center gap-2 border-t border-border pt-4 text-xs text-muted">
+        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-success" />
+        <span className="font-mono">v{__APP_VERSION__}-alpha</span>
       </div>
     </footer>
   );

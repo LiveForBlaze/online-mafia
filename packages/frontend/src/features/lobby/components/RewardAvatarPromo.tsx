@@ -1,13 +1,15 @@
-// Промо-блок альфа-аватаров между героем и списком лобби. Показывает обе
-// reward-аватарки (для женского и мужского персонажей), копирайт про
-// критерий получения, и CTA на профиль/правила.
+// Промо-блок альфа-аватаров между списком лобби и секцией «Три шага».
+// Показывает обе reward-аватарки (мужскую/женскую), копирайт про критерий
+// получения. CTA только для уже получившей ачивку версии — ведёт в
+// библиотеку аватарок (профиль), чтобы можно было сразу надеть.
 //
-// Если у юзера уже есть alpha_tester — рендерим без замка и с другой
-// копирайтингом («у тебя есть»), иначе — затемнённые с замком.
+// Для locked-варианта кнопку не показываем: текст рядом уже описывает,
+// как получить аватар; дублирующая кнопка-к-полному-объяснению
+// перегружала блок и сбивала с толку («как получить → профиль?»).
 
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { Heart } from 'lucide-react';
+import { Heart, Lock } from 'lucide-react';
 
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
@@ -22,9 +24,8 @@ export function RewardAvatarPromo() {
   const user = useAuthStore((s) => s.user);
   const owned = (user?.achievements ?? []).some((a) => a.id === ALPHA_ID);
 
-  function handleCta() {
-    if (!user) return;
-    navigate(userProfilePath(user.publicCode));
+  function handleOwnedCta() {
+    if (user) navigate(userProfilePath(user.publicCode));
   }
 
   return (
@@ -44,12 +45,14 @@ export function RewardAvatarPromo() {
           </p>
         </div>
 
-        <div className="shrink-0">
-          <Button variant="secondary" onClick={handleCta}>
-            <Heart size={14} strokeWidth={2} className="mr-1.5" aria-hidden="true" />
-            {owned ? t('rewardPromo.ctaOwned') : t('rewardPromo.ctaLocked')}
-          </Button>
-        </div>
+        {owned && (
+          <div className="shrink-0">
+            <Button variant="secondary" onClick={handleOwnedCta}>
+              <Heart size={14} strokeWidth={2} className="mr-1.5" aria-hidden="true" />
+              {t('rewardPromo.ctaOwned')}
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -62,9 +65,9 @@ function RewardSlot({ id, locked }: { id: string; locked: boolean }) {
       {locked && (
         <span
           aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center bg-black/55 text-xl"
+          className="absolute inset-0 flex items-center justify-center bg-black/60"
         >
-          🔒
+          <Lock size={18} strokeWidth={1.75} className="text-muted" />
         </span>
       )}
     </div>

@@ -12,7 +12,7 @@ import { NavLink, Outlet } from 'react-router';
 import { cn } from '@/lib/cn.js';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher.js';
 import { UserChip } from '@/components/ui/UserChip.js';
-import { HomeFooter } from '@/features/lobby/components/HomeFooter.js';
+import { SiteFooter } from '@/features/lobby/components/SiteFooter.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 interface NavItem {
@@ -39,7 +39,7 @@ export function MainLayout() {
       {/* Global footer — flex-1 above makes <main> grow to fill the viewport,
           which pushes this row to the very bottom even on short pages. */}
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-6">
-        <HomeFooter />
+        <SiteFooter />
       </div>
     </div>
   );

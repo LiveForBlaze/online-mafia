@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { Lock } from 'lucide-react';
 
 import {
   COMMON_AVATARS,
@@ -302,9 +303,9 @@ function AvatarTile({
       {locked && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40"
         >
-          🔒
+          <Lock size={20} strokeWidth={1.75} className="text-muted" />
         </span>
       )}
     </button>

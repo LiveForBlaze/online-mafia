@@ -88,7 +88,6 @@
     "titleOwned": "Alpha avatars — yours",
     "bodyLocked": "Finish one game at a table with at least 5 real players. Exclusive reward avatar — no donations, no lootboxes.",
     "bodyOwned": "These avatars are now in your library. Thanks for helping us test the alpha!",
-    "ctaLocked": "How to get it",
     "ctaOwned": "Go to profile"
   },
   "howItWorks": {
@@ -116,10 +115,8 @@
   "footer": {
     "brand": "Mafia / Online",
     "tagline": "OSS, MIT. Self-hostable. No ads, no subscription, no role purchases.",
-    "repo": "github.com/online-mafia",
     "colProduct": "Product",
     "colProject": "Project",
-    "builtIn": "hand-built in Tbilisi",
     "product": {
       "lobbies": "Lobbies",
       "players": "Players",

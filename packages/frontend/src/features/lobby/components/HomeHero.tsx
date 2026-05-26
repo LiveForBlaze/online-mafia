@@ -1,11 +1,12 @@
-// Landing hero, redesigned. Two-line display wordmark («МАФИЯ» filled +
-// «ОНЛАЙН» outline) on the left, splash artwork on the right, with a meta
-// row above and CTA + live stats below. Replaces the previous compact hero.
+// Landing hero. Two-line display wordmark on the left (МАФИЯ — white,
+// ОНЛАЙН — brand accent red), splash artwork on the right, meta row above
+// and CTA + live stats below.
 //
-// Why two text-stroke layers: чтобы получить «outline + fill» эффект, нижняя
-// строка использует `text-stroke` (webkit) с прозрачной заливкой — это даёт
-// контурный шрифт без отдельных SVG, и текст остаётся i18n-friendly (любая
-// локаль рендерится как контур, не нужно перерисовывать ассеты).
+// Раньше пробовал outline-эффект через `-webkit-text-stroke` на нижней
+// строке, но на extrabold-шрифте контур читался как тонкие сломанные
+// линии. Вернули solid accent — двухцветный hierarchy сохраняется, видно
+// сразу из любой локали без зависимости от того, есть ли в шрифте
+// outline-глифы.
 
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -43,14 +44,7 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
 
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[0.95] tracking-tight uppercase">
           <span className="block text-fg">{t('hero.title_top')}</span>
-          <span
-            className="block text-transparent"
-            style={{
-              WebkitTextStroke: '2px var(--color-fg)',
-            }}
-          >
-            {t('hero.title_bottom')}
-          </span>
+          <span className="block text-accent">{t('hero.title_bottom')}</span>
         </h1>
 
         <div className="space-y-1">

@@ -22,7 +22,6 @@ import { HowItWorksSection } from '@/features/lobby/components/HowItWorksSection
 import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateLobbyDialog.js';
 import { LobbyListTable } from '@/features/lobby/components/LobbyListTable.js';
 import { RewardAvatarPromo } from '@/features/lobby/components/RewardAvatarPromo.js';
-import { SiteFooter } from '@/features/lobby/components/SiteFooter.js';
 import { useHomeStats } from '@/features/lobby/hooks/useHomeStats.js';
 import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
@@ -183,8 +182,6 @@ export function LobbyListPage() {
         <HowItWorksSection />
 
         <HomeFeatures />
-
-        <SiteFooter />
 
         <CreateLobbyDialog
           open={isCreateOpen}
