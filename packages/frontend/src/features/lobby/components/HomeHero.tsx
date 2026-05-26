@@ -77,18 +77,12 @@ function StatsRow({ stats }: { stats: HomeStats | undefined }) {
   // лобби-поле не выглядело как «ничего нет» (а на самом деле просто
   // запрос ещё не вернулся).
   const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString('ru-RU'));
-  // Разделитель `·` рендерим как `::before` на каждом элементе кроме первого
-  // через `[&>*+*]:before:content-['·']`. Так точка всегда едет вместе со
-  // своим стат-блоком и не «висит» в конце предыдущей строки при переносе.
+  // Разделители между статами больше не рисуем явно — был «висящий» `·` в
+  // начале новой строки при переносе. Вместо них даём щедрый горизонтальный
+  // gap (gap-x-6); каждый stat — отдельный whitespace-nowrap-блок и едет
+  // целиком, без артефактов.
   return (
-    <dl
-      className={[
-        'flex flex-wrap items-center gap-y-2 gap-x-4',
-        'text-xs uppercase tracking-wider text-muted',
-        "[&>*+*]:before:content-['·']",
-        '[&>*+*]:before:mr-4 [&>*+*]:before:text-muted/60',
-      ].join(' ')}
-    >
+    <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-muted">
       <Stat label={t('hero.statsOpenLobbies')} value={fmt(stats?.openLobbies)} />
       <Stat label={t('hero.statsWaitingPlayers')} value={fmt(stats?.waitingPlayers)} />
       <Stat label={t('hero.statsLivePlayers')} value={fmt(stats?.livePlayers)} live />
