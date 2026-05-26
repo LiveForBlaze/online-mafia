@@ -83,29 +83,37 @@ function StatsRow({ stats }: { stats: HomeStats | undefined }) {
   // лобби-поле не выглядело как «ничего нет» (а на самом деле просто
   // запрос ещё не вернулся).
   const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString('ru-RU'));
+  // Разделитель `·` рендерим как `::before` на каждом элементе кроме первого
+  // через `[&>*+*]:before:content-['·']`. Так точка всегда едет вместе со
+  // своим стат-блоком и не «висит» в конце предыдущей строки при переносе.
   return (
-    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs uppercase tracking-wider text-muted">
-      <div className="inline-flex items-baseline gap-1.5">
-        <dt className="sr-only">{t('hero.statsOpenLobbies')}</dt>
-        <dd className="text-fg font-semibold text-base">{fmt(stats?.openLobbies)}</dd>
-        <span>{t('hero.statsOpenLobbies')}</span>
-      </div>
-      <span aria-hidden="true">·</span>
-      <div className="inline-flex items-baseline gap-1.5">
-        <dt className="sr-only">{t('hero.statsWaitingPlayers')}</dt>
-        <dd className="text-fg font-semibold text-base">{fmt(stats?.waitingPlayers)}</dd>
-        <span>{t('hero.statsWaitingPlayers')}</span>
-      </div>
-      <span aria-hidden="true">·</span>
-      <div className="inline-flex items-baseline gap-1.5">
-        <dt className="sr-only">{t('hero.statsLivePlayers')}</dt>
-        <dd className="inline-flex items-center gap-1">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-          <span className="text-fg font-semibold text-base">{fmt(stats?.livePlayers)}</span>
-        </dd>
-        <span>{t('hero.statsLivePlayers')}</span>
-      </div>
+    <dl
+      className={[
+        'flex flex-wrap items-center gap-y-2 gap-x-4',
+        'text-xs uppercase tracking-wider text-muted',
+        "[&>*+*]:before:content-['·']",
+        '[&>*+*]:before:mr-4 [&>*+*]:before:text-muted/60',
+      ].join(' ')}
+    >
+      <Stat label={t('hero.statsOpenLobbies')} value={fmt(stats?.openLobbies)} />
+      <Stat label={t('hero.statsWaitingPlayers')} value={fmt(stats?.waitingPlayers)} />
+      <Stat label={t('hero.statsLivePlayers')} value={fmt(stats?.livePlayers)} live />
     </dl>
+  );
+}
+
+function Stat({ label, value, live }: { label: string; value: string; live?: boolean }) {
+  return (
+    <div className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+      <dt className="sr-only">{label}</dt>
+      <dd className="inline-flex items-center gap-1.5">
+        {live && (
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+        )}
+        <span className="text-fg font-semibold text-base">{value}</span>
+      </dd>
+      <span>{label}</span>
+    </div>
   );
 }
 
