@@ -613,6 +613,8 @@
     "libraryHint": "Pick them in your avatar library (profile → avatar)."
   },
   "home": {
+    "featuresKicker": "What's inside",
+    "featuresTitle": "Sport mafia, the way it's played offline",
     "features": {
       "worldwide": {
         "title": "Worldwide play",
