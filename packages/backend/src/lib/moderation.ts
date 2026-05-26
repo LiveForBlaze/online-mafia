@@ -17,6 +17,7 @@
 import { env } from '../config/env.js';
 
 import { logger } from './logger.js';
+import { prefilterName } from './moderation-prefilter.js';
 
 export type ModerationKind = 'lobby' | 'nickname' | 'club';
 
@@ -38,14 +39,32 @@ const SYSTEM_PROMPT = `You moderate short user-generated names for an online spo
 Block names that contain:
 - profanity, obscenities, slurs (any language, including transliterations and leetspeak)
 - discriminatory or hateful content (ethnic, religious, gender, sexual orientation)
-- sexually explicit content
+- sexually explicit content (including innuendo, euphemisms, technical euphemisms for genitals/sex acts/bodily fluids)
 - direct threats or incitement to violence against real people
 - attempts to impersonate the platform itself ("admin", "moderator", "online-mafia staff", etc.)
 - spam or advertising
 
+Watch carefully for OBFUSCATION attempts. Russian-speaking abusers commonly:
+- split a curse across two "words" so it reads aloud as profanity (e.g. "Матье Бал" → "мать ебал")
+- re-bracket / swap syllables so a slur is hidden inside benign-looking syllables (e.g. "Япид Араск" → "я-пидар-аск")
+- use rare or technical words that are euphemisms for genitals/sex acts (e.g. "Полюция" → "поллюция", a medical term for nocturnal emission)
+- use a root + made-up suffix for an obscene word (e.g. "ЧЛЕНИКС" — "член" + nonsense)
+- use innuendo combining benign words to reference genitals or sex (e.g. "Междуножное пироженное", "Муравьи в штанах", "Голубая Устрица")
+
+When you suspect an obfuscation, mentally remove spaces, reverse syllable order, and read aloud. If any plausible reading is profane, BLOCK.
+
+Examples (these MUST be blocked):
+- "Матье Бал" → BLOCK: obfuscated profanity (split obscenity)
+- "Япид Араск" → BLOCK: obfuscated slur (rebracketed)
+- "Полюция" → BLOCK: sexually explicit euphemism
+- "ЧЛЕНИКС" → BLOCK: obscene reference to genitalia
+- "Междуножное пироженное" → BLOCK: sexually explicit innuendo
+- "Голубая Устрица" → BLOCK: sexually explicit innuendo
+- "Муравьи в штанах" → BLOCK: sexually explicit innuendo
+
 Be permissive of:
 - edgy or dark themes (it's a MAFIA game — names like "Кровавая ночь", "Death Row", "Бойня" are fine)
-- rough humor that isn't targeting a protected group
+- rough humor that isn't targeting a protected group or sexual
 - nicknames that look unusual but aren't slurs
 - real-sounding nonsense ("xX_Dragon_Xx", "kek228")
 
@@ -61,6 +80,19 @@ export async function moderateName(
 ): Promise<ModerationResult> {
   const trimmed = candidate.trim();
   if (!trimmed) return { allowed: true };
+
+  // Дешёвый детерминированный фильтр — ловит явный мат (включая обычные
+  // bypass-паттерны: пробелы внутри корня, рассечение слов, latin look-alike).
+  // Сокращает количество вызовов Haiku и закрывает дыры, где LLM иногда
+  // пропускает obfuscation. Не ловит инсинуации/эвфемизмы — это работа Haiku.
+  const prefilter = prefilterName(trimmed);
+  if (prefilter.blocked) {
+    logger.info(
+      { kind, candidate: trimmed, reason: prefilter.reason },
+      'moderation: prefilter blocked',
+    );
+    return { allowed: false, reason: prefilter.reason ?? 'profanity' };
+  }
 
   if (!env.ANTHROPIC_API_KEY) {
     // Don't spam logs in development if the key is intentionally unset.

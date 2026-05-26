@@ -52,6 +52,21 @@ export async function createLobby(
   hostId: string,
   input: CreateLobbyInput,
 ): Promise<ServiceResult<LobbyDetails>> {
+  // Один пользователь = одно активное лобби (WAITING или IN_GAME).
+  // Чтобы хост не разбрасывал десятки лобби (видно было в проде: один юзер
+  // создал 7 параллельных открытых). Проверяем ДО модерации — нет смысла
+  // жечь Haiku если всё равно отклоним по лимиту.
+  const existingActive = await prisma.lobby.findFirst({
+    where: {
+      hostId,
+      status: { in: ['WAITING', 'IN_GAME'] },
+    },
+    select: { id: true },
+  });
+  if (existingActive) {
+    return fail(LOBBY_ERROR.HOST_HAS_ACTIVE_LOBBY);
+  }
+
   // AI-moderate the name before we touch the DB. Cheap (~$0.0003 per call) and
   // fails open if the moderation service is down — see lib/moderation.ts.
   const verdict = await moderateName(input.name, 'lobby');
@@ -580,6 +595,37 @@ export const LOBBY_LIMITS = {
 export interface HomeStats {
   openLobbies: number;
   activeGames: number;
+}
+
+// Лимит «времени жизни» открытого лобби. После этого порога ждущее лобби
+// автоматически закрывается — чтобы оставленные/спам-лобби (которые юзер
+// создал и забыл, или бот разместил «объявление» в названии) не висели
+// бесконечно в листинге. Игры IN_GAME не трогаем — реальные партии могут
+// идти долго и закрытие их через таймер сорвёт легитимных игроков.
+export const LOBBY_OPEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Закрывает все WAITING-лобби старше LOBBY_OPEN_TTL_MS. Возвращает список
+// закрытых id (чтобы вызывающий мог что-то с ними сделать — например, в
+// тестах ассертить). На каждое закрытое лобби отправляем broadcast, чтобы
+// у клиентов, висящих в листинге, оно пропало из UI.
+export async function expireStaleLobbies(): Promise<string[]> {
+  const cutoff = new Date(Date.now() - LOBBY_OPEN_TTL_MS);
+  const stale = await prisma.lobby.findMany({
+    where: { status: 'WAITING', createdAt: { lt: cutoff } },
+    select: { id: true },
+  });
+  if (stale.length === 0) return [];
+
+  await prisma.lobby.updateMany({
+    where: { id: { in: stale.map((l) => l.id) } },
+    data: { status: 'CLOSED' },
+  });
+
+  for (const { id } of stale) {
+    clearLobbyChat(id);
+    void broadcastLobbyUpdate(id);
+  }
+  return stale.map((l) => l.id);
 }
 
 export async function getHomeStats(): Promise<HomeStats> {

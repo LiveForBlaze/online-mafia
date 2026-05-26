@@ -73,6 +73,7 @@ function lobbyErrorToHttpStatus(code: LobbyErrorCode): number {
     case LOBBY_ERROR.ALREADY_MEMBER:
     case LOBBY_ERROR.SEAT_CONTENTION:
     case LOBBY_ERROR.ROLE_CAP_REACHED:
+    case LOBBY_ERROR.HOST_HAS_ACTIVE_LOBBY:
       return HTTP_STATUS.CONFLICT;
   }
 }

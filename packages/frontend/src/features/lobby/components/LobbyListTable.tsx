@@ -40,8 +40,8 @@ export function LobbyListTable({ lobbies, onJoin, joiningId }: LobbyListTablePro
           className={cn(
             showHeader ? 'hidden sm:grid' : 'hidden',
             'items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted',
-            'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_6rem]',
-            'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_5rem]',
+            'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_7.5rem]',
+            'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_7.5rem]',
           )}
         >
           <span role="columnheader" className="hidden md:block">

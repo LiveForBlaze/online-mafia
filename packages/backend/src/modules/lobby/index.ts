@@ -5,8 +5,14 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { registerLobbyGateway } from './lobby.gateway.js';
 import { lobbyRoutes } from './lobby.routes.js';
+import { startLobbySweeper, stopLobbySweeper } from './lobby.sweeper.js';
 
 export const lobbyModule: FastifyPluginAsync = async (app) => {
   await app.register(lobbyRoutes);
   registerLobbyGateway(app);
+  startLobbySweeper();
+
+  app.addHook('onClose', () => {
+    stopLobbySweeper();
+  });
 };
