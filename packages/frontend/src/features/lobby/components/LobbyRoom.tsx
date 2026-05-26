@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LogOut } from 'lucide-react';
 
 import type { LobbyDetails, Role } from '@mafia/shared';
 
@@ -219,11 +220,12 @@ export function LobbyRoom({
             )}
           </div>
           <Button
-            variant="ghost"
+            variant="secondary"
             onClick={onLeave}
             disabled={isLeavePending}
-            className="text-danger hover:bg-danger/10"
+            className="border-danger/40 text-danger hover:bg-danger/10 whitespace-nowrap"
           >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
             {isLeavePending ? t('lobby.room.leaving') : t('lobby.room.leave')}
           </Button>
         </div>
