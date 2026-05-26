@@ -68,7 +68,7 @@
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
     "statsOpenLobbies": "открытых лобби",
-    "statsActiveGames": "идёт игр"
+    "statsActiveGames": "активных игр"
   },
   "lobbyTable": {
     "aria": "Список открытых лобби",

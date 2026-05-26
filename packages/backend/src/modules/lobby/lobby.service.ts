@@ -587,8 +587,16 @@ export async function getHomeStats(): Promise<HomeStats> {
     prisma.lobby.count({
       where: { status: 'WAITING' },
     }),
+    // Считаем игру «активной» по СОВПАДЕНИЮ двух источников: у Game нет
+    // endedAt И связанное Lobby в статусе IN_GAME. Один только endedAt=null
+    // ловит зомби-партии: бэкенд крэшнулся между revert и финализацией,
+    // или хост закрыл лобби, а GAME_ENDED не записался. Lobby.status —
+    // источник правды о том, идёт ли реально партия за этим столом.
     prisma.game.count({
-      where: { endedAt: null },
+      where: {
+        endedAt: null,
+        lobby: { status: 'IN_GAME' },
+      },
     }),
   ]);
   return { openLobbies, activeGames };

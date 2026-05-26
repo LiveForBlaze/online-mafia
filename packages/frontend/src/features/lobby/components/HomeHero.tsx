@@ -77,32 +77,21 @@ function StatsRow({ stats }: { stats: HomeStats | undefined }) {
   // лобби-поле не выглядело как «ничего нет» (а на самом деле просто
   // запрос ещё не вернулся).
   const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString('ru-RU'));
-  // Две понятные метрики вместо трёх: сколько столов собирается (можно
-  // войти) + сколько уже идёт. Player-каунты убраны — путали (юзер
-  // воспринимал «ждут стола» как ещё одно число про лобби).
+  // Две понятные метрики. Без live-дотов: они стояли только на одном
+  // стате и создавали ощущение «одно — живое, другое — нет», хотя обе
+  // метрики реал-тайм. Лучше симметрия.
   return (
     <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-muted">
       <Stat label={t('hero.statsOpenLobbies')} value={fmt(stats?.openLobbies)} />
-      <Stat label={t('hero.statsActiveGames')} value={fmt(stats?.activeGames)} live />
+      <Stat label={t('hero.statsActiveGames')} value={fmt(stats?.activeGames)} />
     </dl>
   );
 }
 
-function Stat({ label, value, live }: { label: string; value: string; live?: boolean }) {
-  // Один flex с `items-baseline` — текст «0» и подпись «СЕЙЧАС ЗА СТОЛОМ»
-  // сидят на одной baseline. Точку (live-индикатор) вырываем из
-  // baseline-потока через `self-center`, чтобы она вертикально
-  // центрировалась относительно высоты строки, а не сидела на baseline
-  // (где у пустого span baseline = bottom-of-box → точка прыгала наверх).
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
       <dt className="sr-only">{label}</dt>
-      {live && (
-        <span
-          aria-hidden="true"
-          className="h-1.5 w-1.5 self-center rounded-full bg-accent animate-pulse"
-        />
-      )}
       <dd className="text-fg font-semibold text-base">{value}</dd>
       <span>{label}</span>
     </div>
