@@ -68,8 +68,7 @@
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
     "statsOpenLobbies": "ღია ლობი",
-    "statsWaitingPlayers": "ელოდება მაგიდას",
-    "statsLivePlayers": "ახლა მაგიდასთან"
+    "statsActiveGames": "მიმდინარე თამაში"
   },
   "lobbyTable": {
     "aria": "ღია ლობების სია",

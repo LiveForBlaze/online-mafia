@@ -77,15 +77,13 @@ function StatsRow({ stats }: { stats: HomeStats | undefined }) {
   // лобби-поле не выглядело как «ничего нет» (а на самом деле просто
   // запрос ещё не вернулся).
   const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString('ru-RU'));
-  // Разделители между статами больше не рисуем явно — был «висящий» `·` в
-  // начале новой строки при переносе. Вместо них даём щедрый горизонтальный
-  // gap (gap-x-6); каждый stat — отдельный whitespace-nowrap-блок и едет
-  // целиком, без артефактов.
+  // Две понятные метрики вместо трёх: сколько столов собирается (можно
+  // войти) + сколько уже идёт. Player-каунты убраны — путали (юзер
+  // воспринимал «ждут стола» как ещё одно число про лобби).
   return (
     <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-muted">
       <Stat label={t('hero.statsOpenLobbies')} value={fmt(stats?.openLobbies)} />
-      <Stat label={t('hero.statsWaitingPlayers')} value={fmt(stats?.waitingPlayers)} />
-      <Stat label={t('hero.statsLivePlayers')} value={fmt(stats?.livePlayers)} live />
+      <Stat label={t('hero.statsActiveGames')} value={fmt(stats?.activeGames)} live />
     </dl>
   );
 }

@@ -68,8 +68,7 @@
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
     "statsOpenLobbies": "open lobbies",
-    "statsWaitingPlayers": "waiting",
-    "statsLivePlayers": "at the table now"
+    "statsActiveGames": "games in progress"
   },
   "lobbyTable": {
     "aria": "Open lobbies list",

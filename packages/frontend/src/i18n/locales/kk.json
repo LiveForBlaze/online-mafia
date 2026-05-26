@@ -68,8 +68,7 @@
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
     "statsOpenLobbies": "ашық лобби",
-    "statsWaitingPlayers": "үстелді күтеді",
-    "statsLivePlayers": "қазір үстелде"
+    "statsActiveGames": "ойын жүруде"
   },
   "lobbyTable": {
     "aria": "Ашық лоббилер тізімі",

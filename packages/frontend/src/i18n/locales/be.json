@@ -68,8 +68,7 @@
     "metaLicense": "MIT",
     "metaVideo": "LiveKit video",
     "statsOpenLobbies": "адкрытых лобі",
-    "statsWaitingPlayers": "чакаюць стала",
-    "statsLivePlayers": "зараз за сталом"
+    "statsActiveGames": "ідзе гульняў"
   },
   "lobbyTable": {
     "aria": "Спіс адкрытых лобі",

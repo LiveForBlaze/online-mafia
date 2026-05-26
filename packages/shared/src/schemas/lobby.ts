@@ -169,12 +169,15 @@ export const lobbyDetailsResponseSchema = z.object({
 export type LobbyDetailsResponse = z.infer<typeof lobbyDetailsResponseSchema>;
 
 // Сводная статистика для лендинга — рендерится в hero-секции.
-//   openLobbies   — сколько лобби сейчас открыто (WAITING)
-//   waitingPlayers — сколько живых игроков в этих лобби (не считая ботов)
-//   livePlayers    — сколько живых сейчас за активными столами (играют)
+//   openLobbies — сколько лобби сейчас открыто (WAITING, можно войти)
+//   activeGames — сколько партий идёт прямо сейчас (Game.endedAt IS NULL)
+//
+// Раньше было ещё два player-каунта (ждут стола / за столом), но
+// формулировки путали — игрок воспринимал «ждут стола» как ещё одно
+// число про лобби. Оставили две понятные метрики: сколько столов
+// собирается + сколько идёт.
 export const homeStatsSchema = z.object({
   openLobbies: z.number().int().nonnegative(),
-  waitingPlayers: z.number().int().nonnegative(),
-  livePlayers: z.number().int().nonnegative(),
+  activeGames: z.number().int().nonnegative(),
 });
 export type HomeStats = z.infer<typeof homeStatsSchema>;
