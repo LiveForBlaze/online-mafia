@@ -21,6 +21,7 @@ import {
 } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
 import { cn } from '@/lib/cn.js';
 import { ApiError } from '@/lib/api-client.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
@@ -196,6 +197,7 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(lobby.name);
   const [busy, setBusy] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   async function commitRename() {
     if (draftName.trim() === lobby.name || !draftName.trim()) {
@@ -215,8 +217,8 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
     }
   }
 
-  async function closeNow() {
-    if (!confirm(t('admin.lobbies.confirmClose', { name: lobby.name }))) return;
+  async function performClose() {
+    setConfirmClose(false);
     setBusy(true);
     try {
       await adminApi.closeLobby(lobby.id);
@@ -272,13 +274,25 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
           <Button
             variant="secondary"
             size="sm"
-            onClick={closeNow}
+            onClick={() => setConfirmClose(true)}
             disabled={busy}
             className="border-danger/40 text-danger hover:bg-danger/10"
           >
             {t('admin.lobbies.forceClose')}
           </Button>
         )}
+        {/* Dialog положение в DOM здесь не важно — он fixed-positioned. Но в
+            tbody non-tr ребёнок невалиден, поэтому держим внутри <td>. */}
+        <ConfirmDialog
+          open={confirmClose}
+          title={t('admin.lobbies.confirmCloseTitle')}
+          message={t('admin.lobbies.confirmClose', { name: lobby.name })}
+          confirmLabel={t('admin.lobbies.forceClose')}
+          onConfirm={performClose}
+          onCancel={() => setConfirmClose(false)}
+          destructive
+          pending={busy}
+        />
       </td>
     </tr>
   );
@@ -374,6 +388,7 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
   const [busy, setBusy] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(user.nickname);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // При перезагрузке данных снаружи (refresh) — синкаемся.
   useEffect(() => {
@@ -444,8 +459,8 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
     }
   }
 
-  async function hardDelete() {
-    if (!confirm(t('admin.users.confirmDelete', { name: user.nickname }))) return;
+  async function performDelete() {
+    setConfirmDelete(false);
     setBusy(true);
     try {
       await adminApi.deleteUser(user.id);
@@ -538,7 +553,7 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
             <Button
               variant="secondary"
               size="sm"
-              onClick={hardDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={busy || user.isAdmin}
               className="border-danger/40 text-danger hover:bg-danger/10"
             >
@@ -622,6 +637,17 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t('admin.users.confirmDeleteTitle')}
+        message={t('admin.users.confirmDelete', { name: user.nickname })}
+        confirmLabel={t('admin.users.delete')}
+        onConfirm={performDelete}
+        onCancel={() => setConfirmDelete(false)}
+        destructive
+        pending={busy}
+      />
     </div>
   );
 }
