@@ -43,7 +43,6 @@ const countryCodeSchema = z
 export const updateProfileInputSchema = z.object({
   realName: optionalShortText,
   country: countryCodeSchema,
-  clubName: optionalShortText,
   avatarId: avatarIdSchema,
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
@@ -70,7 +69,6 @@ export const authenticatedUserSchema = z.object({
   googleAvatarUrl: z.string().nullable(),
   realName: z.string().nullable(),
   country: z.string().nullable(),
-  clubName: z.string().nullable(),
   hasPassword: z.boolean(),
   // Доставляем достижения в /me-ответе чтобы пикер аватаров мог сразу
   // показать какие slot'ы заблокированы / разблокированы. На публичном
@@ -83,6 +81,29 @@ export const authenticatedUserSchema = z.object({
   // Активные ограничения пользователя. Пустой массив = без бана. FE
   // использует это чтобы серый-аутить кнопки create-lobby, profile-edit и т.д.
   banRestrictions: z.array(z.string()),
+  // Active clubs the user is in (full membership), with isHead flag for
+  // each. Powers profile dropdown and "you are head" badges across the app.
+  clubMemberships: z.array(
+    z.object({
+      clubId: z.string().uuid(),
+      clubName: z.string(),
+      clubCode: z.string(),
+      isHead: z.boolean(),
+      joinedAt: z.string().datetime(),
+    }),
+  ),
+  // Codes of clubs where the user has a pending join request. Used by
+  // /clubs list cards to render "Заявка отправлена" state.
+  pendingClubCodes: z.array(z.string()),
+  // Effective primary club for display: explicit choice or fallback to
+  // newest membership. Server-side computed.
+  primaryClub: z
+    .object({
+      clubId: z.string().uuid(),
+      clubName: z.string(),
+      clubCode: z.string(),
+    })
+    .nullable(),
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 
@@ -111,7 +132,7 @@ export const publicUserProfileSchema = z.object({
   avatarUrl: z.string().nullable(),
   realName: z.string().nullable(),
   country: z.string().nullable(),
-  clubName: z.string().nullable(),
+  primaryClubName: z.string().nullable(),
   createdAt: z.string().datetime(),
   // Lifetime stats — incremented exactly once per finished game.
   gamesPlayed: z.number().int().nonnegative(),

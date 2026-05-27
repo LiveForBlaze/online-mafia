@@ -17,6 +17,7 @@ import {
   deleteAccountInputSchema,
   loginInputSchema,
   registerInputSchema,
+  setPrimaryClubInputSchema,
   updateNicknameInputSchema,
   updateProfileInputSchema,
 } from '@mafia/shared';
@@ -27,7 +28,7 @@ import {
   AUTH_ERROR,
   deleteOwnAccount,
   findOrCreateUserFromGoogle,
-  getUserById,
+  loadAuthenticatedUserBundle,
   loginWithPassword,
   logoutEverywhere,
   registerWithPassword,
@@ -36,6 +37,8 @@ import {
   updateProfile,
   type AuthErrorCode,
 } from './auth.service.js';
+import { CLUB_ERROR } from '../clubs/club.errors.js';
+import { setPrimaryClub } from '../clubs/club.service.js';
 import {
   COOKIE_NAME,
   clearOAuthTempCookies,
@@ -142,7 +145,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         v: result.user.tokenVersion,
       });
       setSessionCookie(reply, token);
-      return reply.code(HTTP_STATUS.CREATED).send({ user: toAuthenticatedUser(result.user) });
+      const bundle = await loadAuthenticatedUserBundle(result.user.id);
+      if (!bundle) {
+        clearSessionCookie(reply);
+        return reply.code(HTTP_STATUS.UNAUTHORIZED).send({ error: 'invalid_session' });
+      }
+      return reply.code(HTTP_STATUS.CREATED).send({ user: toAuthenticatedUser(bundle) });
     },
   );
 
@@ -166,7 +174,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       v: result.user.tokenVersion,
     });
     setSessionCookie(reply, token);
-    return reply.code(HTTP_STATUS.OK).send({ user: toAuthenticatedUser(result.user) });
+    const bundle = await loadAuthenticatedUserBundle(result.user.id);
+    if (!bundle) {
+      clearSessionCookie(reply);
+      return reply.code(HTTP_STATUS.UNAUTHORIZED).send({ error: 'invalid_session' });
+    }
+    return reply.code(HTTP_STATUS.OK).send({ user: toAuthenticatedUser(bundle) });
   });
 
   // ---- Logout (this device only) ----
@@ -213,13 +226,13 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
   // ---- Current user ----
   app.get('/me', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const user = await getUserById(request.user.sub);
-    if (!user) {
+    const bundle = await loadAuthenticatedUserBundle(request.user.sub);
+    if (!bundle) {
       // Token references a user that no longer exists — treat as unauthenticated.
       clearSessionCookie(reply);
       return reply.code(HTTP_STATUS.UNAUTHORIZED).send({ error: 'invalid_session' });
     }
-    return reply.send({ user: toAuthenticatedUser(user) });
+    return reply.send({ user: toAuthenticatedUser(bundle) });
   });
 
   // ---- Change nickname ----
@@ -240,7 +253,17 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       if (!result.ok) {
         return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
       }
-      return reply.send({ user: toAuthenticatedUser(result.user) });
+      const bundle = await loadAuthenticatedUserBundle(result.user.id);
+      return reply.send({
+        user: toAuthenticatedUser(
+          bundle ?? {
+            user: result.user,
+            memberships: [],
+            pendingClubCodes: [],
+            primaryClub: null,
+          },
+        ),
+      });
     },
   );
 
@@ -262,9 +285,39 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       if (!result.ok) {
         return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
       }
-      return reply.send({ user: toAuthenticatedUser(result.user) });
+      const bundle = await loadAuthenticatedUserBundle(result.user.id);
+      return reply.send({
+        user: toAuthenticatedUser(
+          bundle ?? {
+            user: result.user,
+            memberships: [],
+            pendingClubCodes: [],
+            primaryClub: null,
+          },
+        ),
+      });
     },
   );
+
+  // ---- Set primary club ----
+  // PATCH /auth/me/primary-club { clubId: string | null }
+  //   - clubId === null → clear the explicit override (fallback to newest membership)
+  //   - clubId UUID → must be an active membership
+  app.patch('/me/primary-club', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const parsed = setPrimaryClubInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply
+        .code(HTTP_STATUS.BAD_REQUEST)
+        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+    }
+    const result = await setPrimaryClub(request.user.sub, parsed.data.clubId);
+    if (!result.ok) {
+      const status =
+        result.error === CLUB_ERROR.NOT_MEMBER ? HTTP_STATUS.CONFLICT : HTTP_STATUS.BAD_REQUEST;
+      return reply.code(status).send({ error: result.error });
+    }
+    return reply.send(result.data);
+  });
 
   // ---- Delete own account ----
   // Body must contain { confirmEmail }: the user retypes their email to

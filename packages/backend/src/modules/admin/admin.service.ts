@@ -15,6 +15,7 @@ import {
 
 import { prisma } from '../../db/prisma.client.js';
 import { logger } from '../../lib/logger.js';
+import { handOffOrDisbandHeadClubs } from '../clubs/club.service.js';
 import { broadcastLobbyUpdate } from '../lobby/lobby.broadcast.js';
 import { clearLobbyChat } from '../lobby/lobby.chat.js';
 import { endActiveGameForLobby } from '../game/game.service.js';
@@ -148,7 +149,6 @@ export async function listUsersForAdmin(
         email: true,
         nickname: true,
         publicCode: true,
-        clubName: true,
         isAdmin: true,
         isBot: true,
         banRestrictions: true,
@@ -169,7 +169,6 @@ export async function listUsersForAdmin(
       email: u.email,
       nickname: u.nickname,
       publicCode: u.publicCode,
-      clubName: u.clubName,
       isAdmin: u.isAdmin,
       isBot: u.isBot,
       banRestrictions: u.banRestrictions,
@@ -246,6 +245,11 @@ export async function targetIsNonAdmin(userId: string): Promise<boolean> {
 }
 
 export async function deleteUserAsAdmin(userId: string): Promise<boolean> {
+  // Hand off / disband any head-clubs first. Without this, the Club.headId
+  // ON DELETE RESTRICT would block updates if we ever switched to hard
+  // delete, and conceptually leaves orphaned heads on anonymised rows.
+  await handOffOrDisbandHeadClubs(userId);
+
   // Анонимизация, не cascade-delete: на юзера ссылается куча append-only
   // данных (GameEvent.actorId, GameParticipant). Если их обнулять, разломаем
   // event log. Поэтому — обнуляем PII + ставим site_access (мёртвый аккаунт,
@@ -269,7 +273,6 @@ export async function deleteUserAsAdmin(userId: string): Promise<boolean> {
         googleAvatarUrl: null,
         realName: null,
         country: null,
-        clubName: null,
         isAdmin: false,
         banRestrictions: [BAN_RESTRICTION.SITE_ACCESS],
         bannedAt: new Date(),

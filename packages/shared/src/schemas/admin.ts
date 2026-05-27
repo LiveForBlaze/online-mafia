@@ -58,7 +58,6 @@ export const adminUserSummarySchema = z.object({
   email: z.string().email(),
   nickname: z.string(),
   publicCode: z.string(),
-  clubName: z.string().nullable(),
   isAdmin: z.boolean(),
   isBot: z.boolean(),
   banRestrictions: z.array(z.string()),

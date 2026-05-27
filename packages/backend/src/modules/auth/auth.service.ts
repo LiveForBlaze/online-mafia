@@ -18,6 +18,7 @@ import { prisma } from '../../db/prisma.client.js';
 import { moderateName } from '../../lib/moderation.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { allocatePublicCode } from '../../lib/public-code.js';
+import { handOffOrDisbandHeadClubs } from '../clubs/club.service.js';
 import { refreshUserInActiveGames } from '../game/game.broadcast.js';
 import { broadcastLobbiesContainingUser } from '../lobby/lobby.broadcast.js';
 
@@ -49,8 +50,20 @@ export interface AuthSuccess {
 }
 export type AuthResult = AuthSuccess | AuthFailure;
 
-/** Strip private fields before sending a user object to the client. */
-export function toAuthenticatedUser(user: User): AuthenticatedUser {
+// Loaded explicitly by /auth/me; passed as a denormalised bundle so we
+// don't redo three queries per request. See loadAuthenticatedUserBundle.
+export interface AuthenticatedUserBundle {
+  user: User;
+  memberships: {
+    club: { id: string; name: string; publicCode: string; headId: string };
+    joinedAt: Date;
+  }[];
+  pendingClubCodes: string[];
+  primaryClub: { id: string; name: string; publicCode: string } | null;
+}
+
+export function toAuthenticatedUser(bundle: AuthenticatedUserBundle): AuthenticatedUser {
+  const { user, memberships, pendingClubCodes, primaryClub } = bundle;
   return {
     id: user.id,
     email: user.email,
@@ -60,11 +73,63 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
     googleAvatarUrl: user.googleAvatarUrl ?? null,
     realName: user.realName ?? null,
     country: user.country ?? null,
-    clubName: user.clubName ?? null,
     hasPassword: Boolean(user.passwordHash),
     achievements: parseAchievements(user.achievements),
     isAdmin: user.isAdmin,
     banRestrictions: user.banRestrictions,
+    clubMemberships: memberships.map((m) => ({
+      clubId: m.club.id,
+      clubName: m.club.name,
+      clubCode: m.club.publicCode,
+      isHead: m.club.headId === user.id,
+      joinedAt: m.joinedAt.toISOString(),
+    })),
+    pendingClubCodes,
+    primaryClub: primaryClub
+      ? { clubId: primaryClub.id, clubName: primaryClub.name, clubCode: primaryClub.publicCode }
+      : null,
+  };
+}
+
+// One-shot loader for the /auth/me / login / register flows. Reads the user,
+// their clubs, and their pending requests in parallel. Computes effective
+// primary club: explicit override if set + still member, else newest membership.
+export async function loadAuthenticatedUserBundle(
+  userId: string,
+): Promise<AuthenticatedUserBundle | null> {
+  const [user, memberships, pendingRequests] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId } }),
+    prisma.clubMember.findMany({
+      where: { userId },
+      include: {
+        club: { select: { id: true, name: true, publicCode: true, headId: true } },
+      },
+      orderBy: { joinedAt: 'desc' }, // newest first — first entry = default primary
+    }),
+    prisma.clubJoinRequest.findMany({
+      where: { userId },
+      include: { club: { select: { publicCode: true } } },
+    }),
+  ]);
+  if (!user) return null;
+
+  // Resolve primary club. Explicit primaryClubId wins if user is still a
+  // member; otherwise fall back to newest membership.
+  let primaryClub: AuthenticatedUserBundle['primaryClub'] = null;
+  if (user.primaryClubId) {
+    const m = memberships.find((m) => m.club.id === user.primaryClubId);
+    if (m) primaryClub = { id: m.club.id, name: m.club.name, publicCode: m.club.publicCode };
+  }
+  if (!primaryClub && memberships.length > 0) {
+    const m = memberships[0]!;
+    primaryClub = { id: m.club.id, name: m.club.name, publicCode: m.club.publicCode };
+  }
+
+  return {
+    user,
+    memberships,
+    pendingClubCodes: pendingRequests.map((r) => r.club.publicCode),
+    primaryClub,
   };
 }
 
@@ -114,7 +179,7 @@ export function toPublicUserProfile(user: User): PublicUserProfile {
     avatarUrl: user.avatarUrl ?? null,
     realName: user.realName ?? null,
     country: user.country ?? null,
-    clubName: user.clubName ?? null,
+    primaryClubName: null, // populated by listPublicUsers / findUserByPublicCode wrappers (see Task 9)
     createdAt: user.createdAt.toISOString(),
     gamesPlayed: user.gamesPlayed,
     wins: user.wins,
@@ -192,7 +257,7 @@ export async function updateNickname(userId: string, nickname: string): Promise<
 // string after trim is also treated as "clear" so blank textboxes do what
 // users expect.
 //
-// realName и clubName проходят AI-модерацию ровно на тех же правилах что и
+// realName проходит AI-модерацию ровно на тех же правилах что и
 // nickname (см. lib/moderation.ts). Без неё юзер, у которого ник заблочен
 // модерацией, может вписать ту же фразу в realName и она отрендерится на
 // публичном профиле. Модерируем только когда поле реально меняется — не
@@ -210,29 +275,22 @@ export async function updateProfile(
   const data: {
     realName?: string | null;
     country?: string | null;
-    clubName?: string | null;
     avatarUrl?: string | null;
   } = {};
   if (input.realName !== undefined) data.realName = norm(input.realName) ?? null;
   if (input.country !== undefined) data.country = norm(input.country) ?? null;
-  if (input.clubName !== undefined) data.clubName = norm(input.clubName) ?? null;
 
-  // Модерируем realName / clubName, если они а) приходят в апдейте,
-  // б) непусты, в) отличаются от текущих в БД. Argon2 здесь не задействован,
-  // зато каждый вызов = один HTTP к Anthropic — экономим обращения.
+  // Модерируем realName, если он а) приходит в апдейте, б) непуст,
+  // в) отличается от текущего в БД. Argon2 здесь не задействован, зато
+  // каждый вызов = один HTTP к Anthropic — экономим обращения.
   const needsRealNameCheck = data.realName !== undefined && data.realName !== null;
-  const needsClubNameCheck = data.clubName !== undefined && data.clubName !== null;
-  if (needsRealNameCheck || needsClubNameCheck) {
+  if (needsRealNameCheck) {
     const current = await prisma.user.findUnique({
       where: { id: userId },
-      select: { realName: true, clubName: true },
+      select: { realName: true },
     });
-    if (needsRealNameCheck && current?.realName !== data.realName) {
+    if (current?.realName !== data.realName) {
       const verdict = await moderateName(data.realName!, 'nickname');
-      if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
-    }
-    if (needsClubNameCheck && current?.clubName !== data.clubName) {
-      const verdict = await moderateName(data.clubName!, 'club');
       if (!verdict.allowed) return { ok: false, error: AUTH_ERROR.NICKNAME_REJECTED };
     }
   }
@@ -358,6 +416,11 @@ export async function deleteOwnAccount(
     if (!ok) return { ok: false, error: AUTH_ERROR.INVALID_CREDENTIALS };
   }
 
+  // Hand off / disband any head-clubs so the cascade on user delete isn't
+  // blocked by Club.headId ON DELETE RESTRICT. Runs before the anonymise
+  // transaction; if it fails, we bail out without touching the user row.
+  await handOffOrDisbandHeadClubs(userId);
+
   const deletedMarker = `deleted-${userId}@deleted.local`;
   const anonymised = await prisma.$transaction(async (tx) => {
     // Drop active lobby presences so the user vanishes from rosters.
@@ -374,7 +437,6 @@ export async function deleteOwnAccount(
         avatarUrl: null,
         realName: null,
         country: null,
-        clubName: null,
         tokenVersion: { increment: 1 },
       },
     });
