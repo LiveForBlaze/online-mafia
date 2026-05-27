@@ -7,3 +7,4 @@ export * from './avatars.js';
 export * from './countries.js';
 export * from './achievements.js';
 export * from './admin.js';
+export * from './clubs.js';

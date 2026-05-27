@@ -6,3 +6,4 @@ export * from './auth.js';
 export * from './lobby.js';
 export * from './game.js';
 export * from './admin.js';
+export * from './clubs.js';
