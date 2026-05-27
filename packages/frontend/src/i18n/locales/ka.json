@@ -50,6 +50,7 @@
       "renameAction": "გადარქმევა",
       "renamed": "მეტსახელი განახლდა",
       "deleted": "ანგარიში წაშლილია",
+      "cannotModifyAdmin": "ადმინების მოდიფიცირება UI-დან არ შეიძლება (ADMIN_EMAILS ENV-ის ცვლა და ბექენდის რესტარტი)",
       "restrictionsApplied": "შეზღუდვები გამოყენებულია",
       "statusBlocked": "დაბლოკილი",
       "statusRestricted": "შეზღუდული ({{count}})",

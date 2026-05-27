@@ -233,6 +233,18 @@ export async function renameUserAsAdmin(userId: string, nickname: string): Promi
   return updated.count > 0;
 }
 
+// Проверка что target — не админ. Защита от ситуации, где один админ
+// сносит другого (или себя) и площадка остаётся без модерации до
+// следующего бутстрапа из ENV. Возвращает true если действовать БЕЗОПАСНО
+// (target не админ), false если запрещено.
+export async function targetIsNonAdmin(userId: string): Promise<boolean> {
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isAdmin: true },
+  });
+  return Boolean(target && !target.isAdmin);
+}
+
 export async function deleteUserAsAdmin(userId: string): Promise<boolean> {
   // Анонимизация, не cascade-delete: на юзера ссылается куча append-only
   // данных (GameEvent.actorId, GameParticipant). Если их обнулять, разломаем

@@ -50,6 +50,7 @@
       "renameAction": "Атау өзгерту",
       "renamed": "Лақап ат жаңартылды",
       "deleted": "Тіркелгі жойылды",
+      "cannotModifyAdmin": "Әкімшілерді UI арқылы өзгертуге болмайды (ADMIN_EMAILS ENV-ін өзгертіп, бэкендті қайта іске қосыңыз)",
       "restrictionsApplied": "Шектеулер қолданылды",
       "statusBlocked": "Бұғатталған",
       "statusRestricted": "Шектелген ({{count}})",

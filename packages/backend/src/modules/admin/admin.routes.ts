@@ -24,17 +24,35 @@ import {
   renameLobbyAsAdmin,
   renameUserAsAdmin,
   setUserRestrictions,
+  targetIsNonAdmin,
 } from './admin.service.js';
 
 const HTTP_STATUS = {
   OK: 200,
   BAD_REQUEST: 400,
+  FORBIDDEN: 403,
   NOT_FOUND: 404,
+} as const;
+
+// Per-admin rate limit на мутирующие админ-роуты. Защита от: (1) баги в UI
+// которые в цикле дёргают рестрикции, (2) компрометированный admin-аккаунт
+// или (3) непроверенный скрипт. Read-эндпоинты (GET /lobbies, /users) не
+// ограничиваем — там пейджинг и поиск, легко превысить лимит легитимно.
+const ADMIN_WRITE_RATE_LIMIT = {
+  max: 60,
+  timeWindow: '1 minute',
+  keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
+    request.user?.sub ?? request.ip,
 } as const;
 
 export const adminRoutes: FastifyPluginAsync = async (app) => {
   // Все админские роуты — authenticate + requireAdmin.
   const guard = { preHandler: [app.authenticate, app.requireAdmin] };
+  // Мутирующие — дополнительно rate-limit.
+  const writeGuard = {
+    preHandler: [app.authenticate, app.requireAdmin],
+    config: { rateLimit: ADMIN_WRITE_RATE_LIMIT },
+  };
 
   // ---- Lobbies ----
 
@@ -65,7 +83,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  app.patch<{ Params: { id: string } }>('/lobbies/:id', guard, async (request, reply) => {
+  app.patch<{ Params: { id: string } }>('/lobbies/:id', writeGuard, async (request, reply) => {
     const parsed = adminRenameLobbyInputSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply
@@ -77,7 +95,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ ok: true });
   });
 
-  app.delete<{ Params: { id: string } }>('/lobbies/:id', guard, async (request, reply) => {
+  app.delete<{ Params: { id: string } }>('/lobbies/:id', writeGuard, async (request, reply) => {
     const ok = await forceCloseLobbyAsAdmin(request.params.id);
     if (!ok) return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'lobby_not_found' });
     return reply.send({ ok: true });
@@ -99,42 +117,66 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(result);
   });
 
-  app.patch<{ Params: { id: string } }>('/users/:id', guard, async (request, reply) => {
+  app.patch<{ Params: { id: string } }>('/users/:id', writeGuard, async (request, reply) => {
     const parsed = adminRenameUserInputSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply
         .code(HTTP_STATUS.BAD_REQUEST)
         .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
     }
+    // Админ не может переименовать другого админа (включая себя). Иначе
+    // компрометированный аккаунт мог бы маскировать действия других админов
+    // или сломать UX self-edit пути.
+    if (!(await targetIsNonAdmin(request.params.id))) {
+      return reply.code(HTTP_STATUS.FORBIDDEN).send({ error: 'cannot_modify_admin' });
+    }
     const ok = await renameUserAsAdmin(request.params.id, parsed.data.nickname);
     if (!ok) return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'user_not_found' });
     return reply.send({ ok: true });
   });
 
-  app.post<{ Params: { id: string } }>('/users/:id/restrictions', guard, async (request, reply) => {
-    const parsed = adminSetRestrictionsInputSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply
-        .code(HTTP_STATUS.BAD_REQUEST)
-        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
-    }
-    const result = await setUserRestrictions(
-      request.params.id,
-      parsed.data.restrictions,
-      parsed.data.reason ?? null,
-    );
-    if (!result) return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'user_not_found' });
-    // Принудительный disconnect всех сокетов жертвы — соответствует
-    // выбранной пользовательской политике «при бане выкидывать сразу».
-    const closed = await app.disconnectUser(request.params.id);
-    app.log.info(
-      { targetUserId: request.params.id, restrictions: parsed.data.restrictions, sockets: closed },
-      'admin: applied restrictions and disconnected sockets',
-    );
-    return reply.send(result);
-  });
+  app.post<{ Params: { id: string } }>(
+    '/users/:id/restrictions',
+    writeGuard,
+    async (request, reply) => {
+      const parsed = adminSetRestrictionsInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
+      // Админа банить нельзя — защищает от self-lockout и admin-on-admin
+      // эскалации.
+      if (!(await targetIsNonAdmin(request.params.id))) {
+        return reply.code(HTTP_STATUS.FORBIDDEN).send({ error: 'cannot_modify_admin' });
+      }
+      const result = await setUserRestrictions(
+        request.params.id,
+        parsed.data.restrictions,
+        parsed.data.reason ?? null,
+      );
+      if (!result) return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'user_not_found' });
+      // Принудительный disconnect всех сокетов жертвы — соответствует
+      // выбранной пользовательской политике «при бане выкидывать сразу».
+      const closed = await app.disconnectUser(request.params.id);
+      app.log.info(
+        {
+          targetUserId: request.params.id,
+          restrictions: parsed.data.restrictions,
+          sockets: closed,
+        },
+        'admin: applied restrictions and disconnected sockets',
+      );
+      return reply.send(result);
+    },
+  );
 
-  app.delete<{ Params: { id: string } }>('/users/:id', guard, async (request, reply) => {
+  app.delete<{ Params: { id: string } }>('/users/:id', writeGuard, async (request, reply) => {
+    // Удаление админа запрещено — иначе площадка останется без модератора
+    // до следующего бутстрапа из ENV.
+    if (!(await targetIsNonAdmin(request.params.id))) {
+      return reply.code(HTTP_STATUS.FORBIDDEN).send({ error: 'cannot_modify_admin' });
+    }
     const ok = await deleteUserAsAdmin(request.params.id);
     if (!ok) return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'user_not_found' });
     await app.disconnectUser(request.params.id);

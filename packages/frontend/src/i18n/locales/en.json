@@ -50,6 +50,7 @@
       "renameAction": "Rename",
       "renamed": "Nickname updated",
       "deleted": "Account deleted",
+      "cannotModifyAdmin": "Admins can't be modified via UI (edit ADMIN_EMAILS env and restart backend)",
       "restrictionsApplied": "Restrictions applied",
       "statusBlocked": "Blocked",
       "statusRestricted": "Restricted ({{count}})",

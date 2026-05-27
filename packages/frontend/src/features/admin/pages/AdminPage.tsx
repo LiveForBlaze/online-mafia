@@ -670,8 +670,11 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
               <button
                 type="button"
                 onClick={() => setEditingName(true)}
-                className="text-sm text-muted hover:text-fg hover:underline"
-                title={t('admin.users.renameHint')}
+                disabled={user.isAdmin}
+                className="text-sm text-muted hover:text-fg hover:underline disabled:opacity-50 disabled:hover:no-underline"
+                title={
+                  user.isAdmin ? t('admin.users.cannotModifyAdmin') : t('admin.users.renameHint')
+                }
               >
                 ✎ {t('admin.users.renameAction')}
               </button>
@@ -738,22 +741,32 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
                 variant="primary"
                 size="sm"
                 onClick={commitRestrictions}
-                disabled={busy || !isDirty}
+                disabled={busy || !isDirty || user.isAdmin}
+                title={user.isAdmin ? t('admin.users.cannotModifyAdmin') : undefined}
               >
                 {t('admin.users.apply')}
               </Button>
-              <Button variant="secondary" size="sm" onClick={applyAll} disabled={busy}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={applyAll}
+                disabled={busy || user.isAdmin}
+              >
                 {t('admin.users.applyAll')}
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={clearAll}
-                disabled={busy || restrictions.length === 0}
+                disabled={busy || restrictions.length === 0 || user.isAdmin}
               >
                 {t('admin.users.unban')}
               </Button>
             </div>
+
+            {user.isAdmin && (
+              <p className="text-xs text-muted italic">{t('admin.users.cannotModifyAdmin')}</p>
+            )}
 
             {user.bannedAt && (
               <div className="text-xs text-muted">

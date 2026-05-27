@@ -50,6 +50,7 @@
       "renameAction": "Переименовать",
       "renamed": "Никнейм обновлён",
       "deleted": "Аккаунт удалён",
+      "cannotModifyAdmin": "Админов нельзя модифицировать через UI (правьте ADMIN_EMAILS в ENV и рестартуйте бэк)",
       "restrictionsApplied": "Ограничения применены",
       "statusBlocked": "Заблокирован",
       "statusRestricted": "Ограничен ({{count}})",
