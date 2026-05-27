@@ -248,7 +248,15 @@
       "back": "Back",
       "logout": "Sign out",
       "loggingOut": "Signing out...",
-      "bannedEdit": "Profile editing is blocked by an administrator"
+      "bannedEdit": "Profile editing is blocked by an administrator",
+      "primaryClub": {
+        "label": "Displayed club",
+        "none": "Don't show",
+        "hint": "Shown in the players table and public profile.",
+        "noneCta": "You aren't in any club yet.",
+        "findCta": "Find a club →",
+        "headSuffix": "head"
+      }
     },
     "errors": {
       "invalid_credentials": "Wrong email or password",
@@ -263,6 +271,89 @@
       "unknown": "Something went wrong",
       "nickname_rejected": "This nickname didn't pass moderation. Please pick another.",
       "avatar_locked": "This avatar is locked — you haven't earned the required achievement yet."
+    }
+  },
+  "clubs": {
+    "title": "Clubs",
+    "subtitle": "Create your club or join an existing one.",
+    "createCta": "Create club",
+    "search": { "placeholder": "Search by name" },
+    "list": {
+      "empty": "No clubs yet — create the first one.",
+      "headBy": "Head: {{nickname}}",
+      "members_one": "{{count}} member",
+      "members_other": "{{count}} members"
+    },
+    "actions": {
+      "none": "Join",
+      "pending": "Request sent",
+      "member": "In club",
+      "head": "You're the head",
+      "maxReached": "Club limit",
+      "submitRequest": "Submit join request",
+      "joining": "Sending…",
+      "requestPending": "Request is being reviewed",
+      "cancelRequest": "Cancel request",
+      "cancelling": "Cancelling…",
+      "requestSent": "Request sent",
+      "requestCancelled": "Request cancelled",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Request approved",
+      "rejected": "Request rejected",
+      "leave": "Leave club",
+      "left": "You left the club",
+      "disband": "Disband club",
+      "disbanded": "Club disbanded",
+      "kick": "Kick",
+      "kicked": "Member kicked",
+      "transfer": "Transfer leadership",
+      "transferred": "Leadership transferred",
+      "rename": "Rename",
+      "renamed": "Club renamed"
+    },
+    "detail": {
+      "members": "Members",
+      "requests": "Join requests",
+      "foundedOn": "Founded {{date}}",
+      "headBadge": "Head"
+    },
+    "create": {
+      "dialogTitle": "New club",
+      "namePlaceholder": "Club name",
+      "submit": "Create",
+      "creating": "Creating…",
+      "success": "Club created"
+    },
+    "confirm": {
+      "leaveTitle": "Leave the club?",
+      "leaveBody": "You're leaving \"{{name}}\". You can submit a new request any time.",
+      "leaveAsHeadTitle": "Leave the club?",
+      "leaveAsHeadBody": "You're the head of \"{{name}}\". Leadership will transfer to the oldest member.",
+      "leaveAsLoneHeadBody": "You're alone in \"{{name}}\". The club will be disbanded.",
+      "disbandTitle": "Disband the club?",
+      "disbandBody": "Club \"{{name}}\" and all members will be removed. This cannot be undone.",
+      "kickTitle": "Kick member?",
+      "kickBody": "Kick \"{{name}}\" from the club?",
+      "transferTitle": "Transfer leadership",
+      "transferBody": "Pick a new head. You'll stay as a regular member.",
+      "transferPickPlaceholder": "Select a member…",
+      "transferConfirm": "Transfer",
+      "transferring": "Transferring…"
+    },
+    "errors": {
+      "club_not_found": "Club not found",
+      "club_name_taken": "A club with that name already exists",
+      "club_name_rejected": "Name didn't pass moderation. Please pick another.",
+      "not_member": "You're not in this club",
+      "not_head": "Only the club head can do this",
+      "not_pending": "No pending request",
+      "already_member": "You're already a member",
+      "already_pending": "Request already submitted",
+      "target_not_member": "That player isn't in the club",
+      "cannot_kick_head": "The head can't be kicked",
+      "max_clubs_reached": "You're already in the maximum number of clubs ({{max}}). Leave one to join another.",
+      "target_max_clubs_reached": "That player is already in the maximum number of clubs and can't be approved."
     }
   },
   "lobby": {
