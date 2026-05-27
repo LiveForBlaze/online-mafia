@@ -20,8 +20,8 @@ import { LobbyRoomPage } from '@/features/lobby/pages/LobbyRoomPage.js';
 import { GamePage } from '@/features/game/pages/GamePage.js';
 import { PlayersPage } from '@/features/users/pages/PlayersPage.js';
 import { UserPage } from '@/features/users/pages/UserPage.js';
+import { ClubsListPage } from '@/features/clubs/pages/ClubsListPage.js';
 import { AboutPage } from '@/pages/AboutPage.js';
-import { ClubsPage } from '@/pages/ClubsPage.js';
 import { RulesPage } from '@/pages/RulesPage.js';
 import { TournamentsPage } from '@/pages/TournamentsPage.js';
 import { AuthGuard } from '@/routes/AuthGuard.js';
@@ -56,7 +56,7 @@ export function App() {
           <Route path={ROUTE_PATH.HOME} element={<LobbyListPage />} />
           <Route path={ROUTE_PATH.USER} element={<UserPage />} />
           <Route path={ROUTE_PATH.PLAYERS} element={<PlayersPage />} />
-          <Route path={ROUTE_PATH.CLUBS} element={<ClubsPage />} />
+          <Route path={ROUTE_PATH.CLUBS} element={<ClubsListPage />} />
           <Route path={ROUTE_PATH.TOURNAMENTS} element={<TournamentsPage />} />
           <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />
           <Route path={ROUTE_PATH.ABOUT} element={<AboutPage />} />
