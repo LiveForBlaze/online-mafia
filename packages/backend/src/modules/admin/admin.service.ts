@@ -28,7 +28,10 @@ export interface ListLobbiesInput {
   status?: LobbyStatus | 'ALL' | 'ACTIVE';
   search?: string;
   limit?: number;
+  offset?: number;
 }
+
+const DEFAULT_PAGE_SIZE = 50;
 
 export async function listLobbiesForAdmin(
   input: ListLobbiesInput,
@@ -43,6 +46,8 @@ export async function listLobbiesForAdmin(
     where.name = { contains: input.search.trim(), mode: 'insensitive' };
   }
 
+  const take = Math.min(Math.max(input.limit ?? DEFAULT_PAGE_SIZE, 1), 200);
+  const skip = Math.max(input.offset ?? 0, 0);
   const [rows, total] = await Promise.all([
     prisma.lobby.findMany({
       where,
@@ -51,7 +56,8 @@ export async function listLobbiesForAdmin(
         _count: { select: { members: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: input.limit ?? 100,
+      take,
+      skip,
     }),
     prisma.lobby.count({ where }),
   ]);
@@ -102,22 +108,38 @@ export async function forceCloseLobbyAsAdmin(lobbyId: string): Promise<boolean> 
 export interface ListUsersInput {
   search?: string;
   limit?: number;
+  offset?: number;
+  // Боты (isBot=true) и удалённые аккаунты по умолчанию скрыты — они шумят
+  // и над ними нечего делать. Админ может явно запросить через флаг.
+  includeBots?: boolean;
 }
 
 export async function listUsersForAdmin(
   input: ListUsersInput,
 ): Promise<{ users: AdminUserSummary[]; total: number }> {
   const search = input.search?.trim();
+  // Базовый фильтр — всегда исключаем удалённые аккаунты (email на
+  // @deleted.local — конвенция deleteOwnAccount/deleteUserAsAdmin). Ботов
+  // прячем по умолчанию.
+  const baseWhere: Prisma.UserWhereInput = {
+    email: { not: { endsWith: '@deleted.local' } },
+  };
+  if (!input.includeBots) {
+    baseWhere.isBot = false;
+  }
   const where: Prisma.UserWhereInput = search
     ? {
+        ...baseWhere,
         OR: [
           { nickname: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },
           { publicCode: { equals: search.toUpperCase() } },
         ],
       }
-    : {};
+    : baseWhere;
 
+  const take = Math.min(Math.max(input.limit ?? DEFAULT_PAGE_SIZE, 1), 200);
+  const skip = Math.max(input.offset ?? 0, 0);
   const [rows, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -135,7 +157,8 @@ export async function listUsersForAdmin(
         createdAt: true,
       },
       orderBy: [{ isAdmin: 'desc' }, { createdAt: 'desc' }],
-      take: input.limit ?? 100,
+      take,
+      skip,
     }),
     prisma.user.count({ where }),
   ]);
@@ -213,29 +236,35 @@ export async function renameUserAsAdmin(userId: string, nickname: string): Promi
 export async function deleteUserAsAdmin(userId: string): Promise<boolean> {
   // Анонимизация, не cascade-delete: на юзера ссылается куча append-only
   // данных (GameEvent.actorId, GameParticipant). Если их обнулять, разломаем
-  // event log. Поэтому — обнуляем PII + ставим site_access (так что аккаунт
-  // мёртвый, но история партий цела).
-  const stamp = Date.now();
-  const anonEmail = `deleted-${stamp}-${userId.slice(0, 6)}@deleted.invalid`;
-  const anonNickname = `Удалённый пользователь`;
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      email: anonEmail,
-      nickname: anonNickname,
-      passwordHash: null,
-      googleId: null,
-      avatarUrl: null,
-      googleAvatarUrl: null,
-      realName: null,
-      country: null,
-      clubName: null,
-      isAdmin: false,
-      banRestrictions: [BAN_RESTRICTION.SITE_ACCESS],
-      bannedAt: new Date(),
-      banReason: 'account deleted by admin',
-      tokenVersion: { increment: 1 },
-    },
+  // event log. Поэтому — обнуляем PII + ставим site_access (мёртвый аккаунт,
+  // история партий цела).
+  //
+  // Используем ту же конвенцию что и deleteOwnAccount (email на @deleted.local,
+  // nickname `[удалён]`) — у админ-списка один фильтр, и оба удаления
+  // выглядят одинаково в логах партий.
+  const deletedMarker = `deleted-${userId}@deleted.local`;
+  await prisma.$transaction(async (tx) => {
+    await tx.lobbyMember.deleteMany({ where: { userId } });
+    await tx.lobby.updateMany({ where: { hostId: userId }, data: { status: 'CLOSED' } });
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        email: deletedMarker,
+        nickname: '[удалён]',
+        passwordHash: null,
+        googleId: null,
+        avatarUrl: null,
+        googleAvatarUrl: null,
+        realName: null,
+        country: null,
+        clubName: null,
+        isAdmin: false,
+        banRestrictions: [BAN_RESTRICTION.SITE_ACCESS],
+        bannedAt: new Date(),
+        banReason: 'account deleted by admin',
+        tokenVersion: { increment: 1 },
+      },
+    });
   });
   logger.info({ userId }, 'admin: user anonymised + locked out');
   return true;

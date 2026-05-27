@@ -92,6 +92,8 @@ function TabButton({
 
 type LobbyStatusFilter = 'ACTIVE' | 'ALL' | 'WAITING' | 'IN_GAME' | 'CLOSED';
 
+const PAGE_SIZE = 50;
+
 function LobbiesTab() {
   const { t } = useTranslation();
   // Дефолтный фильтр — ACTIVE (открытые + в игре). Закрытые шумят и
@@ -101,15 +103,23 @@ function LobbiesTab() {
   const [lobbies, setLobbies] = useState<AdminLobbySummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // При смене фильтров — забываем offset, иначе вторая страница «висит»
+  // от предыдущего фильтра.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
     adminApi
-      .listLobbies({ status: statusFilter, search: search || undefined })
+      .listLobbies({
+        status: statusFilter,
+        search: search || undefined,
+        offset: 0,
+        limit: PAGE_SIZE,
+      })
       .then((res) => {
         if (!cancelled) {
           setLobbies(res.lobbies);
@@ -128,6 +138,25 @@ function LobbiesTab() {
   }, [statusFilter, search, refreshKey]);
 
   const refresh = () => setRefreshKey((k) => k + 1);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const res = await adminApi.listLobbies({
+        status: statusFilter,
+        search: search || undefined,
+        offset: lobbies.length,
+        limit: PAGE_SIZE,
+      });
+      setLobbies((curr) => [...curr, ...res.lobbies]);
+      setTotal(res.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'error');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
     <section className="space-y-3">
@@ -153,7 +182,7 @@ function LobbiesTab() {
       </div>
 
       <div className="text-xs text-muted">
-        {t('admin.lobbies.count', { count: total })}
+        {t('admin.shownOf', { shown: lobbies.length, total })}
         {loading && <span className="ml-2">…</span>}
       </div>
 
@@ -188,6 +217,14 @@ function LobbiesTab() {
           </tbody>
         </table>
       </div>
+
+      {lobbies.length < total && (
+        <div className="flex justify-center">
+          <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? t('admin.loadingMore') : t('admin.loadMore')}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
@@ -312,9 +349,14 @@ function StatusPill({ status }: { status: 'WAITING' | 'IN_GAME' | 'CLOSED' }) {
 function UsersTab() {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
+  // Боты и удалённые аккаунты по умолчанию скрыты на бэке. Тут — toggle
+  // включить ботов обратно для редких кейсов когда они нужны (debug,
+  // ручная чистка).
+  const [includeBots, setIncludeBots] = useState(false);
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -323,7 +365,12 @@ function UsersTab() {
     setLoading(true);
     setError(null);
     adminApi
-      .listUsers({ search: search || undefined })
+      .listUsers({
+        search: search || undefined,
+        includeBots,
+        offset: 0,
+        limit: PAGE_SIZE,
+      })
       .then((res) => {
         if (!cancelled) {
           setUsers(res.users);
@@ -339,22 +386,51 @@ function UsersTab() {
     return () => {
       cancelled = true;
     };
-  }, [search, refreshKey]);
+  }, [search, includeBots, refreshKey]);
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
+  async function loadMore() {
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const res = await adminApi.listUsers({
+        search: search || undefined,
+        includeBots,
+        offset: users.length,
+        limit: PAGE_SIZE,
+      });
+      setUsers((curr) => [...curr, ...res.users]);
+      setTotal(res.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'error');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   return (
     <section className="space-y-3">
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder={t('admin.users.searchPlaceholder')}
-        className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('admin.users.searchPlaceholder')}
+          className="flex-1 min-w-[200px] rounded-md border border-border bg-card px-3 py-2 text-sm"
+        />
+        <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeBots}
+            onChange={(e) => setIncludeBots(e.target.checked)}
+          />
+          {t('admin.users.showBots')}
+        </label>
+      </div>
 
       <div className="text-xs text-muted">
-        {t('admin.users.count', { count: total })}
+        {t('admin.shownOf', { shown: users.length, total })}
         {loading && <span className="ml-2">…</span>}
       </div>
 
@@ -372,6 +448,14 @@ function UsersTab() {
           <p className="text-center text-muted py-6">{t('admin.users.empty')}</p>
         )}
       </div>
+
+      {users.length < total && (
+        <div className="flex justify-center">
+          <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? t('admin.loadingMore') : t('admin.loadMore')}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

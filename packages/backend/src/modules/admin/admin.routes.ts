@@ -38,7 +38,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
 
   // ---- Lobbies ----
 
-  app.get<{ Querystring: { status?: string; search?: string } }>(
+  app.get<{ Querystring: { status?: string; search?: string; offset?: string; limit?: string } }>(
     '/lobbies',
     guard,
     async (request, reply) => {
@@ -53,9 +53,13 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
         status === 'ACTIVE'
           ? status
           : 'ACTIVE';
+      const offset = request.query.offset ? Number(request.query.offset) : undefined;
+      const limit = request.query.limit ? Number(request.query.limit) : undefined;
       const result = await listLobbiesForAdmin({
         status: safeStatus,
         search: request.query.search,
+        offset: Number.isFinite(offset) ? offset : undefined,
+        limit: Number.isFinite(limit) ? limit : undefined,
       });
       return reply.send(result);
     },
@@ -81,8 +85,17 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
 
   // ---- Users ----
 
-  app.get<{ Querystring: { search?: string } }>('/users', guard, async (request, reply) => {
-    const result = await listUsersForAdmin({ search: request.query.search });
+  app.get<{
+    Querystring: { search?: string; includeBots?: string; offset?: string; limit?: string };
+  }>('/users', guard, async (request, reply) => {
+    const offset = request.query.offset ? Number(request.query.offset) : undefined;
+    const limit = request.query.limit ? Number(request.query.limit) : undefined;
+    const result = await listUsersForAdmin({
+      search: request.query.search,
+      includeBots: request.query.includeBots === 'true',
+      offset: Number.isFinite(offset) ? offset : undefined,
+      limit: Number.isFinite(limit) ? limit : undefined,
+    });
     return reply.send(result);
   });
 

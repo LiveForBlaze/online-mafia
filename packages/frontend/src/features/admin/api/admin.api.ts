@@ -14,10 +14,14 @@ import type {
 import { apiClient } from '@/lib/api-client.js';
 
 export const adminApi = {
-  listLobbies(params: { status?: string; search?: string } = {}): Promise<AdminLobbyListResponse> {
+  listLobbies(
+    params: { status?: string; search?: string; offset?: number; limit?: number } = {},
+  ): Promise<AdminLobbyListResponse> {
     const qs = new URLSearchParams();
     if (params.status) qs.set('status', params.status);
     if (params.search) qs.set('search', params.search);
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
     return apiClient.get<AdminLobbyListResponse>(`/api/v1/admin/lobbies${suffix}`);
   },
@@ -27,9 +31,14 @@ export const adminApi = {
   closeLobby(id: string): Promise<{ ok: true }> {
     return apiClient.delete<{ ok: true }>(`/api/v1/admin/lobbies/${id}`);
   },
-  listUsers(params: { search?: string } = {}): Promise<AdminUserListResponse> {
+  listUsers(
+    params: { search?: string; includeBots?: boolean; offset?: number; limit?: number } = {},
+  ): Promise<AdminUserListResponse> {
     const qs = new URLSearchParams();
     if (params.search) qs.set('search', params.search);
+    if (params.includeBots) qs.set('includeBots', 'true');
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
     return apiClient.get<AdminUserListResponse>(`/api/v1/admin/users${suffix}`);
   },
