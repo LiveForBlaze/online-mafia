@@ -41,7 +41,7 @@ export function LobbyListTable({ lobbies, onJoin, joiningId }: LobbyListTablePro
             showHeader ? 'hidden sm:grid' : 'hidden',
             'items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted',
             'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
-            'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_9rem]',
+            'md:grid-cols-[3rem_minmax(0,1fr)_14rem_8rem_5rem_7rem]',
           )}
         >
           <span role="columnheader" className="hidden md:block">
@@ -118,7 +118,7 @@ function LobbyRow({
         'group cursor-pointer px-4 py-3 transition-colors hover:bg-bg/60 focus:outline-none focus:bg-bg/60',
         'sm:grid sm:items-center sm:gap-3',
         'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
-        'md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_7rem_9rem]',
+        'md:grid-cols-[3rem_minmax(0,1fr)_14rem_8rem_5rem_7rem]',
       )}
     >
       {/* # — короткий ID. На очень узких экранах скрываем (значимости
