@@ -5,7 +5,14 @@
     "clubs": "Clubs",
     "tournaments": "Tournaments",
     "rules": "Rules",
-    "about": "About"
+    "about": "About",
+    "admin": "Admin"
+  },
+  "banned": {
+    "title": "Account suspended",
+    "description": "Your account has been blocked by an administrator. Contact support if you think this is a mistake.",
+    "reasonLabel": "Reason",
+    "logout": "Log out"
   },
   "players": {
     "title": "Players",

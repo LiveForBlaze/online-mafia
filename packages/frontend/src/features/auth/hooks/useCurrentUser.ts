@@ -8,6 +8,9 @@ import { ApiError } from '@/lib/api-client.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 
+// Внутренний импорт оставлен прямой — типы через useAuthStore.getState() не
+// помогают, нам нужен setter из стейта.
+
 export function useHydrateCurrentUser(): void {
   const setUser = useAuthStore((state) => state.setUser);
   const markHydrated = useAuthStore((state) => state.markHydrated);
@@ -24,6 +27,16 @@ export function useHydrateCurrentUser(): void {
         // 401 is the expected outcome when the user is not logged in — clear, do not log.
         if (error instanceof ApiError && error.status === 401) {
           setUser(null);
+          return;
+        }
+        // 403 banned_site_access — юзер залогинен, но забанен полностью.
+        // Прячем приложение под BannedScreen вместо редиректа на login.
+        if (
+          error instanceof ApiError &&
+          error.status === 403 &&
+          error.body.error === 'banned_site_access'
+        ) {
+          useAuthStore.getState().setBanned({ reason: null });
           return;
         }
         // eslint-disable-next-line no-console

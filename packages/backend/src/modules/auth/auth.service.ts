@@ -64,6 +64,8 @@ export function toAuthenticatedUser(user: User): AuthenticatedUser {
     clubName: user.clubName ?? null,
     hasPassword: Boolean(user.passwordHash),
     achievements: parseAchievements(user.achievements),
+    isAdmin: user.isAdmin,
+    banRestrictions: user.banRestrictions,
   };
 }
 

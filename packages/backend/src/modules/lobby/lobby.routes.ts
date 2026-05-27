@@ -5,6 +5,7 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import {
+  BAN_RESTRICTION,
   createLobbyInputSchema,
   joinLobbyInputSchema,
   kickMemberInputSchema,
@@ -117,7 +118,7 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     '/',
     {
-      preHandler: [app.authenticate],
+      preHandler: [app.authenticate, app.requireRestrictionNotSet(BAN_RESTRICTION.CREATE_LOBBY)],
       config: { rateLimit: LOBBY_CREATE_RATE_LIMIT },
     },
     async (request, reply) => {
@@ -189,7 +190,10 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Params: { id: string } }>(
     '/:id/join',
     {
-      preHandler: [app.authenticate],
+      preHandler: [
+        app.authenticate,
+        app.requireRestrictionNotSet(BAN_RESTRICTION.PARTICIPATE_GAMES),
+      ],
       config: { rateLimit: LOBBY_JOIN_RATE_LIMIT },
     },
     async (request, reply) => {

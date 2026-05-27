@@ -8,7 +8,10 @@
 import { Navigate, Route, Routes } from 'react-router';
 
 import { MainLayout } from '@/components/layout/MainLayout.js';
+import { AdminPage } from '@/features/admin/pages/AdminPage.js';
+import { BannedScreen } from '@/features/auth/components/BannedScreen.js';
 import { useHydrateCurrentUser } from '@/features/auth/hooks/useCurrentUser.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { LoginPage } from '@/features/auth/pages/LoginPage.js';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage.js';
 import { LobbyListPage } from '@/features/lobby/pages/LobbyListPage.js';
@@ -25,6 +28,14 @@ import { ROUTE_PATH } from '@/routes/paths.js';
 
 export function App() {
   useHydrateCurrentUser();
+  const banned = useAuthStore((s) => s.banned);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+
+  // Полная блокировка: site_access. Бэк возвращает 403 на /auth/me,
+  // useCurrentUser выставляет banned в стор. Прячем приложение полностью.
+  if (isHydrated && banned) {
+    return <BannedScreen reason={banned.reason} />;
+  }
 
   return (
     <Routes>
@@ -47,6 +58,9 @@ export function App() {
         <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />
         <Route path={ROUTE_PATH.ABOUT} element={<AboutPage />} />
         <Route path={ROUTE_PATH.LOBBY_ROOM} element={<LobbyRoomPage />} />
+        {/* /admin сам делает Navigate в HOME для не-админов, чтобы /admin
+            прямой ссылкой не давал белый экран. Серверный гард — отдельно. */}
+        <Route path={ROUTE_PATH.ADMIN} element={<AdminPage />} />
       </Route>
 
       {/* Full-screen game page — no top nav. */}

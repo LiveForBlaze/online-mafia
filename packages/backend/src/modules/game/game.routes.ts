@@ -4,6 +4,7 @@
 // of game state when the user first opens /game/:id and for issuing LiveKit tokens.
 
 import type { FastifyPluginAsync } from 'fastify';
+import { BAN_RESTRICTION } from '@mafia/shared';
 
 import { broadcastGameState } from './game.broadcast.js';
 import {
@@ -43,7 +44,9 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
 
   app.get<{ Params: { id: string } }>(
     '/:id',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [app.authenticate, app.requireRestrictionNotSet(BAN_RESTRICTION.VIEW_GAMES)],
+    },
     async (request, reply) => {
       const result = await getProjectedStateFor(request.params.id, request.user.sub);
       if (!result.ok) {

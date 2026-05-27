@@ -13,6 +13,7 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import {
+  BAN_RESTRICTION,
   deleteAccountInputSchema,
   loginInputSchema,
   registerInputSchema,
@@ -222,36 +223,48 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // ---- Change nickname ----
-  app.patch('/me/nickname', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const parsed = updateNicknameInputSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply
-        .code(HTTP_STATUS.BAD_REQUEST)
-        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
-    }
+  app.patch(
+    '/me/nickname',
+    {
+      preHandler: [app.authenticate, app.requireRestrictionNotSet(BAN_RESTRICTION.EDIT_PROFILE)],
+    },
+    async (request, reply) => {
+      const parsed = updateNicknameInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
 
-    const result = await updateNickname(request.user.sub, parsed.data.nickname);
-    if (!result.ok) {
-      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
-    }
-    return reply.send({ user: toAuthenticatedUser(result.user) });
-  });
+      const result = await updateNickname(request.user.sub, parsed.data.nickname);
+      if (!result.ok) {
+        return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      return reply.send({ user: toAuthenticatedUser(result.user) });
+    },
+  );
 
   // ---- Update public profile (real name, country, club) ----
-  app.patch('/me/profile', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const parsed = updateProfileInputSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply
-        .code(HTTP_STATUS.BAD_REQUEST)
-        .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
-    }
+  app.patch(
+    '/me/profile',
+    {
+      preHandler: [app.authenticate, app.requireRestrictionNotSet(BAN_RESTRICTION.EDIT_PROFILE)],
+    },
+    async (request, reply) => {
+      const parsed = updateProfileInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .code(HTTP_STATUS.BAD_REQUEST)
+          .send({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors });
+      }
 
-    const result = await updateProfile(request.user.sub, parsed.data);
-    if (!result.ok) {
-      return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
-    }
-    return reply.send({ user: toAuthenticatedUser(result.user) });
-  });
+      const result = await updateProfile(request.user.sub, parsed.data);
+      if (!result.ok) {
+        return reply.code(authErrorToHttpStatus(result.error)).send({ error: result.error });
+      }
+      return reply.send({ user: toAuthenticatedUser(result.user) });
+    },
+  );
 
   // ---- Delete own account ----
   // Body must contain { confirmEmail }: the user retypes their email to

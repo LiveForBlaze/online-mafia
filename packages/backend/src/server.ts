@@ -11,6 +11,7 @@ import { prisma } from './db/prisma.client.js';
 import { rateLimitPlugin } from './plugins/rate-limit.js';
 import { securityPlugin } from './plugins/security.js';
 import { socketioPlugin } from './plugins/socketio.js';
+import { adminModule } from './modules/admin/index.js';
 import { authModule } from './modules/auth/index.js';
 import { lobbyModule } from './modules/lobby/index.js';
 import { gameModule } from './modules/game/index.js';
@@ -123,6 +124,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(userModule, { prefix: `${API_PREFIX}/users` });
   await app.register(lobbyModule, { prefix: `${API_PREFIX}/lobby` });
   await app.register(gameModule, { prefix: `${API_PREFIX}/game` });
+  await app.register(adminModule, { prefix: `${API_PREFIX}/admin` });
 
   return app;
 }

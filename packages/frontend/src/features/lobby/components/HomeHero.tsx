@@ -13,7 +13,10 @@ import { useNavigate } from 'react-router';
 
 import type { HomeStats } from '@mafia/shared';
 
+import { BAN_RESTRICTION } from '@mafia/shared';
+
 import { Button } from '@/components/ui/Button.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
 interface HomeHeroProps {
@@ -24,6 +27,9 @@ interface HomeHeroProps {
 export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const cannotCreate = useAuthStore((s) => s.user?.banRestrictions ?? []).includes(
+    BAN_RESTRICTION.CREATE_LOBBY,
+  );
   return (
     <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center pt-4 sm:pt-8">
       <div className="space-y-6">
@@ -58,7 +64,12 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button onClick={onCreateLobby} size="lg">
+          <Button
+            onClick={onCreateLobby}
+            size="lg"
+            disabled={cannotCreate}
+            title={cannotCreate ? t('lobby.errors.host_has_active_lobby') : undefined}
+          >
             + {t('common.create_lobby')}
           </Button>
           <Button variant="secondary" size="lg" onClick={() => navigate(ROUTE_PATH.RULES)}>

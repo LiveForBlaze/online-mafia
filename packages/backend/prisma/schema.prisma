@@ -90,6 +90,19 @@ model User {
   // сами факты выдачи. Никогда не выдаём один и тот же id дважды.
   achievements Json @default("[]")
 
+  // Платформенные права. Назначается через ENV ADMIN_EMAILS на старте
+  // бэкенда — нет UI или API чтобы дать админку через приложение, иначе
+  // компрометация одного админ-аккаунта = эскалация всему остальному.
+  isAdmin Boolean @default(false)
+
+  // Активные ограничения юзера. Пустой массив = без бана. Возможные коды
+  // в shared/constants/admin.ts (BAN_RESTRICTION). Special: site_access
+  // блокирует вообще всё, остальные — точечно (создание лобби, join,
+  // просмотр игр, редактирование профиля).
+  banRestrictions String[] @default([])
+  bannedAt        DateTime?
+  banReason       String?
+
   hostedLobbies      Lobby[]           @relation("LobbyHost")
   lobbyMembers       LobbyMember[]
   gamesAsParticipant GameParticipant[]

@@ -77,6 +77,12 @@ export const authenticatedUserSchema = z.object({
   // профиле (PublicUserProfile) то же поле — расходимся только по типу
   // схемы; форма одинаковая, чтобы не плодить парсеров.
   achievements: z.array(z.object({ id: z.string(), earnedAt: z.string().datetime() })),
+  // Платформенный флаг — позволяет фронту показать админский route.
+  // Назначается через ENV ADMIN_EMAILS на старте бэкенда.
+  isAdmin: z.boolean(),
+  // Активные ограничения пользователя. Пустой массив = без бана. FE
+  // использует это чтобы серый-аутить кнопки create-lobby, profile-edit и т.д.
+  banRestrictions: z.array(z.string()),
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 

@@ -7,10 +7,27 @@
 // is typed correctly after a successful jwtVerify().
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { BanRestrictionCode } from '@mafia/shared';
 
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void>;
+    // Гард для админских роутов — preHandler после authenticate.
+    requireAdmin(request: FastifyRequest, reply: FastifyReply): Promise<void>;
+    // Фабрика гардов: блокирует роут если у юзера выставлено указанное
+    // ограничение (любое из BAN_RESTRICTION кроме SITE_ACCESS — тот режется
+    // уже в authenticate).
+    requireRestrictionNotSet(
+      code: BanRestrictionCode,
+    ): (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  }
+  interface FastifyRequest {
+    // Заполняется в authenticate. Маршруты внутри per-restriction preHandler'ов
+    // читают эту структуру вместо повторного запроса к БД.
+    userFlags?: {
+      isAdmin: boolean;
+      banRestrictions: BanRestrictionCode[];
+    };
   }
 }
 

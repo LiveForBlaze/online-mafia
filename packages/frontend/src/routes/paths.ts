@@ -16,6 +16,7 @@ export const ROUTE_PATH = {
   ABOUT: '/about',
   LOBBY_ROOM: '/lobby/:id',
   GAME_ROOM: '/game/:id',
+  ADMIN: '/admin',
 } as const;
 
 /** Build a concrete lobby room URL from a lobby id. */

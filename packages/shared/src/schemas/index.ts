@@ -5,3 +5,4 @@ export * from './common.js';
 export * from './auth.js';
 export * from './lobby.js';
 export * from './game.js';
+export * from './admin.js';

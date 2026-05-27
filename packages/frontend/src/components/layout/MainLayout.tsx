@@ -12,6 +12,7 @@ import { NavLink, Outlet } from 'react-router';
 import { cn } from '@/lib/cn.js';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher.js';
 import { UserChip } from '@/components/ui/UserChip.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { SiteFooter } from '@/features/lobby/components/SiteFooter.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
 
@@ -46,6 +47,8 @@ export function MainLayout() {
 }
 
 function TopNav() {
+  const { t } = useTranslation();
+  const isAdmin = useAuthStore((s) => s.user?.isAdmin ?? false);
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/70">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -62,6 +65,7 @@ function TopNav() {
             {NAV_ITEMS.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
+            {isAdmin && <AdminNavLink label={t('nav.admin')} />}
           </nav>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -75,9 +79,30 @@ function TopNav() {
           {NAV_ITEMS.map((item) => (
             <NavItemLink key={item.to} item={item} />
           ))}
+          {isAdmin && <AdminNavLink label={t('nav.admin')} />}
         </nav>
       </div>
     </header>
+  );
+}
+
+// Отдельный визуально выделенный link на /admin — чтобы он был сразу заметен
+// в навигации и не сливался с остальными разделами. Видим только админу.
+function AdminNavLink({ label }: { label: string }) {
+  return (
+    <NavLink
+      to={ROUTE_PATH.ADMIN}
+      className={({ isActive }) =>
+        cn(
+          'rounded-md px-3 py-1.5 text-sm font-semibold uppercase tracking-wider whitespace-nowrap transition-colors',
+          isActive
+            ? 'bg-accent text-accent-fg'
+            : 'text-accent border border-accent/40 hover:bg-accent/10',
+        )
+      }
+    >
+      {label}
+    </NavLink>
   );
 }
 

@@ -16,6 +16,10 @@ import { COOKIE_NAME } from '../modules/auth/auth.cookies.js';
 declare module 'fastify' {
   interface FastifyInstance {
     io: IOServer;
+    // Закрывает все сокеты указанного юзера. Используется при бане/смене
+    // ограничений: клиент переподключится и подхватит свежие флаги из
+    // /auth/me, а если он залочен — соединение просто отвалится.
+    disconnectUser(userId: string): Promise<number>;
   }
 }
 
@@ -149,6 +153,22 @@ export const socketioPlugin = fp(
     });
 
     app.decorate('io', io);
+
+    // Дисконнект всех сокетов одного юзера. Возвращает число закрытых.
+    // Используется админом при выставлении restrictions: на следующем коннекте
+    // клиент подтянет свежий /auth/me с новыми флагами; если ему запрещён
+    // конкретный socket-канал, прикладной код там сам разрулит.
+    app.decorate('disconnectUser', async (userId: string) => {
+      const sockets = await io.fetchSockets();
+      let closed = 0;
+      for (const s of sockets) {
+        if (s.data.user?.sub === userId) {
+          s.disconnect(true);
+          closed += 1;
+        }
+      }
+      return closed;
+    });
 
     // Periodically re-check tokenVersion for all connected sockets so that a
     // logout or account deletion takes effect within this window even for

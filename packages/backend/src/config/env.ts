@@ -48,6 +48,25 @@ const envSchema = z.object({
   // Anthropic has an incident.
   ANTHROPIC_API_KEY: z.string().optional(),
 
+  // Comma-separated list of email addresses that get isAdmin=true on startup.
+  // Why ENV and not a DB-managed admin table: keeps the admin roster outside
+  // the application surface — even with full DB write access via SQL injection,
+  // an attacker cannot promote themselves to admin without also editing the
+  // env (which requires server access). On every boot, the bootstrap task
+  // upserts isAdmin=true for matching users, and clears it for anyone NOT in
+  // the list so removing yourself from ADMIN_EMAILS revokes the role on next
+  // restart.
+  ADMIN_EMAILS: z
+    .string()
+    .optional()
+    .default('')
+    .transform((s) =>
+      s
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => e.length > 0),
+    ),
+
   // Опт-ин на `trustProxy` для Fastify. Включайте ТОЛЬКО если перед бекендом
   // стоит доверенный reverse-proxy (Caddy / nginx / cloud LB), который сам
   // переписывает X-Forwarded-For. Иначе атакующий подменит заголовок и

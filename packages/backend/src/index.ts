@@ -7,10 +7,15 @@ import 'dotenv/config';
 import { buildServer } from './server.js';
 import { env } from './config/env.js';
 import { prisma } from './db/prisma.client.js';
+import { syncAdminRoster } from './lib/admin-bootstrap.js';
 import { logger } from './lib/logger.js';
 
 async function main() {
   const server = await buildServer();
+
+  // Reconcile admin roster from ENV. Fire-and-forget — DB hiccups must not
+  // delay server boot; the bootstrap is logged inside.
+  void syncAdminRoster();
 
   try {
     await server.listen({ port: env.BACKEND_PORT, host: env.BACKEND_HOST });
