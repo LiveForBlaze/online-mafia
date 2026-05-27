@@ -5,10 +5,11 @@
 // (called from the service layer after each successful mutation).
 
 import type { FastifyInstance } from 'fastify';
-import { SERVER_EVENT, lobbyChatSendPayloadSchema } from '@mafia/shared';
+import { BAN_RESTRICTION, SERVER_EVENT, lobbyChatSendPayloadSchema } from '@mafia/shared';
 import { z } from 'zod';
 
 import { prisma } from '../../db/prisma.client.js';
+import { socketHasRestriction } from '../../plugins/socketio.js';
 
 import { attachIO, broadcastLobbyUpdate, lobbyRoomName } from './lobby.broadcast.js';
 import { appendLobbyChatMessage, getLobbyChatHistory } from './lobby.chat.js';
@@ -81,6 +82,12 @@ export function registerLobbyGateway(app: FastifyInstance): void {
       const userId = socket.data.user?.sub;
       if (!userId) {
         ack?.({ ok: false, error: 'unauthenticated' });
+        return;
+      }
+      // PARTICIPATE_GAMES бан включает чат лобби — иначе токсичный игрок
+      // продолжит спамить из ban'ом, и socket — это параллельный канал.
+      if (socketHasRestriction(socket, BAN_RESTRICTION.PARTICIPATE_GAMES)) {
+        ack?.({ ok: false, error: 'banned' });
         return;
       }
       // Only lobby members can speak. We re-check on every send rather than

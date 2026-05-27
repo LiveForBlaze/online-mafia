@@ -12,6 +12,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Socket } from 'socket.io';
 import {
+  BAN_RESTRICTION,
   CLIENT_EVENT,
   SERVER_EVENT,
   bestMoveGuessPayloadSchema,
@@ -26,6 +27,8 @@ import {
   sheriffCheckPayloadSchema,
 } from '@mafia/shared';
 import { z } from 'zod';
+
+import { socketHasRestriction } from '../../plugins/socketio.js';
 
 import { attachIO, broadcastGameState, gameRoomName } from './game.broadcast.js';
 import { projectFor } from './game.engine.js';
@@ -78,6 +81,12 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'invalid_payload' });
         return;
       }
+      // Просмотр live-партий гейчится отдельно от participation — если у
+      // юзера VIEW_GAMES, он вообще не должен видеть state, даже как игрок.
+      if (socketHasRestriction(socket, BAN_RESTRICTION.VIEW_GAMES)) {
+        ack?.({ ok: false, error: 'banned' });
+        return;
+      }
       if (!isParticipant(parsed.data.gameId, userId)) {
         ack?.({ ok: false, error: 'not_participant' });
         return;
@@ -99,6 +108,18 @@ export function registerGameGateway(app: FastifyInstance): void {
       }
       ack?.({ ok: true });
     });
+
+    // Игровые мутации блокируются если у юзера PARTICIPATE_GAMES бан —
+    // даже если socket был открыт до бана. HTTP-роуты уже защищены
+    // app.requireRestrictionNotSet; гейт для socket-канала встроен в
+    // withSchema + inline-проверки ниже для handler'ов без withSchema.
+    const guardParticipation = (ack?: (response: unknown) => void): boolean => {
+      if (socketHasRestriction(socket, BAN_RESTRICTION.PARTICIPATE_GAMES)) {
+        ack?.({ ok: false, error: 'banned' });
+        return false;
+      }
+      return true;
+    };
 
     // Player actions
     socket.on(
@@ -140,6 +161,7 @@ export function registerGameGateway(app: FastifyInstance): void {
 
     // Judge actions
     socket.on(GAME_EVENT_NAME.ADVANCE_PHASE, async (_payload, ack) => {
+      if (!guardParticipation(ack)) return;
       const gameId = getGameIdFromSocket(socket);
       if (!gameId) {
         ack?.({ ok: false, error: 'not_in_game' });
@@ -149,6 +171,7 @@ export function registerGameGateway(app: FastifyInstance): void {
       respondAndBroadcast(gameId, result, ack);
     });
     socket.on(CLIENT_EVENT.JUDGE_REVERT, async (_payload, ack) => {
+      if (!guardParticipation(ack)) return;
       const gameId = getGameIdFromSocket(socket);
       if (!gameId) {
         ack?.({ ok: false, error: 'no_game' });
@@ -158,6 +181,7 @@ export function registerGameGateway(app: FastifyInstance): void {
       respondAndBroadcast(gameId, result, ack);
     });
     socket.on(GAME_EVENT_NAME.ADVANCE_SPEAKER, async (_payload, ack) => {
+      if (!guardParticipation(ack)) return;
       const gameId = getGameIdFromSocket(socket);
       if (!gameId) {
         ack?.({ ok: false, error: 'not_in_game' });
@@ -200,6 +224,7 @@ export function registerGameGateway(app: FastifyInstance): void {
     );
 
     socket.on(CLIENT_EVENT.SAY_OUT_OF_TURN, async (_payload, ack) => {
+      if (!guardParticipation(ack)) return;
       const gameId = getGameIdFromSocket(socket);
       if (!gameId) {
         ack?.({ ok: false, error: 'not_in_game' });
@@ -210,7 +235,9 @@ export function registerGameGateway(app: FastifyInstance): void {
     });
 
     // The player presses the red "Выйти из игры" button. No payload — they remove
-    // themselves. Same effect as the judge removing them.
+    // themselves. Same effect as the judge removing them. Этот action НЕ
+    // гейчим под participate_games — забанённый игрок наоборот должен иметь
+    // возможность выйти из игры в которой случайно остался.
     socket.on(CLIENT_EVENT.LEAVE_GAME, async (_payload, ack) => {
       const gameId = getGameIdFromSocket(socket);
       if (!gameId) {
@@ -245,6 +272,12 @@ function withSchema<T>(
   invoke: (data: T) => Promise<ServiceResult<unknown>>,
 ) {
   return async (payload: unknown, ack?: (response: unknown) => void) => {
+    // PARTICIPATE_GAMES бан перекрывает все мутирующие game-actions через
+    // socket (HTTP-роуты гейчатся отдельно через app.requireRestrictionNotSet).
+    if (socketHasRestriction(socket, BAN_RESTRICTION.PARTICIPATE_GAMES)) {
+      ack?.({ ok: false, error: 'banned' });
+      return;
+    }
     const parsed = schema.safeParse(payload);
     if (!parsed.success) {
       ack?.({ ok: false, error: 'invalid_payload' });

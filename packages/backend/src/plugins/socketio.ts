@@ -8,6 +8,7 @@
 
 import fp from 'fastify-plugin';
 import { Server as IOServer, type Socket as IOSocket } from 'socket.io';
+import { BAN_RESTRICTION, type BanRestrictionCode } from '@mafia/shared';
 
 import { env } from '../config/env.js';
 import { prisma } from '../db/prisma.client.js';
@@ -23,11 +24,23 @@ declare module 'fastify' {
   }
 }
 
-// What we store on each authenticated socket. Mirrors the JWT payload.
+// What we store on each authenticated socket. Mirrors the JWT payload plus
+// the user's current ban-restrictions snapshot (re-checked on connect and
+// every RECHECK_INTERVAL_MS so a fresh ban kicks in within that window even
+// for a still-connected socket).
 export interface SocketUser {
   sub: string;
   nickname: string;
   v: number;
+  banRestrictions: BanRestrictionCode[];
+}
+
+// Хелпер для gateway-handler'ов: проверить ограничение на socket.data.user.
+// HTTP-роуты используют app.requireRestrictionNotSet preHandler. Socket-стороне
+// нужен аналог — handler смотрит на cache из socket.data.user, обновляется
+// в io.use auth и в RECHECK_INTERVAL_MS.
+export function socketHasRestriction(socket: IOSocket, code: BanRestrictionCode): boolean {
+  return socket.data.user?.banRestrictions?.includes(code) ?? false;
 }
 
 declare module 'socket.io' {
@@ -71,27 +84,35 @@ export const socketioPlugin = fp(
         next(new Error('unauthenticated'));
         return;
       }
-      let payload: SocketUser;
+      let payload: { sub: string; nickname: string; v: number };
       try {
-        payload = app.jwt.verify<SocketUser>(token);
+        payload = app.jwt.verify<{ sub: string; nickname: string; v: number }>(token);
       } catch {
         next(new Error('invalid_token'));
         return;
       }
       // Same revocation gate as the HTTP authenticate decorator: compare the
-      // JWT's `v` against the DB row's tokenVersion. We only check at connect
-      // time — long-lived games run for ~60 minutes so a stricter per-event
-      // check would add a DB lookup per game action; if that gap matters later,
-      // add a periodic re-verify hook to disconnect stale sockets.
+      // JWT's `v` against the DB row's tokenVersion. Дополнительно — тащим
+      // banRestrictions, чтобы (1) отбить site_access сразу на connect и
+      // (2) положить флаги в socket.data для per-event гейтов.
       const dbUser = await prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { tokenVersion: true },
+        select: { tokenVersion: true, banRestrictions: true },
       });
       if (!dbUser || dbUser.tokenVersion !== payload.v) {
         next(new Error('session_revoked'));
         return;
       }
-      socket.data.user = payload;
+      if (dbUser.banRestrictions.includes(BAN_RESTRICTION.SITE_ACCESS)) {
+        next(new Error('banned_site_access'));
+        return;
+      }
+      socket.data.user = {
+        sub: payload.sub,
+        nickname: payload.nickname,
+        v: payload.v,
+        banRestrictions: dbUser.banRestrictions as BanRestrictionCode[],
+      };
       next();
     });
 
@@ -170,9 +191,11 @@ export const socketioPlugin = fp(
       return closed;
     });
 
-    // Periodically re-check tokenVersion for all connected sockets so that a
-    // logout or account deletion takes effect within this window even for
-    // already-connected game sockets (which are not re-authenticated per-event).
+    // Periodically re-check tokenVersion AND banRestrictions for all
+    // connected sockets. tokenVersion bump (logout, account delete, admin
+    // restriction change) drops the socket. Restrictions snapshot in
+    // socket.data is refreshed so per-event gates use up-to-date flags
+    // without a DB lookup per event.
     const RECHECK_INTERVAL_MS = 5 * 60 * 1000;
     const recheckTimer = setInterval(async () => {
       const sockets = await io.fetchSockets();
@@ -182,11 +205,22 @@ export const socketioPlugin = fp(
           if (!user) return;
           const dbUser = await prisma.user.findUnique({
             where: { id: user.sub },
-            select: { tokenVersion: true },
+            select: { tokenVersion: true, banRestrictions: true },
           });
           if (!dbUser || dbUser.tokenVersion !== user.v) {
             s.disconnect(true);
+            return;
           }
+          if (dbUser.banRestrictions.includes(BAN_RESTRICTION.SITE_ACCESS)) {
+            s.disconnect(true);
+            return;
+          }
+          // In-place обновление кеша restrictions — следующий event-handler
+          // увидит свежий список без DB-запроса.
+          s.data.user = {
+            ...user,
+            banRestrictions: dbUser.banRestrictions as BanRestrictionCode[],
+          };
         }),
       );
     }, RECHECK_INTERVAL_MS);

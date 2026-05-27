@@ -101,34 +101,50 @@ export async function createLobby(
   const passwordHash = input.password ? await hashPassword(input.password) : null;
   const hostAsJudge = input.hostRole === MEMBER_ROLE.JUDGE;
 
-  const lobby = await prisma.lobby.create({
-    data: {
-      name: input.name,
-      isPrivate: input.isPrivate,
-      passwordHash,
-      hostId,
-      rulesetSlug: DEFAULT_RULESET_SLUG,
-      members: {
-        create: {
-          userId: hostId,
-          seat: hostAsJudge ? null : GAME.FIRST_SEAT,
-          isJudge: hostAsJudge,
-        },
-      },
-    },
-    include: {
-      host: { select: { id: true, nickname: true, publicCode: true } },
-      game: { select: { id: true } },
-      members: {
-        include: {
-          user: {
-            select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+  let lobby;
+  try {
+    lobby = await prisma.lobby.create({
+      data: {
+        name: input.name,
+        isPrivate: input.isPrivate,
+        passwordHash,
+        hostId,
+        rulesetSlug: DEFAULT_RULESET_SLUG,
+        members: {
+          create: {
+            userId: hostId,
+            seat: hostAsJudge ? null : GAME.FIRST_SEAT,
+            isJudge: hostAsJudge,
           },
         },
-        orderBy: [{ isJudge: 'desc' }, { seat: 'asc' }],
       },
-    },
-  });
+      include: {
+        host: { select: { id: true, nickname: true, publicCode: true } },
+        game: { select: { id: true } },
+        members: {
+          include: {
+            user: {
+              select: { id: true, nickname: true, publicCode: true, avatarUrl: true, isBot: true },
+            },
+          },
+          orderBy: [{ isJudge: 'desc' }, { seat: 'asc' }],
+        },
+      },
+    });
+  } catch (error) {
+    // Partial unique index Lobby_hostId_active_unique срабатывает если
+    // юзер успел проскочить findFirst-гейт двумя параллельными запросами.
+    // Возвращаем тот же error code, что и upfront-проверка — клиент
+    // видит единую UX-ошибку.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002' &&
+      (error.meta?.target as string | undefined)?.includes('hostId')
+    ) {
+      return fail(LOBBY_ERROR.HOST_HAS_ACTIVE_LOBBY);
+    }
+    throw error;
+  }
 
   void broadcastLobbyUpdate(lobby.id);
   return ok(toLobbyDetails(lobby, hostId));
