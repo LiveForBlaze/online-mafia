@@ -228,7 +228,7 @@ function LeaderboardTable({
                   <CountryLabel code={user.country} />
                 </td>
                 <td className="px-3 py-2 text-muted text-xs hidden lg:table-cell truncate max-w-[160px]">
-                  {user.clubName ?? '—'}
+                  {user.primaryClubName ?? '—'}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{user.gamesPlayed}</td>
                 <td className="px-3 py-2 text-right tabular-nums font-semibold text-fg">
