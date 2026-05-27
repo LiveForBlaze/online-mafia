@@ -13,6 +13,7 @@ import { securityPlugin } from './plugins/security.js';
 import { socketioPlugin } from './plugins/socketio.js';
 import { adminModule } from './modules/admin/index.js';
 import { authModule } from './modules/auth/index.js';
+import { clubsModule } from './modules/clubs/index.js';
 import { lobbyModule } from './modules/lobby/index.js';
 import { gameModule } from './modules/game/index.js';
 import { userModule } from './modules/users/users.routes.js';
@@ -124,6 +125,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(userModule, { prefix: `${API_PREFIX}/users` });
   await app.register(lobbyModule, { prefix: `${API_PREFIX}/lobby` });
   await app.register(gameModule, { prefix: `${API_PREFIX}/game` });
+  await app.register(clubsModule, { prefix: `${API_PREFIX}/clubs` });
   await app.register(adminModule, { prefix: `${API_PREFIX}/admin` });
 
   return app;
