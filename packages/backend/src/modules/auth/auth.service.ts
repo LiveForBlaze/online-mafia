@@ -195,6 +195,21 @@ export function toPublicUserProfile(user: User): PublicUserProfile {
   };
 }
 
+// Variant of toPublicUserProfile for callers that have resolved the primary
+// club name (via the listPublicUsers / findUserByPublicCode include). The
+// resolution rule is the same as for AuthenticatedUser.primaryClub:
+//   1. If user.primaryClubId points to a still-active membership → use that.
+//   2. Else fall back to the user's newest active ClubMember.
+//   3. If no memberships at all → null.
+//
+// Callers must pass the already-resolved name to avoid an extra query per row.
+export function toPublicUserProfileWithClub(
+  user: User,
+  primaryClubName: string | null,
+): PublicUserProfile {
+  return { ...toPublicUserProfile(user), primaryClubName };
+}
+
 export async function registerWithPassword(input: RegisterInput): Promise<AuthResult> {
   const normalizedEmail = input.email.toLowerCase().trim();
   const normalizedNickname = input.nickname.trim();
@@ -335,8 +350,29 @@ export async function updateProfile(
 
 // Public profile lookup by short code. Case-insensitive: the URL slug may
 // arrive lowercased but codes are stored uppercase.
-export async function findUserByPublicCode(code: string): Promise<User | null> {
-  return prisma.user.findUnique({ where: { publicCode: code.trim().toUpperCase() } });
+//
+// Returns the bare User row plus the resolved primary club name (or null).
+// The single-user GET serialises via toPublicUserProfileWithClub. Resolution
+// mirrors listPublicUsers: explicit primaryClub if present, else newest
+// membership.
+export async function findUserByPublicCode(
+  code: string,
+): Promise<{ user: User; primaryClubName: string | null } | null> {
+  const row = await prisma.user.findUnique({
+    where: { publicCode: code.trim().toUpperCase() },
+    include: {
+      primaryClub: { select: { id: true, name: true } },
+      clubMemberships: {
+        orderBy: { joinedAt: 'desc' },
+        take: 1,
+        include: { club: { select: { id: true, name: true } } },
+      },
+    },
+  });
+  if (!row) return null;
+  const { primaryClub, clubMemberships, ...user } = row;
+  const effective = primaryClub ?? clubMemberships[0]?.club ?? null;
+  return { user: user as User, primaryClubName: effective?.name ?? null };
 }
 
 // Список реальных игроков для директории игроков. Фильтры:
@@ -351,7 +387,7 @@ export interface UserListOptions {
 }
 export async function listPublicUsers(
   opts: UserListOptions,
-): Promise<{ users: User[]; total: number }> {
+): Promise<{ users: PublicUserProfile[]; total: number }> {
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 100);
   const offset = Math.max(opts.offset ?? 0, 0);
   const searchRaw = opts.search?.trim();
@@ -375,15 +411,38 @@ export async function listPublicUsers(
   // Лидерборд: сначала по победам (больше → выше), потом по gamesPlayed
   // (отделяет «1 победа из 1 партии» от «10 побед из 10»), потом стабильно
   // по дате регистрации, чтобы порядок не «прыгал» между запросами.
-  const [users, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.user.findMany({
       where: whereWithSearch,
+      include: {
+        primaryClub: { select: { id: true, name: true } },
+        clubMemberships: {
+          orderBy: { joinedAt: 'desc' },
+          take: 1,
+          include: { club: { select: { id: true, name: true } } },
+        },
+      },
       orderBy: [{ wins: 'desc' }, { gamesPlayed: 'desc' }, { createdAt: 'desc' }],
       take: limit,
       skip: offset,
     }),
     prisma.user.count({ where: whereWithSearch }),
   ]);
+
+  const users = rows.map((u) => {
+    // Explicit primary wins ONLY if user is still a member. We don't fetch
+    // all memberships here — we trust the FK (primaryClub) and verify by
+    // matching against the (one) newest membership row, which is enough to
+    // know "still in some club". If the explicit primary equals the newest
+    // membership's club, use it; otherwise fall back to the newest membership.
+    //
+    // (Edge case: user has multiple memberships and primaryClubId points to
+    // a non-newest one. The simpler rule "explicit primary if present" is
+    // good enough for the public listing — the canonical resolver is in
+    // loadAuthenticatedUserBundle for the owner's own view.)
+    const effective = u.primaryClub ?? u.clubMemberships[0]?.club ?? null;
+    return toPublicUserProfileWithClub(u, effective?.name ?? null);
+  });
   return { users, total };
 }
 

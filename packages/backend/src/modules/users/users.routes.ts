@@ -12,7 +12,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import {
   findUserByPublicCode,
   listPublicUsers,
-  toPublicUserProfile,
+  toPublicUserProfileWithClub,
 } from '../auth/auth.service.js';
 
 const HTTP_STATUS = {
@@ -33,10 +33,7 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
         limit: Number.isFinite(limit) ? limit : undefined,
         offset: Number.isFinite(offset) ? offset : undefined,
       });
-      return reply.code(HTTP_STATUS.OK).send({
-        users: users.map(toPublicUserProfile),
-        total,
-      });
+      return reply.code(HTTP_STATUS.OK).send({ users, total });
     },
   );
 
@@ -44,11 +41,13 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
     '/:code',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const user = await findUserByPublicCode(request.params.code);
-      if (!user) {
+      const result = await findUserByPublicCode(request.params.code);
+      if (!result) {
         return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'user_not_found' });
       }
-      return reply.code(HTTP_STATUS.OK).send({ user: toPublicUserProfile(user) });
+      return reply
+        .code(HTTP_STATUS.OK)
+        .send({ user: toPublicUserProfileWithClub(result.user, result.primaryClubName) });
     },
   );
 };
