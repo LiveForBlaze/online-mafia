@@ -8,6 +8,77 @@
     "about": "Аб праекце",
     "admin": "Адмін"
   },
+  "admin": {
+    "title": "Адмінка",
+    "subtitle": "Кіраванне лобі і карыстальнікамі. Усе дзеянні фіксуюцца ў логах.",
+    "shownOf": "Паказана {{shown}} з {{total}}",
+    "loadMore": "Загрузіць яшчэ",
+    "loadingMore": "Загрузка…",
+    "tabs": {
+      "lobbies": "Лобі",
+      "users": "Карыстальнікі"
+    },
+    "lobbies": {
+      "searchPlaceholder": "Пошук лобі па назве",
+      "filterActive": "Актыўныя",
+      "filterAll": "Усе (з зачыненымі)",
+      "filterWaiting": "Чакаюць",
+      "filterInGame": "Ідуць",
+      "filterClosed": "Толькі зачыненыя",
+      "count": "Знойдзена: {{count}}",
+      "empty": "Лобі няма",
+      "forceClose": "Зачыніць",
+      "renamed": "Лобі перайменавана",
+      "closed": "Лобі зачынена",
+      "confirmCloseTitle": "Зачыніць лобі?",
+      "confirmClose": "Зачыніць лобі «{{name}}»? Дзеянне незваротнае.",
+      "renameHint": "Клікніце каб перайменаваць",
+      "col": {
+        "name": "Назва",
+        "host": "Вядучы",
+        "status": "Статус",
+        "members": "Гульцы",
+        "actions": "Дзеянні"
+      }
+    },
+    "users": {
+      "searchPlaceholder": "Пошук па ніку, email ці кодзе",
+      "showBots": "Паказваць ботаў",
+      "count": "Знойдзена: {{count}}",
+      "empty": "Карыстальнікаў не знойдзена",
+      "renameHint": "Клікніце каб перайменаваць",
+      "renameAction": "Перайменаваць",
+      "renamed": "Нік абноўлены",
+      "deleted": "Акаўнт выдалены",
+      "restrictionsApplied": "Абмежаванні ўжытыя",
+      "statusBlocked": "Заблакаваны",
+      "statusRestricted": "Абмежаваны ({{count}})",
+      "restrictionsLabel": "Абмежаванні",
+      "reasonLabel": "Прычына (відаць карыстальніку)",
+      "reasonPlaceholder": "Напрыклад: абразы ў чаце",
+      "apply": "Ужыць",
+      "applyAll": "Усе абмежаванні",
+      "unban": "Зняць бан",
+      "delete": "Выдаліць акаўнт",
+      "confirmDeleteTitle": "Выдаліць акаўнт?",
+      "confirmDelete": "Выдаліць акаўнт «{{name}}»? Профіль будзе ананімізаваны, гісторыя партый захаваецца.",
+      "bannedAt": "Забанены",
+      "restrictions": {
+        "create_lobby": "Стварэнне лобі",
+        "participate_games": "Удзел у гульнях",
+        "view_games": "Прагляд гульняў",
+        "edit_profile": "Рэдагаванне профілю",
+        "site_access": "Поўная блакіроўка"
+      },
+      "restrictionsDesc": {
+        "create_lobby": "Не зможа ствараць новыя лобі",
+        "participate_games": "Не зможа далучацца да лобі і гуляць",
+        "view_games": "Не зможа глядзець live-партыі",
+        "edit_profile": "Не зможа мяняць нік, аватар і назву клуба",
+        "site_access": "Не зможа зайсці на сайт увогуле (логін дасць banned-экран)"
+      }
+    }
+  },
   "banned": {
     "title": "Доступ закрыты",
     "description": "Ваш акаўнт заблакаваны адміністрацыяй. Звяжыцеся з падтрымкай, калі лічыце гэта памылкай.",

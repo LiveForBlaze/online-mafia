@@ -8,6 +8,77 @@
     "about": "Про проєкт",
     "admin": "Адмін"
   },
+  "admin": {
+    "title": "Адмінка",
+    "subtitle": "Керування лобі та користувачами. Усі дії фіксуються в логах.",
+    "shownOf": "Показано {{shown}} з {{total}}",
+    "loadMore": "Завантажити ще",
+    "loadingMore": "Завантаження…",
+    "tabs": {
+      "lobbies": "Лобі",
+      "users": "Користувачі"
+    },
+    "lobbies": {
+      "searchPlaceholder": "Пошук лобі за назвою",
+      "filterActive": "Активні",
+      "filterAll": "Усі (вкл. закриті)",
+      "filterWaiting": "Очікують",
+      "filterInGame": "Ідуть",
+      "filterClosed": "Лише закриті",
+      "count": "Знайдено: {{count}}",
+      "empty": "Немає лобі",
+      "forceClose": "Закрити",
+      "renamed": "Лобі перейменовано",
+      "closed": "Лобі закрито",
+      "confirmCloseTitle": "Закрити лобі?",
+      "confirmClose": "Закрити лобі «{{name}}»? Дія незворотна.",
+      "renameHint": "Клацніть щоб перейменувати",
+      "col": {
+        "name": "Назва",
+        "host": "Ведучий",
+        "status": "Статус",
+        "members": "Гравці",
+        "actions": "Дії"
+      }
+    },
+    "users": {
+      "searchPlaceholder": "Пошук за ніком, email або кодом",
+      "showBots": "Показувати ботів",
+      "count": "Знайдено: {{count}}",
+      "empty": "Користувачів не знайдено",
+      "renameHint": "Клацніть щоб перейменувати",
+      "renameAction": "Перейменувати",
+      "renamed": "Нікнейм оновлено",
+      "deleted": "Акаунт видалено",
+      "restrictionsApplied": "Обмеження застосовано",
+      "statusBlocked": "Заблоковано",
+      "statusRestricted": "Обмежено ({{count}})",
+      "restrictionsLabel": "Обмеження",
+      "reasonLabel": "Причина (видно користувачу)",
+      "reasonPlaceholder": "Наприклад: образи в чаті",
+      "apply": "Застосувати",
+      "applyAll": "Усі обмеження",
+      "unban": "Зняти бан",
+      "delete": "Видалити акаунт",
+      "confirmDeleteTitle": "Видалити акаунт?",
+      "confirmDelete": "Видалити акаунт «{{name}}»? Профіль буде анонімізовано, історія партій збережеться.",
+      "bannedAt": "Забанено",
+      "restrictions": {
+        "create_lobby": "Створення лобі",
+        "participate_games": "Участь у іграх",
+        "view_games": "Перегляд ігор",
+        "edit_profile": "Редагування профілю",
+        "site_access": "Повне блокування"
+      },
+      "restrictionsDesc": {
+        "create_lobby": "Не зможе створювати нові лобі",
+        "participate_games": "Не зможе приєднуватись до лобі та грати",
+        "view_games": "Не зможе дивитись live-партії",
+        "edit_profile": "Не зможе змінювати нік, аватар та назву клубу",
+        "site_access": "Не зможе зайти на сайт взагалі (логін дасть banned-екран)"
+      }
+    }
+  },
   "banned": {
     "title": "Доступ закрито",
     "description": "Ваш акаунт заблоковано адміністрацією. Зверніться до підтримки, якщо вважаєте це помилкою.",

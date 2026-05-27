@@ -8,6 +8,77 @@
     "about": "About",
     "admin": "Admin"
   },
+  "admin": {
+    "title": "Admin panel",
+    "subtitle": "Manage lobbies and users. All actions are logged.",
+    "shownOf": "Showing {{shown}} of {{total}}",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "tabs": {
+      "lobbies": "Lobbies",
+      "users": "Users"
+    },
+    "lobbies": {
+      "searchPlaceholder": "Search lobbies by name",
+      "filterActive": "Active",
+      "filterAll": "All (incl. closed)",
+      "filterWaiting": "Waiting",
+      "filterInGame": "In game",
+      "filterClosed": "Closed only",
+      "count": "Found: {{count}}",
+      "empty": "No lobbies",
+      "forceClose": "Close",
+      "renamed": "Lobby renamed",
+      "closed": "Lobby closed",
+      "confirmCloseTitle": "Close this lobby?",
+      "confirmClose": "Close lobby \"{{name}}\"? This cannot be undone.",
+      "renameHint": "Click to rename",
+      "col": {
+        "name": "Name",
+        "host": "Host",
+        "status": "Status",
+        "members": "Players",
+        "actions": "Actions"
+      }
+    },
+    "users": {
+      "searchPlaceholder": "Search by nickname, email or code",
+      "showBots": "Show bots",
+      "count": "Found: {{count}}",
+      "empty": "No users found",
+      "renameHint": "Click to rename",
+      "renameAction": "Rename",
+      "renamed": "Nickname updated",
+      "deleted": "Account deleted",
+      "restrictionsApplied": "Restrictions applied",
+      "statusBlocked": "Blocked",
+      "statusRestricted": "Restricted ({{count}})",
+      "restrictionsLabel": "Restrictions",
+      "reasonLabel": "Reason (visible to user)",
+      "reasonPlaceholder": "e.g. abuse in chat",
+      "apply": "Apply",
+      "applyAll": "All restrictions",
+      "unban": "Remove ban",
+      "delete": "Delete account",
+      "confirmDeleteTitle": "Delete account?",
+      "confirmDelete": "Delete account \"{{name}}\"? Profile will be anonymised; game history is preserved.",
+      "bannedAt": "Banned at",
+      "restrictions": {
+        "create_lobby": "Create lobbies",
+        "participate_games": "Participate in games",
+        "view_games": "Watch games",
+        "edit_profile": "Edit profile",
+        "site_access": "Full site block"
+      },
+      "restrictionsDesc": {
+        "create_lobby": "Cannot create new lobbies",
+        "participate_games": "Cannot join lobbies or play",
+        "view_games": "Cannot watch live games",
+        "edit_profile": "Cannot change nickname, avatar or club name",
+        "site_access": "Cannot access the site at all (login shows banned screen)"
+      }
+    }
+  },
   "banned": {
     "title": "Account suspended",
     "description": "Your account has been blocked by an administrator. Contact support if you think this is a mistake.",
