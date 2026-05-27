@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 import { GAME_PHASE, LOBBY, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { logger } from '../../lib/logger.js';
 import { withLock } from '../../lib/mutex.js';
 import { broadcastLobbyUpdate } from '../lobby/lobby.broadcast.js';
 import { broadcastGameState } from './game.broadcast.js';
@@ -438,6 +439,8 @@ export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
   // Финализируем статистику — winner=null, поэтому все игроки получат
   // losses+1. Хост ушёл, никто не победил.
   await finalizeGameStats(game.id);
+  // Боты этого матча — одноразовые, чистим из БД.
+  await cleanupBotsAfterGame(game.id);
 
   const state = getGame(game.id);
   if (state && state.status !== 'finished') {
@@ -615,8 +618,44 @@ async function commit(state: GameState): Promise<GameState> {
     // participant exactly once. Guarded by Game.statsApplied inside
     // finalizeGameStats, so retries and double-finishes are safe.
     await finalizeGameStats(state.id);
+    // Боты — одноразовые: создаются для конкретного лобби, после игры
+    // никому не нужны. Чистим из БД чтобы не копились.
+    await cleanupBotsAfterGame(state.id);
   }
   return state;
+}
+
+// Удаляет ботов-участников указанной игры. Бот = User.isBot=true. Безопасно
+// вызывать многократно (idempotent): если ботов уже нет — no-op. Не падает
+// если бот фигурирует в GameEvent.actorId — переписываем actorId в NULL
+// перед DELETE User, иначе FK RESTRICT отбьёт удаление.
+//
+// Порядок важен: сначала разрываем все ссылки, потом сам User.
+async function cleanupBotsAfterGame(gameId: string): Promise<void> {
+  const botParticipants = await prisma.gameParticipant.findMany({
+    where: { gameId, user: { isBot: true } },
+    select: { userId: true },
+  });
+  if (botParticipants.length === 0) return;
+  const botIds = botParticipants.map((p) => p.userId);
+  try {
+    await prisma.$transaction(async (tx) => {
+      // GameEvent.actorId is nullable — NULL'им чтобы FK не блокировал.
+      // Эвент-лог сохраняется, "actor" просто становится анонимным.
+      await tx.gameEvent.updateMany({
+        where: { actorId: { in: botIds } },
+        data: { actorId: null },
+      });
+      await tx.gameParticipant.deleteMany({ where: { userId: { in: botIds } } });
+      await tx.lobbyMember.deleteMany({ where: { userId: { in: botIds } } });
+      await tx.user.deleteMany({ where: { id: { in: botIds }, isBot: true } });
+    });
+  } catch (err) {
+    // Чистка ботов — best-effort. Если что-то помешало (FK от будущей
+    // модели, ручной import) — лучше пропустить и оставить ботов на DB hygiene
+    // sweep, чем сорвать commit'игры.
+    logger.warn({ err, gameId, botCount: botIds.length }, 'bot cleanup failed; skipping');
+  }
 }
 
 // ---- Player actions ----
