@@ -9,6 +9,7 @@ import { BAN_RESTRICTION, SERVER_EVENT, lobbyChatSendPayloadSchema } from '@mafi
 import { z } from 'zod';
 
 import { prisma } from '../../db/prisma.client.js';
+import { logger } from '../../lib/logger.js';
 import { socketHasRestriction } from '../../plugins/socketio.js';
 
 import { attachIO, broadcastLobbyUpdate, lobbyRoomName } from './lobby.broadcast.js';
@@ -44,6 +45,17 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         select: { userId: true, isReady: true },
       });
       if (!member) {
+        logger.info(
+          {
+            diag: 'ws.lobby.join',
+            lobbyId: parsed.data.lobbyId,
+            userId,
+            nickname: socket.data.user?.nickname,
+            socketId: socket.id,
+            result: 'not_member',
+          },
+          'diag LOBBY_JOIN rejected',
+        );
         ack?.({ ok: false, error: 'not_member' });
         return;
       }
@@ -52,6 +64,17 @@ export function registerLobbyGateway(app: FastifyInstance): void {
       // на экране останется устаревший «Готов», пока другие будут видеть
       // его «не готов».
       await socket.join(lobbyRoomName(parsed.data.lobbyId));
+      logger.info(
+        {
+          diag: 'ws.lobby.join',
+          lobbyId: parsed.data.lobbyId,
+          userId,
+          nickname: socket.data.user?.nickname,
+          socketId: socket.id,
+          result: 'joined',
+        },
+        'diag LOBBY_JOIN ok',
+      );
       // Returning to the lobby (fresh page mount or socket reconnect) always
       // drops the player back to "not ready". The "Готов" flag is a deliberate
       // act, not a sticky preference — if the player walked off to change
@@ -125,6 +148,16 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         return;
       }
       await socket.leave(lobbyRoomName(parsed.data.lobbyId));
+      logger.info(
+        {
+          diag: 'ws.lobby.leave',
+          lobbyId: parsed.data.lobbyId,
+          userId: socket.data.user?.sub,
+          nickname: socket.data.user?.nickname,
+          socketId: socket.id,
+        },
+        'diag LOBBY_LEAVE',
+      );
       // Игрок ушёл с экрана лобби (navigate / close-tab fallback / etc.) —
       // нельзя оставлять его «готов» в чужом списке. Сбрасываем флаг, но
       // не удаляем membership: если он вернётся обратно, всё что нужно — это

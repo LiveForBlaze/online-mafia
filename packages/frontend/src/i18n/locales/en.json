@@ -248,15 +248,7 @@
       "back": "Back",
       "logout": "Sign out",
       "loggingOut": "Signing out...",
-      "bannedEdit": "Profile editing is blocked by an administrator",
-      "primaryClub": {
-        "label": "Displayed club",
-        "none": "Don't show",
-        "hint": "Shown in the players table and public profile.",
-        "noneCta": "You aren't in any club yet.",
-        "findCta": "Find a club →",
-        "headSuffix": "head"
-      }
+      "bannedEdit": "Profile editing is blocked by an administrator"
     },
     "errors": {
       "invalid_credentials": "Wrong email or password",
@@ -277,7 +269,9 @@
     "title": "Clubs",
     "subtitle": "Create your club or join an existing one.",
     "createCta": "Create club",
-    "search": { "placeholder": "Search by name" },
+    "search": {
+      "placeholder": "Search by name"
+    },
     "list": {
       "empty": "No clubs yet — create the first one.",
       "headBy": "Head: {{nickname}}",
@@ -739,7 +733,15 @@
     "delete_modal_email_label": "Confirm email",
     "delete_modal_confirm": "Delete forever",
     "delete_modal_cancel": "Cancel",
-    "delete_modal_password_label": "Confirm password"
+    "delete_modal_password_label": "Confirm password",
+    "primaryClub": {
+      "label": "Displayed club",
+      "none": "Don't show",
+      "hint": "Shown in the players table and public profile.",
+      "noneCta": "You aren't in any club yet.",
+      "findCta": "Find a club →",
+      "headSuffix": "head"
+    }
   },
   "public_profile": {
     "code_label": "Code",

@@ -252,15 +252,7 @@
       "back": "Назад",
       "logout": "Выйсці з акаўнта",
       "loggingOut": "Выходзім...",
-      "bannedEdit": "Рэдагаванне профілю заблакавана адміністратарам",
-      "primaryClub": {
-        "label": "Адлюстроўваны клуб",
-        "none": "Не адлюстроўваць",
-        "hint": "Бачна ў табліцы гульцоў і публічным профілі.",
-        "noneCta": "Вы яшчэ не ў клубе.",
-        "findCta": "Знайсці клуб →",
-        "headSuffix": "кіраўнік"
-      }
+      "bannedEdit": "Рэдагаванне профілю заблакавана адміністратарам"
     },
     "errors": {
       "invalid_credentials": "Няправільны email або пароль",
@@ -281,7 +273,9 @@
     "title": "Клубы",
     "subtitle": "Стварыце свой клуб або далучайцеся да існуючага.",
     "createCta": "Стварыць клуб",
-    "search": { "placeholder": "Пошук па назве" },
+    "search": {
+      "placeholder": "Пошук па назве"
+    },
     "list": {
       "empty": "Клубаў пакуль няма — стварыце першы.",
       "headBy": "Кіраўнік: {{nickname}}",
@@ -762,7 +756,15 @@
     "delete_modal_email_label": "Пацвердзіце email",
     "delete_modal_confirm": "Выдаліць назаўсёды",
     "delete_modal_cancel": "Скасаваць",
-    "delete_modal_password_label": "Пацвердзіце пароль"
+    "delete_modal_password_label": "Пацвердзіце пароль",
+    "primaryClub": {
+      "label": "Адлюстроўваны клуб",
+      "none": "Не адлюстроўваць",
+      "hint": "Бачна ў табліцы гульцоў і публічным профілі.",
+      "noneCta": "Вы яшчэ не ў клубе.",
+      "findCta": "Знайсці клуб →",
+      "headSuffix": "кіраўнік"
+    }
   },
   "public_profile": {
     "code_label": "Код",

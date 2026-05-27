@@ -116,6 +116,30 @@ export const socketioPlugin = fp(
       next();
     });
 
+    io.on('connection', (socket) => {
+      app.log.info(
+        {
+          diag: 'ws.conn.up',
+          userId: socket.data.user?.sub,
+          nickname: socket.data.user?.nickname,
+          socketId: socket.id,
+        },
+        'diag socket connected',
+      );
+      socket.on('disconnect', (reason) => {
+        app.log.info(
+          {
+            diag: 'ws.conn.down',
+            userId: socket.data.user?.sub,
+            nickname: socket.data.user?.nickname,
+            socketId: socket.id,
+            reason,
+          },
+          'diag socket disconnected',
+        );
+      });
+    });
+
     // Per-USER rate limiter (раньше был per-socket — одна вкладка ≠ один
     // лимит, две вкладки давали N×лимит). Теперь ключ = `${userId}:${event}`,
     // одни ведра шарятся между всеми сокетами одного юзера. Защищаем оба

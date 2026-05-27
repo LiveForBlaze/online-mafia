@@ -102,11 +102,33 @@ export function broadcastGameState(gameId: string): void {
     logger.warn({ gameId }, 'broadcastGameState: no sockets in game room');
     return;
   }
+  logger.info(
+    {
+      diag: 'ws.game.broadcast',
+      gameId,
+      phase: state.phase,
+      dayNumber: state.dayNumber,
+      roomSize: room.size,
+    },
+    'diag broadcastGameState',
+  );
   for (const socketId of room) {
     const socket = ioInstance.sockets.sockets.get(socketId);
     if (!socket) continue;
     const userId = socket.data.user?.sub;
     if (!userId) continue;
     socket.emit(SERVER_EVENT.GAME_STATE_DELTA, projectFor(state, userId));
+    logger.info(
+      {
+        diag: 'ws.game.emit',
+        gameId,
+        socketId,
+        userId,
+        nickname: socket.data.user?.nickname,
+        phase: state.phase,
+        dayNumber: state.dayNumber,
+      },
+      'diag GAME_STATE_DELTA emitted',
+    );
   }
 }

@@ -5,7 +5,7 @@
 // so the audio hook ticks every 500 ms — that way the mic is silenced the
 // moment the minute expires, without waiting for the next server push.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
@@ -67,6 +67,26 @@ function useNowTick(intervalMs = 500): number {
 export function useShouldHearAudio(targetUserId: string): boolean {
   const now = useNowTick(500);
   const args = useMediaArgs(targetUserId, now);
+  const previousRef = useRef<boolean | null>(null);
   if (!args) return false;
-  return shouldHearParticipantAudio(args);
+  const result = shouldHearParticipantAudio(args);
+  if (previousRef.current !== result) {
+    previousRef.current = result;
+    console.info('[diag][audio.decision]', {
+      target: targetUserId,
+      targetSeat: args.targetSeat,
+      targetIsJudge: args.targetIsJudge,
+      targetIsAlive: args.targetIsAlive,
+      result,
+      phase: args.phase,
+      status: args.status,
+      viewerIsJudge: args.viewerIsJudge,
+      viewerIsAlive: args.viewerIsAlive,
+      judgeOverhearAll: args.judgeOverhearAll,
+      currentSpeakerSeat: args.currentSpeakerSeat,
+      farewellSeat: args.farewellSeat,
+      lastWordSeat: args.lastWordSeat,
+    });
+  }
+  return result;
 }

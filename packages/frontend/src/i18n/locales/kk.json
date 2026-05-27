@@ -248,15 +248,7 @@
       "back": "Артқа",
       "logout": "Шығу",
       "loggingOut": "Шығуда...",
-      "bannedEdit": "Профильді өңдеу әкімшімен бұғатталған",
-      "primaryClub": {
-        "label": "Көрсетілетін клуб",
-        "none": "Көрсетпеу",
-        "hint": "Ойыншылар кестесінде және ашық профильде көрінеді.",
-        "noneCta": "Сіз әлі клубта емессіз.",
-        "findCta": "Клуб табу →",
-        "headSuffix": "басшы"
-      }
+      "bannedEdit": "Профильді өңдеу әкімшімен бұғатталған"
     },
     "errors": {
       "invalid_credentials": "Email немесе құпиясөз қате",
@@ -277,7 +269,9 @@
     "title": "Клубтар",
     "subtitle": "Өз клубыңды құр немесе бар клубқа қосыл.",
     "createCta": "Клуб құру",
-    "search": { "placeholder": "Атау бойынша іздеу" },
+    "search": {
+      "placeholder": "Атау бойынша іздеу"
+    },
     "list": {
       "empty": "Әзірге клубтар жоқ — біріншісін құрыңыз.",
       "headBy": "Басшы: {{nickname}}",
@@ -739,7 +733,15 @@
     "delete_modal_email_label": "Email-ді растау",
     "delete_modal_confirm": "Мүлдем жою",
     "delete_modal_cancel": "Бас тарту",
-    "delete_modal_password_label": "Құпиясөзді растау"
+    "delete_modal_password_label": "Құпиясөзді растау",
+    "primaryClub": {
+      "label": "Көрсетілетін клуб",
+      "none": "Көрсетпеу",
+      "hint": "Ойыншылар кестесінде және ашық профильде көрінеді.",
+      "noneCta": "Сіз әлі клубта емессіз.",
+      "findCta": "Клуб табу →",
+      "headSuffix": "басшы"
+    }
   },
   "public_profile": {
     "code_label": "Код",

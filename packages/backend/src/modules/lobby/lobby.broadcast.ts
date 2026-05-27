@@ -11,6 +11,7 @@ import type { Server as IOServer } from 'socket.io';
 import { SERVER_EVENT } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { logger } from '../../lib/logger.js';
 
 import { toLobbyDetails } from './lobby.mappers.js';
 
@@ -40,9 +41,18 @@ export async function broadcastLobbiesContainingUser(userId: string): Promise<vo
 }
 
 export async function broadcastLobbyUpdate(lobbyId: string): Promise<void> {
-  if (!ioInstance) return;
+  if (!ioInstance) {
+    logger.warn({ diag: 'ws.lobby.broadcast', lobbyId }, 'diag broadcastLobbyUpdate: no io');
+    return;
+  }
   const room = ioInstance.sockets.adapter.rooms.get(lobbyRoomName(lobbyId));
-  if (!room || room.size === 0) return;
+  if (!room || room.size === 0) {
+    logger.info(
+      { diag: 'ws.lobby.broadcast', lobbyId, roomSize: room?.size ?? 0 },
+      'diag broadcastLobbyUpdate: empty room, skipping',
+    );
+    return;
+  }
 
   const lobby = await prisma.lobby.findUnique({
     where: { id: lobbyId },
@@ -61,6 +71,17 @@ export async function broadcastLobbyUpdate(lobbyId: string): Promise<void> {
   });
   if (!lobby) return;
 
+  logger.info(
+    {
+      diag: 'ws.lobby.broadcast',
+      lobbyId,
+      status: lobby.status,
+      gameId: lobby.game?.id ?? null,
+      roomSize: room.size,
+    },
+    'diag broadcastLobbyUpdate',
+  );
+
   for (const socketId of room) {
     const socket = ioInstance.sockets.sockets.get(socketId);
     if (!socket) continue;
@@ -68,5 +89,17 @@ export async function broadcastLobbyUpdate(lobbyId: string): Promise<void> {
     if (!userId) continue;
     const details = toLobbyDetails(lobby, userId);
     socket.emit(SERVER_EVENT.LOBBY_UPDATED, { lobby: details });
+    logger.info(
+      {
+        diag: 'ws.lobby.emit',
+        lobbyId,
+        socketId,
+        userId,
+        nickname: socket.data.user?.nickname,
+        lobbyStatus: lobby.status,
+        gameId: lobby.game?.id ?? null,
+      },
+      'diag LOBBY_UPDATED emitted',
+    );
   }
 }

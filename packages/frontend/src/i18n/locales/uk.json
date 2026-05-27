@@ -252,15 +252,7 @@
       "back": "Назад",
       "logout": "Вийти з акаунта",
       "loggingOut": "Виходимо...",
-      "bannedEdit": "Редагування профілю заблоковано адміністратором",
-      "primaryClub": {
-        "label": "Відображуваний клуб",
-        "none": "Не відображати",
-        "hint": "Видно в таблиці гравців і публічному профілі.",
-        "noneCta": "Ви ще не в клубі.",
-        "findCta": "Знайти клуб →",
-        "headSuffix": "голова"
-      }
+      "bannedEdit": "Редагування профілю заблоковано адміністратором"
     },
     "errors": {
       "invalid_credentials": "Невірний email або пароль",
@@ -281,7 +273,9 @@
     "title": "Клуби",
     "subtitle": "Створи свій клуб або приєднайся до існуючого.",
     "createCta": "Створити клуб",
-    "search": { "placeholder": "Пошук за назвою" },
+    "search": {
+      "placeholder": "Пошук за назвою"
+    },
     "list": {
       "empty": "Клубів поки немає — створи перший.",
       "headBy": "Голова: {{nickname}}",
@@ -762,7 +756,15 @@
     "delete_modal_email_label": "Підтвердьте email",
     "delete_modal_confirm": "Видалити назавжди",
     "delete_modal_cancel": "Скасувати",
-    "delete_modal_password_label": "Підтвердіть пароль"
+    "delete_modal_password_label": "Підтвердіть пароль",
+    "primaryClub": {
+      "label": "Відображуваний клуб",
+      "none": "Не відображати",
+      "hint": "Видно в таблиці гравців і публічному профілі.",
+      "noneCta": "Ви ще не в клубі.",
+      "findCta": "Знайти клуб →",
+      "headSuffix": "голова"
+    }
   },
   "public_profile": {
     "code_label": "Код",

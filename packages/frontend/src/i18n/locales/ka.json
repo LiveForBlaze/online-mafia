@@ -248,15 +248,7 @@
       "back": "უკან",
       "logout": "გასვლა",
       "loggingOut": "გასვლა...",
-      "bannedEdit": "პროფილის რედაქტირება დაბლოკილია ადმინისტრატორის მიერ",
-      "primaryClub": {
-        "label": "ნაჩვენები კლუბი",
-        "none": "არ აჩვენო",
-        "hint": "ხილულია მოთამაშეების ცხრილში და საჯარო პროფილში.",
-        "noneCta": "ჯერ არცერთ კლუბში არ ხართ.",
-        "findCta": "კლუბის ძებნა →",
-        "headSuffix": "ხელმძღვანელი"
-      }
+      "bannedEdit": "პროფილის რედაქტირება დაბლოკილია ადმინისტრატორის მიერ"
     },
     "errors": {
       "invalid_credentials": "არასწორი email ან პაროლი",
@@ -277,7 +269,9 @@
     "title": "კლუბები",
     "subtitle": "შექმენი საკუთარი კლუბი ან გაწევრიანდი არსებულში.",
     "createCta": "კლუბის შექმნა",
-    "search": { "placeholder": "ძებნა სახელით" },
+    "search": {
+      "placeholder": "ძებნა სახელით"
+    },
     "list": {
       "empty": "კლუბები ჯერ არ არის — შექმენი პირველი.",
       "headBy": "ხელმძღვანელი: {{nickname}}",
@@ -739,7 +733,15 @@
     "delete_modal_email_label": "Email-ის დადასტურება",
     "delete_modal_confirm": "სამუდამოდ წაშლა",
     "delete_modal_cancel": "გაუქმება",
-    "delete_modal_password_label": "პაროლის დადასტურება"
+    "delete_modal_password_label": "პაროლის დადასტურება",
+    "primaryClub": {
+      "label": "ნაჩვენები კლუბი",
+      "none": "არ აჩვენო",
+      "hint": "ხილულია მოთამაშეების ცხრილში და საჯარო პროფილში.",
+      "noneCta": "ჯერ არცერთ კლუბში არ ხართ.",
+      "findCta": "კლუბის ძებნა →",
+      "headSuffix": "ხელმძღვანელი"
+    }
   },
   "public_profile": {
     "code_label": "კოდი",

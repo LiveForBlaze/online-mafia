@@ -252,15 +252,7 @@
       "back": "Назад",
       "logout": "Выйти из аккаунта",
       "loggingOut": "Выходим...",
-      "bannedEdit": "Редактирование профиля заблокировано администратором",
-      "primaryClub": {
-        "label": "Отображаемый клуб",
-        "none": "Не отображать",
-        "hint": "Выбор виден в таблице игроков и публичном профиле.",
-        "noneCta": "Вы пока не в клубе.",
-        "findCta": "Найти клуб →",
-        "headSuffix": "глава"
-      }
+      "bannedEdit": "Редактирование профиля заблокировано администратором"
     },
     "errors": {
       "invalid_credentials": "Неверный email или пароль",
@@ -281,7 +273,9 @@
     "title": "Клубы",
     "subtitle": "Создавай свой клуб или присоединяйся к существующему.",
     "createCta": "Создать клуб",
-    "search": { "placeholder": "Поиск по названию" },
+    "search": {
+      "placeholder": "Поиск по названию"
+    },
     "list": {
       "empty": "Клубов пока нет — создай первый.",
       "headBy": "Глава: {{nickname}}",
@@ -762,7 +756,15 @@
     "delete_modal_email_label": "Подтвердите email",
     "delete_modal_confirm": "Удалить навсегда",
     "delete_modal_cancel": "Отмена",
-    "delete_modal_password_label": "Подтвердите пароль"
+    "delete_modal_password_label": "Подтвердите пароль",
+    "primaryClub": {
+      "label": "Отображаемый клуб",
+      "none": "Не отображать",
+      "hint": "Выбор виден в таблице игроков и публичном профиле.",
+      "noneCta": "Вы пока не в клубе.",
+      "findCta": "Найти клуб →",
+      "headSuffix": "глава"
+    }
   },
   "public_profile": {
     "code_label": "Код",

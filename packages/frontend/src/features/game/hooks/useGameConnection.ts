@@ -50,6 +50,25 @@ export function useGameConnection(gameId: string | undefined): void {
     }
     function handleState(payload: GameStateProjected) {
       setState(payload);
+      const viewerId = useAuthStore.getState().user?.id;
+      const viewer = viewerId ? payload.participants.find((p) => p.userId === viewerId) : undefined;
+      console.info('[diag][ws.game.delta]', {
+        gameId: payload.id,
+        phase: payload.phase,
+        dayNumber: payload.dayNumber,
+        status: payload.status,
+        currentSpeakerSeat: payload.currentSpeakerSeat,
+        farewellSeat: payload.farewellSeat,
+        lastWordSeat: payload.lastWordSeat,
+        viewer: viewer
+          ? {
+              seat: viewer.seat,
+              isJudge: viewer.isJudge,
+              isAlive: viewer.isAlive,
+              role: viewer.role,
+            }
+          : null,
+      });
     }
     function handleConnectError(err: Error) {
       setError(err.message);

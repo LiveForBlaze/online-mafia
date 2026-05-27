@@ -28,6 +28,7 @@ import {
 } from '@mafia/shared';
 import { z } from 'zod';
 
+import { logger } from '../../lib/logger.js';
 import { socketHasRestriction } from '../../plugins/socketio.js';
 
 import { attachIO, broadcastGameState, gameRoomName } from './game.broadcast.js';
@@ -106,6 +107,18 @@ export function registerGameGateway(app: FastifyInstance): void {
       if (state) {
         socket.emit(SERVER_EVENT.GAME_STATE_DELTA, projectFor(state, userId));
       }
+      logger.info(
+        {
+          diag: 'ws.game.join',
+          gameId: parsed.data.gameId,
+          userId,
+          nickname: socket.data.user?.nickname,
+          socketId: socket.id,
+          deliveredInitialState: Boolean(state),
+          phase: state?.phase ?? null,
+        },
+        'diag GAME_JOIN ok',
+      );
       ack?.({ ok: true });
     });
 
