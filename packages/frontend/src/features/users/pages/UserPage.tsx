@@ -11,7 +11,7 @@
 // retyping the email.
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Lock } from 'lucide-react';
@@ -46,6 +46,7 @@ import {
   useUpdateProfile,
 } from '@/features/auth/hooks/useAuth.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
+import { useSetPrimaryClub } from '@/features/clubs/hooks/useClubs.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 import { useGoBack } from '@/lib/use-go-back.js';
 import { ROUTE_PATH } from '@/routes/paths.js';
@@ -337,6 +338,7 @@ function OwnProfileSection() {
   const user = useAuthStore((state) => state.user);
   const updateNickname = useUpdateNickname();
   const updateProfile = useUpdateProfile();
+  const setPrimaryClub = useSetPrimaryClub();
   const deleteAccount = useDeleteAccount();
   const logout = useLogout();
   const authErrorMessage = useAuthErrorMessage();
@@ -344,7 +346,9 @@ function OwnProfileSection() {
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [realName, setRealName] = useState(user?.realName ?? '');
   const [country, setCountry] = useState(user?.country ?? '');
-  const [clubName, setClubName] = useState(user?.clubName ?? '');
+  const [primaryClubChoice, setPrimaryClubChoice] = useState<string | null>(
+    user?.primaryClub?.clubId ?? null,
+  );
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarSelection>(
     deriveAvatarSelection(user?.avatarUrl),
   );
@@ -359,7 +363,7 @@ function OwnProfileSection() {
     setNickname(user.nickname);
     setRealName(user.realName ?? '');
     setCountry(user.country ?? '');
-    setClubName(user.clubName ?? '');
+    setPrimaryClubChoice(user.primaryClub?.clubId ?? null);
     setSelectedAvatar(deriveAvatarSelection(user.avatarUrl));
   }, [user]);
 
@@ -376,14 +380,15 @@ function OwnProfileSection() {
   const dirty = useMemo(() => {
     if (!user) return false;
     const nickTrim = nickname.trim();
+    const currentPrimaryId = user.primaryClub?.clubId ?? null;
     return (
       (nickTrim.length >= 2 && nickTrim !== user.nickname) ||
       realName.trim() !== (user.realName ?? '') ||
       country.trim() !== (user.country ?? '') ||
-      clubName.trim() !== (user.clubName ?? '') ||
+      primaryClubChoice !== currentPrimaryId ||
       selectedAvatar !== currentAvatar
     );
-  }, [nickname, realName, country, clubName, selectedAvatar, currentAvatar, user]);
+  }, [nickname, realName, country, primaryClubChoice, selectedAvatar, currentAvatar, user]);
 
   if (!user) return null;
 
@@ -396,12 +401,14 @@ function OwnProfileSection() {
     return authErrorMessage(undefined);
   }
 
-  const saving = updateNickname.isPending || updateProfile.isPending;
+  const saving = updateNickname.isPending || updateProfile.isPending || setPrimaryClub.isPending;
   const saveError = updateNickname.isError
     ? extractErrorMessage(updateNickname.error)
     : updateProfile.isError
       ? extractErrorMessage(updateProfile.error)
-      : null;
+      : setPrimaryClub.isError
+        ? extractErrorMessage(setPrimaryClub.error)
+        : null;
   const deleteError = deleteAccount.isError ? extractErrorMessage(deleteAccount.error) : null;
   const emailMatches = confirmEmail.trim().toLowerCase() === user.email.trim().toLowerCase();
   const passwordOk = !user.hasPassword || confirmPassword.length > 0;
@@ -420,17 +427,19 @@ function OwnProfileSection() {
     const profileDirty =
       realName.trim() !== (user!.realName ?? '') ||
       country.trim() !== (user!.country ?? '') ||
-      clubName.trim() !== (user!.clubName ?? '') ||
       selectedAvatar !== currentAvatar;
     if (profileDirty) {
       tasks.push(
         updateProfile.mutateAsync({
           realName: realName.trim() === '' ? null : realName.trim(),
           country: country.trim() === '' ? null : country.trim(),
-          clubName: clubName.trim() === '' ? null : clubName.trim(),
           avatarId: selectedAvatar,
         }),
       );
+    }
+    const currentPrimaryId = user!.primaryClub?.clubId ?? null;
+    if (primaryClubChoice !== currentPrimaryId) {
+      tasks.push(setPrimaryClub.mutateAsync(primaryClubChoice));
     }
 
     try {
@@ -572,17 +581,35 @@ function OwnProfileSection() {
             <p className="mt-1 text-xs text-muted">{t('profile.country_hint')}</p>
           </div>
 
-          <div>
-            <FormField
-              label={t('profile.club')}
-              type="text"
-              maxLength={80}
-              value={clubName}
-              onChange={(event) => setClubName(event.target.value)}
-              disabled={saving || cannotEdit}
-            />
-            <p className="mt-1 text-xs text-muted">{t('profile.club_hint')}</p>
-          </div>
+          {user.clubMemberships.length === 0 ? (
+            <div className="rounded-md border border-border bg-bg/40 p-3 text-sm text-muted">
+              {t('profile.primaryClub.noneCta')}{' '}
+              <Link to={ROUTE_PATH.CLUBS} className="text-accent hover:underline">
+                {t('profile.primaryClub.findCta')}
+              </Link>
+            </div>
+          ) : (
+            <div>
+              <Label>{t('profile.primaryClub.label')}</Label>
+              <select
+                value={primaryClubChoice ?? ''}
+                onChange={(e) =>
+                  setPrimaryClubChoice(e.target.value === '' ? null : e.target.value)
+                }
+                disabled={saving || cannotEdit}
+                className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+              >
+                <option value="">{t('profile.primaryClub.none')}</option>
+                {user.clubMemberships.map((m) => (
+                  <option key={m.clubId} value={m.clubId}>
+                    {m.clubName}
+                    {m.isHead ? ` · ${t('profile.primaryClub.headSuffix')}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-muted">{t('profile.primaryClub.hint')}</p>
+            </div>
+          )}
 
           {saveError && (
             <p role="alert" className="text-sm text-danger">
@@ -770,7 +797,9 @@ function PublicProfileSection({ code }: { code: string }) {
                 value={<CountryLabel code={profile.country} />}
               />
             )}
-            {profile.clubName && <Row label={t('public_profile.club')} value={profile.clubName} />}
+            {profile.primaryClubName && (
+              <Row label={t('public_profile.club')} value={profile.primaryClubName} />
+            )}
           </dl>
 
           <PublicProfileStats profile={profile} />
