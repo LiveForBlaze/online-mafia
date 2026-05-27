@@ -3,8 +3,6 @@
 // All Prisma calls and password operations live here, isolated from route handlers.
 // Route handlers translate HTTP <-> service calls and have no business logic of their own.
 
-import { randomBytes } from 'node:crypto';
-
 import { Prisma } from '@prisma/client';
 import type {
   AuthenticatedUser,
@@ -19,6 +17,7 @@ import type { User } from '@prisma/client';
 import { prisma } from '../../db/prisma.client.js';
 import { moderateName } from '../../lib/moderation.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
+import { allocatePublicCode } from '../../lib/public-code.js';
 import { refreshUserInActiveGames } from '../game/game.broadcast.js';
 import { broadcastLobbiesContainingUser } from '../lobby/lobby.broadcast.js';
 
@@ -131,31 +130,6 @@ export function toPublicUserProfile(user: User): PublicUserProfile {
   };
 }
 
-// Generate a fresh 6-character uppercase alphanumeric code (A-Z 0-9) that
-// is not yet taken in the User table. Retries on collision a few times,
-// then throws — collisions are astronomically rare at this scale.
-const PUBLIC_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const PUBLIC_CODE_LENGTH = 6;
-function randomPublicCode(): string {
-  const bytes = randomBytes(PUBLIC_CODE_LENGTH);
-  let out = '';
-  for (let i = 0; i < PUBLIC_CODE_LENGTH; i += 1) {
-    out += PUBLIC_CODE_ALPHABET[bytes[i]! % PUBLIC_CODE_ALPHABET.length];
-  }
-  return out;
-}
-async function allocatePublicCode(): Promise<string> {
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const code = randomPublicCode();
-    const taken = await prisma.user.findUnique({
-      where: { publicCode: code },
-      select: { id: true },
-    });
-    if (!taken) return code;
-  }
-  throw new Error('Could not allocate a unique publicCode after 10 attempts');
-}
-
 export async function registerWithPassword(input: RegisterInput): Promise<AuthResult> {
   const normalizedEmail = input.email.toLowerCase().trim();
   const normalizedNickname = input.nickname.trim();
@@ -177,7 +151,13 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
   // Retry loop handles the rare case where two registrations collide on publicCode
   // or email (concurrent requests that both pass the findUnique check above).
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const publicCode = await allocatePublicCode();
+    const publicCode = await allocatePublicCode(async (code) => {
+      const taken = await prisma.user.findUnique({
+        where: { publicCode: code },
+        select: { id: true },
+      });
+      return Boolean(taken);
+    });
     try {
       const user = await prisma.user.create({
         data: { email: normalizedEmail, nickname: normalizedNickname, publicCode, passwordHash },
@@ -518,7 +498,13 @@ export async function findOrCreateUserFromGoogle(
   }
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const publicCode = await allocatePublicCode();
+    const publicCode = await allocatePublicCode(async (code) => {
+      const taken = await prisma.user.findUnique({
+        where: { publicCode: code },
+        select: { id: true },
+      });
+      return Boolean(taken);
+    });
     try {
       const created = await prisma.user.create({
         data: {
