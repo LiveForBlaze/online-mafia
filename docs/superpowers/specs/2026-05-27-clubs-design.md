@@ -88,21 +88,21 @@ model User {
 
 `/api/v1/clubs/*` endpoints. Все требуют `app.authenticate`. Мутирующие также имеют `requireRestrictionNotSet(EDIT_PROFILE)` — клуб это часть профиля.
 
-| Method | Path                           | Body                         | Auth                | Description                                                                                 |
-| ------ | ------------------------------ | ---------------------------- | ------------------- | ------------------------------------------------------------------------------------------- |
-| GET    | `/clubs`                       | —                            | auth                | List with `?search` + `?offset` + `?limit`. Returns `{ clubs: ClubSummary[], total }`       |
-| GET    | `/clubs/:code`                 | —                            | auth                | Detail. Returns `{ club: ClubDetails }`. Includes `joinRequests` ТОЛЬКО если viewer = head. |
-| POST   | `/clubs`                       | `{ name }`                   | auth + EDIT_PROFILE | Create. Moderation. Creator → head + member. Returns `{ club: ClubDetails }`.               |
-| PATCH  | `/clubs/:code`                 | `{ name }`                   | auth + head         | Rename, moderation.                                                                         |
-| DELETE | `/clubs/:code`                 | —                            | auth + head         | Disband. Cascade.                                                                           |
-| POST   | `/clubs/:code/join`            | —                            | auth + EDIT_PROFILE | Submit join request. Errors: `already_member`, `already_pending`.                           |
-| POST   | `/clubs/:code/leave`           | —                            | auth + member       | Leave. Если head + другие active → auto-transfer на старейшего. Если один → delete club.    |
-| POST   | `/clubs/:code/transfer`        | `{ newHeadId }`              | auth + head         | Явная передача лидерства. Target должен быть active member.                                 |
-| POST   | `/clubs/:code/approve`         | `{ userId }`                 | auth + head         | Tx: DELETE Request + INSERT Member.                                                         |
-| POST   | `/clubs/:code/reject`          | `{ userId }`                 | auth + head         | DELETE Request.                                                                             |
-| POST   | `/clubs/:code/cancel-request`  | —                            | auth + pending      | Юзер отзывает свою заявку.                                                                  |
-| DELETE | `/clubs/:code/members/:userId` | —                            | auth + head         | Kick member. Нельзя кикнуть себя — для этого Leave.                                         |
-| PATCH  | `/auth/me/primary-club`        | `{ clubId: string \| null }` | auth                | Set/clear primary. Сервер валидирует что юзер active в этом клубе.                          |
+| Method | Path                           | Body                         | Auth                | Description                                                                                                            |
+| ------ | ------------------------------ | ---------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/clubs`                       | —                            | auth                | List with `?search` + `?offset` + `?limit`. Returns `{ clubs: ClubSummary[], total }`                                  |
+| GET    | `/clubs/:code`                 | —                            | auth                | Detail. Returns `{ club: ClubDetails }`. Includes `joinRequests` ТОЛЬКО если viewer = head.                            |
+| POST   | `/clubs`                       | `{ name }`                   | auth + EDIT_PROFILE | Create. Moderation. Creator → head + member. Returns `{ club: ClubDetails }`.                                          |
+| PATCH  | `/clubs/:code`                 | `{ name }`                   | auth + head         | Rename, moderation.                                                                                                    |
+| DELETE | `/clubs/:code`                 | —                            | auth + head         | Disband. Cascade.                                                                                                      |
+| POST   | `/clubs/:code/join`            | —                            | auth + EDIT_PROFILE | Submit join request. Errors: `already_member`, `already_pending`.                                                      |
+| POST   | `/clubs/:code/leave`           | —                            | auth + member       | Leave. Если head + другие active → auto-transfer на старейшего. Если один → delete club.                               |
+| POST   | `/clubs/:code/transfer`        | `{ newHeadId }`              | auth + head         | Явная передача лидерства. Target должен быть active member.                                                            |
+| POST   | `/clubs/:code/approve`         | `{ userId }`                 | auth + head         | Tx: DELETE Request + INSERT Member.                                                                                    |
+| POST   | `/clubs/:code/reject`          | `{ userId }`                 | auth + head         | DELETE Request.                                                                                                        |
+| POST   | `/clubs/:code/cancel-request`  | —                            | auth + pending      | Юзер отзывает свою заявку.                                                                                             |
+| DELETE | `/clubs/:code/members/:userId` | —                            | auth + head         | Kick member. Если `targetUserId === headId` → 409 `cannot_kick_head` (head убирается только через Leave или Transfer). |
+| PATCH  | `/auth/me/primary-club`        | `{ clubId: string \| null }` | auth                | Set/clear primary. Сервер валидирует что юзер active в этом клубе.                                                     |
 
 **Error codes** (`CLUB_ERROR` constant в `shared/constants/clubs.ts`):
 `not_found`, `name_taken`, `name_rejected`, `not_member`, `not_head`, `not_pending`, `already_member`, `already_pending`, `target_not_member`, `cannot_kick_head`.
