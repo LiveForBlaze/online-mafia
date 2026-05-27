@@ -33,7 +33,10 @@ interface MobileStageProps {
 export function MobileStage(props: MobileStageProps) {
   const { state, viewerIsJudge } = props;
   const { t } = useTranslation();
-  const { secondsLeft, expired, warning, hasTimer } = useCountdown(state.phaseDeadline);
+  const { secondsLeft, expired, warning, hasTimer } = useCountdown(
+    state.phaseDeadline,
+    state.phaseStartedAt,
+  );
 
   return (
     <section className="rounded-md border border-border bg-card-deep p-3 space-y-1.5">

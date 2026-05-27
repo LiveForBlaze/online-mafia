@@ -31,7 +31,7 @@ export function RoleCardPickerDialog({
   viewerIsJudge,
 }: RoleCardPickerDialogProps) {
   const { t } = useTranslation();
-  const { secondsLeft, hasTimer } = useCountdown(state.phaseDeadline);
+  const { secondsLeft, hasTimer } = useCountdown(state.phaseDeadline, state.phaseStartedAt);
 
   if (state.phase !== GAME_PHASE.ROLE_DISTRIBUTION) return null;
   // Judges don't pick cards. They watch the table progress and advance the

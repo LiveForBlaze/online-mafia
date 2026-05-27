@@ -31,7 +31,7 @@ export function LiftVoteBody({
 }: LiftVoteBodyProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
-  const { expired } = useCountdown(state.phaseDeadline);
+  const { expired } = useCountdown(state.phaseDeadline, state.phaseStartedAt);
 
   const canVote =
     !viewerIsJudge &&

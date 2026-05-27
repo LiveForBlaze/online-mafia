@@ -305,7 +305,7 @@ describe('applyMafiaTarget', () => {
 });
 
 describe('applyDonCheck', () => {
-  it('refuses checking a dead player', () => {
+  it('ФИИМ: дон может проверить мёртвого игрока (роль ещё информативна)', () => {
     const state = buildState({
       phase: GAME_PHASE.NIGHT_DON,
       participants: buildState().participants.map((p) =>
@@ -313,8 +313,11 @@ describe('applyDonCheck', () => {
       ),
     });
     const result = applyDonCheck(state, 'user-10', 7);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.TARGET_NOT_LIVE);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.donCheck?.targetSeat).toBe(7);
+      expect(result.data.donCheck?.result).toBe(true); // seat 7 is sheriff
+    }
   });
 
   it('refuses self-check', () => {
@@ -352,6 +355,33 @@ describe('applySheriffCheck', () => {
     const state = buildState({ phase: GAME_PHASE.NIGHT_SHERIFF });
     const result = applySheriffCheck(state, 'user-7', 7);
     expect(result.ok).toBe(false);
+  });
+
+  it('ФИИМ: шериф может проверить мёртвого игрока', () => {
+    const state = buildState({
+      phase: GAME_PHASE.NIGHT_SHERIFF,
+      participants: buildState().participants.map((p) =>
+        p.seat === 8 ? { ...p, isAlive: false } : p,
+      ),
+    });
+    const result = applySheriffCheck(state, 'user-7', 8);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.sheriffCheck?.targetSeat).toBe(8);
+      expect(result.data.sheriffCheck?.result).toBe(true); // seat 8 was mafia
+    }
+  });
+
+  it('ФИИМ: шериф может проверить дисквалифицированного игрока', () => {
+    const state = buildState({
+      phase: GAME_PHASE.NIGHT_SHERIFF,
+      participants: buildState().participants.map((p) =>
+        p.seat === 10 ? { ...p, isAlive: false, isRemoved: true } : p,
+      ),
+    });
+    const result = applySheriffCheck(state, 'user-7', 10);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.sheriffCheck?.result).toBe(true); // don
   });
 });
 
@@ -800,9 +830,11 @@ describe('day_last_word after vote elimination', () => {
   });
 
   it('single nominee auto-kills without a vote (ФИИМ)', () => {
-    // ФИИМ: один выставленный = автокилл без голосования.
+    // ФИИМ: один выставленный на день 2+ = автокилл без голосования.
+    // Автокилл срабатывает на ВЫХОДЕ из DAY_VOTE_INTRO, чтобы стол
+    // вообще не входил в фазу голосования.
     const state = buildState({
-      phase: GAME_PHASE.DAY_VOTE,
+      phase: GAME_PHASE.DAY_VOTE_INTRO,
       currentSpeakerSeat: null,
       nominationSeats: [3],
       votes: new Map(),
@@ -883,8 +915,9 @@ describe('day_last_word after vote elimination', () => {
   });
 
   it('Day 2+ single nominee: autokill (no first-day exemption)', () => {
+    // Same path as the previous test: автокилл на выходе из DAY_VOTE_INTRO.
     const state = buildState({
-      phase: GAME_PHASE.DAY_VOTE,
+      phase: GAME_PHASE.DAY_VOTE_INTRO,
       dayNumber: 2,
       currentSpeakerSeat: null,
       nominationSeats: [3],
@@ -894,6 +927,118 @@ describe('day_last_word after vote elimination', () => {
     expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
     expect(next.lastWordSeats).toEqual([3]);
     expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(false);
+  });
+
+  it('DAY_VOTE_INTRO с single nom day-1 НЕ убивает игрока, идём в ночь', () => {
+    // Регрессия: первый день (dayNumber=0) с единственным выставленным —
+    // голосование не проводится и кандидат остаётся жив.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE_INTRO,
+      dayNumber: 0,
+      nominationSeats: [3],
+      votes: new Map(),
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.nominationSeats).toEqual([]);
+  });
+
+  it('DAY_VOTE_INTRO с disqualifiedThisDay отменяет день, в ночь без жертв', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE_INTRO,
+      nominationSeats: [3, 5],
+      votes: new Map(),
+      disqualifiedThisDay: true,
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.NIGHT_MAFIA);
+    expect(next.participants.find((p) => p.seat === 3)?.isAlive).toBe(true);
+    expect(next.participants.find((p) => p.seat === 5)?.isAlive).toBe(true);
+  });
+
+  it('game-ending vote kill даёт последнее слово ПЕРЕД GAME_OVER (#8)', () => {
+    // Сценарий: 2 красных против 2 чёрных. Голосование убивает одного красного
+    // → красные = 1, чёрные = 2 (равенство → чёрные побеждают).
+    // ФИИМ: жертва получает последнее слово, и только потом — GAME_OVER.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [5],
+      // Kill 4 civilians + 1 mafia до этой точки: оставляем civ-5, civ-6,
+      // sheriff-7, mafia-8, don-10 живыми (3 red vs 2 black).
+      participants: buildState().participants.map((p) => {
+        if (p.seat && [1, 2, 3, 4].includes(p.seat)) return { ...p, isAlive: false };
+        if (p.seat === 9) return { ...p, isAlive: false };
+        return p;
+      }),
+      votes: new Map([
+        [6, 5],
+        [7, 5],
+        [8, 5],
+      ]),
+    });
+    const next = applyAdvancePhase(state);
+    // Игрок 5 убит, оставшиеся: civ-6, sheriff-7, mafia-8, don-10 → 2v2 → чёрные.
+    // Но GAME_OVER ещё НЕ должен быть — даём последнее слово.
+    expect(next.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(next.status).toBe('in_progress');
+    expect(next.lastWordSeats).toEqual([5]);
+    expect(next.winner).toBeNull();
+  });
+
+  it('auto-cast голоса видны в votes даже после resolveVote (#9)', () => {
+    // Заполняем все ранее не голосовавшие места автокастом в последнюю
+    // кандидатуру (через applyNextSpeaker на last round) и далее
+    // applyAdvancePhase. Карта `votes` ДОЛЖНА остаться непустой —
+    // VotesBreakdown в DAY_LAST_WORD рендерит «кто за кого».
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE,
+      nominationSeats: [3, 5],
+      voteRoundIdx: 1,
+      votes: new Map([[1, 5]]),
+    });
+    const { state: afterNext, speechesDone } = applyNextSpeaker(state);
+    expect(speechesDone).toBe(true);
+    for (const p of afterNext.participants) {
+      if (p.isJudge || !p.isAlive || p.seat === null) continue;
+      if (p.seat === 3 || p.seat === 5) continue; // nominee abstain
+      expect(afterNext.votes.get(p.seat)).toBe(5);
+    }
+    const finalState = applyAdvancePhase(afterNext);
+    expect(finalState.phase).toBe(GAME_PHASE.DAY_LAST_WORD);
+    expect(finalState.votes.size).toBeGreaterThan(0);
+    expect(finalState.votes.get(1)).toBe(5);
+    expect(finalState.votes.get(2)).toBe(5);
+  });
+
+  it('после DAY_LAST_WORD при game-end условии переход в GAME_OVER (#8)', () => {
+    // Состояние сразу ПОСЛЕ last word: убитого 5 уже сыграли. Игрок снят,
+    // 2v2, чёрные победили. Судья жмёт «Дальше» → объявляем результат.
+    const state = buildState({
+      phase: GAME_PHASE.DAY_LAST_WORD,
+      participants: buildState().participants.map((p) => {
+        if (p.seat && [1, 2, 3, 4, 5].includes(p.seat)) return { ...p, isAlive: false };
+        if (p.seat === 9) return { ...p, isAlive: false };
+        return p;
+      }),
+      lastWordSeats: [5],
+      lastWordIdx: 0,
+      currentSpeakerSeat: 5,
+    });
+    const next = applyAdvancePhase(state);
+    expect(next.phase).toBe(GAME_PHASE.GAME_OVER);
+    expect(next.status).toBe('finished');
+    expect(next.winner).toBe(TEAM.BLACK);
+  });
+
+  it('applyJudgeRemove во время DAY_VOTE_INTRO ставит disqualifiedThisDay', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_VOTE_INTRO,
+      nominationSeats: [3, 5],
+    });
+    const result = applyJudgeRemove(state, 'user-2');
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.disqualifiedThisDay).toBe(true);
   });
 
   it('DAY_SPEECH без nominations пропускает intro и идёт в ночь', () => {
@@ -1046,9 +1191,9 @@ describe('foul effects', () => {
     expect(advanced.state.currentSpeakerSeat).toBe(2);
   });
 
-  it('фол на 3-х НЕ auto-removes (защита от случайного клика)', () => {
-    // По решению пользователя: при 4 фоле игрок НЕ удаляется автоматически.
-    // Ведущий сам решает: либо снять случайный фол, либо удалить вручную.
+  it('4-й судейский фол auto-removes игрока (ФИИМ: техпоражение)', () => {
+    // Ранее было «4 фола не удаляют автоматически» (защита от случайного
+    // клика), но владелец проекта пересмотрел: 4 фола = техпотеря.
     const state = buildState({
       phase: GAME_PHASE.DAY_SPEECH,
       participants: buildState().participants.map((p) =>
@@ -1060,11 +1205,11 @@ describe('foul effects', () => {
     if (!result.ok) return;
     const seat1 = result.data.participants.find((p) => p.seat === 1);
     expect(seat1?.foulsCount).toBe(4);
-    expect(seat1?.isRemoved).toBe(false);
-    expect(seat1?.isAlive).toBe(true);
+    expect(seat1?.isRemoved).toBe(true);
+    expect(seat1?.isAlive).toBe(false);
   });
 
-  it('фол на игроке с 4 фолами отклоняется — ведущий решает вручную', () => {
+  it('фол на уже-дисквалифицированном (4 фолах) отклоняется', () => {
     const state = buildState({
       phase: GAME_PHASE.DAY_SPEECH,
       participants: buildState().participants.map((p) =>
@@ -1075,9 +1220,10 @@ describe('foul effects', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('out-of-turn запрещён игроку с 3 фолами (защита от one-click техпотери)', () => {
-    // ФИИМ: с 3 фолами игрок уже лишён слова. Кнопка «под фол» для него
-    // была бы добровольным четвёртым фолом → техпотеря. Движок отклоняет.
+  it('out-of-turn разрешён игроку с 3 фолами (жертвенный 4-й клик)', () => {
+    // Владелец проекта: игрок должен иметь возможность взять 4-й фол,
+    // например чтобы сказать важное в перестрелке. Это auto-disqualifies
+    // его, но 5-секундное окно «под фол» остаётся открытым.
     const state = buildState({
       phase: GAME_PHASE.DAY_SPEECH,
       participants: buildState().participants.map((p) =>
@@ -1085,12 +1231,25 @@ describe('foul effects', () => {
       ),
     });
     const result = applyOutOfTurn(state, 'user-1');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const seat1 = result.data.participants.find((p) => p.seat === 1);
+    expect(seat1?.foulsCount).toBe(4);
+    expect(seat1?.isRemoved).toBe(true);
+    expect(seat1?.isAlive).toBe(false);
+    // outOfTurnSpeaker сохраняется — аудио-фильтр пускает голос на 5 сек.
+    expect(result.data.outOfTurnSpeaker?.userId).toBe('user-1');
+  });
+
+  it('out-of-turn запрещён игроку с 4 фолами (уже снят)', () => {
+    const state = buildState({
+      phase: GAME_PHASE.DAY_SPEECH,
+      participants: buildState().participants.map((p) =>
+        p.seat === 1 ? { ...p, foulsCount: 4, isRemoved: true, isAlive: false } : p,
+      ),
+    });
+    const result = applyOutOfTurn(state, 'user-1');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
-    // Игрок остаётся в игре, фолы не растут.
-    const seat1 = state.participants.find((p) => p.seat === 1);
-    expect(seat1?.foulsCount).toBe(3);
-    expect(seat1?.isRemoved).toBe(false);
   });
 
   it('foul below the threshold leaves the player playing', () => {

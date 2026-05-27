@@ -68,7 +68,7 @@ export function MobileSeatTile({
       )}
     >
       {isDead ? (
-        <DeadOverlay seat={seat} />
+        <DeadOverlay seat={seat} action={action} />
       ) : (
         <>
           <TileMedia
@@ -204,7 +204,13 @@ function TileMedia({
   );
 }
 
-function DeadOverlay({ seat }: { seat: number }) {
+function DeadOverlay({
+  seat,
+  action,
+}: {
+  seat: number;
+  action?: { label: string; onClick: () => void; disabled?: boolean } | null;
+}) {
   return (
     <>
       {/* Тот же размер и жирность что у живых — но темнее, чтоб «выбыл»
@@ -213,6 +219,30 @@ function DeadOverlay({ seat }: { seat: number }) {
         {seat}
       </span>
       <div className="absolute inset-0 flex items-center justify-center text-muted">💀</div>
+      {action && (
+        <span
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!action.disabled) action.onClick();
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.stopPropagation();
+              if (!action.disabled) action.onClick();
+            }
+          }}
+          className={cn(
+            'absolute inset-x-0 bottom-0 block w-full text-center rounded-sm bg-accent text-accent-fg',
+            'text-[10px] font-semibold uppercase tracking-wider py-0.5 z-10',
+            action.disabled && 'opacity-50',
+          )}
+        >
+          {action.label}
+        </span>
+      )}
     </>
   );
 }

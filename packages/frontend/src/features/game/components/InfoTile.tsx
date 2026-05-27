@@ -68,7 +68,10 @@ function InfoGlyph() {
 
 function Header({ state }: { state: GameStateProjected }) {
   const { t } = useTranslation();
-  const { secondsLeft, expired, warning, hasTimer } = useCountdown(state.phaseDeadline);
+  const { secondsLeft, expired, warning, hasTimer } = useCountdown(
+    state.phaseDeadline,
+    state.phaseStartedAt,
+  );
   return (
     <div>
       <p className="text-xs uppercase tracking-wider text-muted">

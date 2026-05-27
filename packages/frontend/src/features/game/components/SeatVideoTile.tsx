@@ -78,7 +78,7 @@ export function SeatVideoTile({
       )}
     >
       {isDead ? (
-        <DeadOverlay seat={participant.seat} isSelf={isSelf} />
+        <DeadOverlay seat={participant.seat} isSelf={isSelf} action={action} />
       ) : (
         <>
           {/* Видеотрек монтируется как только он физически доступен и не
@@ -234,11 +234,22 @@ function VideoPlaceholder({ nickname, avatarUrl }: { nickname: string; avatarUrl
 }
 
 /**
- * Dead-seat content. Only a centred skull icon plus the seat number in the corner —
+ * Dead-seat content. Centred skull icon plus the seat number in the corner —
  * nickname, avatar, role, fouls all disappear. The tile frame is unchanged so the
  * table layout doesn't shift when someone is killed.
+ *
+ * Действие (например, «Проверить» от шерифа/дона) рендерится поверх — ФИИМ
+ * разрешает ночные проверки мёртвых, и нам нужно дать кнопку на этот сидень.
  */
-function DeadOverlay({ seat, isSelf }: { seat: number | null; isSelf: boolean }) {
+function DeadOverlay({
+  seat,
+  isSelf,
+  action,
+}: {
+  seat: number | null;
+  isSelf: boolean;
+  action?: { label: string; onClick: () => void; disabled?: boolean } | null;
+}) {
   const { t } = useTranslation();
   return (
     <>
@@ -255,6 +266,18 @@ function DeadOverlay({ seat, isSelf }: { seat: number | null; isSelf: boolean })
       <div className="absolute inset-0 flex items-center justify-center text-muted">
         <SkullIcon />
       </div>
+      {action && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+          <Button
+            size="sm"
+            onClick={action.onClick}
+            disabled={action.disabled}
+            className="w-full h-7 text-xs"
+          >
+            {action.label}
+          </Button>
+        </div>
+      )}
     </>
   );
 }

@@ -235,11 +235,18 @@ export function nextPhase(state: GameState): GamePhase {
       if (state.disqualifiedThisDay) return GAME_PHASE.NIGHT_MAFIA;
       return state.nominationSeats.length > 0 ? GAME_PHASE.DAY_VOTE_INTRO : GAME_PHASE.NIGHT_MAFIA;
     case GAME_PHASE.DAY_VOTE_INTRO:
-      // Судья объявил порядок → голосование. Исключение для первого дня:
-      // если выставлен один игрок, голосование не проводится — сразу
-      // в ночь, никого не убиваем (ФИИМ).
-      if (state.nominationSeats.length === 1 && state.dayNumber === 0) {
-        return GAME_PHASE.NIGHT_MAFIA;
+      // Дисквал/уход во время дневной фазы отменяет день — никакого
+      // голоса и никаких смертей. Покрывает edge-case дисквала ровно в
+      // DAY_VOTE_INTRO (между речами и голосованием).
+      if (state.disqualifiedThisDay) return GAME_PHASE.NIGHT_MAFIA;
+      // ФИИМ для единственной кандидатуры:
+      //   - Первый день (dayNumber === 0): голосование НЕ проводится и
+      //     игрок НЕ выбывает — сразу в ночь.
+      //   - Любой следующий день: игрок выбывает «без голосования» с
+      //     последним словом. Killь-mutation выполняется ниже в
+      //     applyAdvancePhase ПОСЛЕ этой маршрутизации.
+      if (state.nominationSeats.length === 1) {
+        return state.dayNumber === 0 ? GAME_PHASE.NIGHT_MAFIA : GAME_PHASE.DAY_LAST_WORD;
       }
       return GAME_PHASE.DAY_VOTE;
     case GAME_PHASE.DAY_VOTE:
@@ -435,7 +442,9 @@ export function applyDonCheck(
 
   const target = findBySeat(state, targetSeat);
   if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
-  if (!target.isAlive || target.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
+  // ФИИМ: дон может проверять любого, включая мёртвых и дисквалифицированных.
+  // Цена проверки — потерянная ночь, но информация о роли всё ещё полезна
+  // команде. Самопроверка остаётся бессмысленной — её блокируем.
   if (target.userId === actorUserId) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
 
   return ok({
@@ -460,7 +469,8 @@ export function applySheriffCheck(
 
   const target = findBySeat(state, targetSeat);
   if (!target) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
-  if (!target.isAlive || target.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
+  // ФИИМ: шериф может проверять любого, включая мёртвых и дисквалифицированных.
+  // Самопроверка отклоняется как бессмысленная.
   if (target.userId === actorUserId) return fail(ENGINE_ERROR.CANNOT_TARGET_SELF);
 
   return ok({
@@ -545,38 +555,21 @@ export function applyAdvancePhase(state: GameState): GameState {
     // отменяет результат текущего дня. Сразу в ночь, без отстрела.
     if (state.disqualifiedThisDay) {
       next = { ...next, votes: new Map(), nominationSeats: [], tiedSeats: [] };
-    } else if (state.nominationSeats.length === 1 && state.dayNumber > 0) {
-      // ФИИМ: единственный выставленный кандидат уходит «без голосования» —
-      // голосование не проводится, игрок автоматически выбывает.
-      // Исключение: в ПЕРВЫЙ день (dayNumber === 0) голосование за
-      // единственного НЕ проводится и он НЕ покидает стол — идём в ночь.
-      const onlyCandidate = state.nominationSeats[0]!;
-      next = killSeat(next, onlyCandidate);
-      next = {
-        ...next,
-        lastWordSeats: [onlyCandidate],
-        lastWordIdx: 0,
-        currentSpeakerSeat: onlyCandidate,
-        votes: new Map(),
-        nominationSeats: [],
-      };
-    } else if (state.nominationSeats.length === 1 && state.dayNumber === 0) {
-      // День 1, единственный кандидат — ни голосования, ни автокилла.
-      // Чистим выставления и проваливаемся в ночь (nextPhase для
-      // DAY_VOTE → NIGHT_MAFIA когда нет lastWordSeats / tiedSeats).
-      next = { ...next, votes: new Map(), nominationSeats: [], tiedSeats: [] };
     } else {
       const eliminatedSeat = resolveVote(state);
       if (eliminatedSeat !== null) {
-        // Clear winner — kill + queue last word, fall through to clearing
-        // nominations / votes below. nextPhase will route to DAY_LAST_WORD.
+        // Clear winner — kill + queue last word. Сохраняем `votes`: на
+        // фазе DAY_LAST_WORD VotesBreakdown показывает «кто как
+        // проголосовал», включая auto-cast'ы тем, кто не голосовал в свой
+        // раунд (ФИИМ: их голоса уходят в последнего кандидата —
+        // applyNextSpeaker делает это перед resolveVote). Чистим карту
+        // позже, в MORNING_ANNOUNCEMENT side-effect.
         next = killSeat(next, eliminatedSeat);
         next = {
           ...next,
           lastWordSeats: [eliminatedSeat],
           lastWordIdx: 0,
           currentSpeakerSeat: eliminatedSeat,
-          votes: new Map(),
           nominationSeats: [],
         };
       } else {
@@ -629,6 +622,7 @@ export function applyAdvancePhase(state: GameState): GameState {
       const eliminatedSeat = resolveVote(state);
       if (eliminatedSeat !== null) {
         // Revote produced a winner. Same flow as DAY_VOTE single-winner case.
+        // Карту голосов оставляем для VotesBreakdown в DAY_LAST_WORD.
         next = killSeat(next, eliminatedSeat);
         next = {
           ...next,
@@ -636,7 +630,6 @@ export function applyAdvancePhase(state: GameState): GameState {
           lastWordIdx: 0,
           currentSpeakerSeat: eliminatedSeat,
           // Tie-break trail is consumed.
-          votes: new Map(),
           nominationSeats: [],
           tiedSeats: [],
           shootoutSpeakerIdx: 0,
@@ -774,20 +767,49 @@ export function applyAdvancePhase(state: GameState): GameState {
   // Now determine the next phase.
   let phase = nextPhase(next);
 
-  // Leaving DAY_VOTE_INTRO с day-1 single-nomination skipping the vote:
-  // голосование не проводится, очищаем nominationSeats чтобы при заходе
-  // в ночь не осталось «привидений» в state.
-  if (
-    state.phase === GAME_PHASE.DAY_VOTE_INTRO &&
-    phase === GAME_PHASE.NIGHT_MAFIA &&
-    next.nominationSeats.length === 1
-  ) {
-    next = { ...next, nominationSeats: [], votes: new Map() };
+  // Выход из DAY_VOTE_INTRO. nextPhase уже решил направление:
+  //   - NIGHT_MAFIA: либо дисквал в день, либо day-1 single-nomination
+  //     (голосование не проводится, никто не убит). Чистим nominationSeats
+  //     чтобы при заходе в ночь не остались «привидения».
+  //   - DAY_LAST_WORD: day-2+ single-nomination. ФИИМ-автокилл без
+  //     голосования; ставим жертву в lastWordSeats и killSeat.
+  if (state.phase === GAME_PHASE.DAY_VOTE_INTRO) {
+    if (phase === GAME_PHASE.NIGHT_MAFIA && next.nominationSeats.length >= 1) {
+      next = { ...next, nominationSeats: [], votes: new Map(), tiedSeats: [] };
+    }
+    if (phase === GAME_PHASE.DAY_LAST_WORD && next.nominationSeats.length === 1) {
+      const onlyCandidate = next.nominationSeats[0]!;
+      next = killSeat(next, onlyCandidate);
+      next = {
+        ...next,
+        lastWordSeats: [onlyCandidate],
+        lastWordIdx: 0,
+        currentSpeakerSeat: onlyCandidate,
+        votes: new Map(),
+        nominationSeats: [],
+      };
+    }
   }
 
   // Check end-of-game conditions after any kill (vote or night).
+  //
+  // ФИИМ: даже если убийство закрывает партию (2v2 → 2v1, 3v3 → 3v2),
+  // жертва должна получить прощальную минуту / последнее слово ДО того,
+  // как объявляется победитель. Поэтому если мы выходим из фазы, где
+  // только что произошёл килл с последующей farewell-минутой,
+  // откладываем GAME_OVER — повторный checkWinner на выходе из DAY_LAST_WORD
+  // (или из DAY_SPEECH после прощальной минуты) дотянет финал.
+  const PHASES_WITH_PENDING_FAREWELL: ReadonlyArray<GamePhase> = [
+    GAME_PHASE.DAY_VOTE,
+    GAME_PHASE.DAY_VOTE_INTRO,
+    GAME_PHASE.DAY_REVOTE,
+    GAME_PHASE.DAY_SHOOTOUT,
+    GAME_PHASE.DAY_LIFT_VOTE,
+    GAME_PHASE.NIGHT_SHERIFF,
+    GAME_PHASE.MORNING_ANNOUNCEMENT,
+  ];
   const winner = checkWinner(next);
-  if (winner !== null) {
+  if (winner !== null && !PHASES_WITH_PENDING_FAREWELL.includes(state.phase)) {
     return { ...next, phase: GAME_PHASE.GAME_OVER, status: 'finished', winner };
   }
 
@@ -1012,20 +1034,24 @@ export function applyNextSpeaker(state: GameState): {
 export function applyJudgeFoul(state: GameState, targetUserId: string): EngineResult<GameState> {
   const target = findByUserId(state, targetUserId);
   if (!target || target.isJudge) return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
-  // На 4 фоле кнопка фола больше не накручивается автоматически и не
-  // удаляет игрока — это сознательная защита от случайного клика. Когда
-  // у игрока 4 фола, ведущий принимает решение вручную: либо «−Фол»
-  // (откатить случайный), либо «Удалить» (зафиксировать техпотерю).
+  // Player is already disqualified; cannot accumulate more fouls.
   if (target.foulsCount >= FOUL_REMOVE_THRESHOLD) {
     return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   }
   const newFouls = target.foulsCount + 1;
-  return ok({
+  const withFouls: GameState = {
     ...state,
     participants: state.participants.map((p) =>
       p.userId === targetUserId ? { ...p, foulsCount: newFouls } : p,
     ),
-  });
+  };
+  // ФИИМ: 4 фола = техническое поражение. Игрок снимается с игры сразу
+  // же, с полной очисткой следов (голоса, выставления, ночные выборы) —
+  // те же действия, что и при ручном judge-remove.
+  if (newFouls >= FOUL_REMOVE_THRESHOLD) {
+    return applyJudgeRemove(withFouls, targetUserId);
+  }
+  return ok(withFouls);
 }
 
 // Судья отменяет один фол игроку (если случайно кликнул или передумал).
@@ -1066,21 +1092,29 @@ export function applyOutOfTurn(state: GameState, userId: string): EngineResult<G
   const actor = findByUserId(state, userId);
   if (!actor || actor.isJudge) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
   if (!actor.isAlive || actor.isRemoved) return fail(ENGINE_ERROR.TARGET_NOT_LIVE);
-  // ФИИМ: игрок с 3+ фолами уже лишён слова. Кнопка «под фол» для него
-  // равноценна добровольной техпотере одним кликом — отклоняем.
-  if (actor.foulsCount >= FOUL_MUTE_THRESHOLD) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
+  // Уже дисквалифицирован: больше фолов набирать некуда. ФИИМ-исходный
+  // гард (запретить при 3+ фолах) был мягче, но пользователь явно просил
+  // дать игроку возможность взять 4-й фол как «жертвенный клик» —
+  // например чтобы сказать важное в перестрелке. Цена — auto-remove ниже.
+  if (actor.foulsCount >= FOUL_REMOVE_THRESHOLD) return fail(ENGINE_ERROR.NOT_AUTHORIZED_ROLE);
 
   const newFouls = actor.foulsCount + 1;
-  // Никакого auto-remove на 4 фоле — даже если по какой-то причине гард
-  // выше пропустил (старая клиентская кнопка / гонка). Ведущий решает
-  // удалить игрока сам.
-  return ok({
+  const withFouls: GameState = {
     ...state,
     participants: state.participants.map((p) =>
       p.userId === userId ? { ...p, foulsCount: newFouls } : p,
     ),
+    // 5-секундное окно даём всегда, даже при auto-remove на 4-м фоле:
+    // outOfTurnSpeaker.userId сохраняется в стейте независимо от
+    // isAlive/isRemoved, и аудио-фильтр пропускает голос на эти 5 сек,
+    // чтобы игрок успел сказать своё.
     outOfTurnSpeaker: { userId, until: Date.now() + OUT_OF_TURN_WINDOW_MS },
-  });
+  };
+  // ФИИМ: 4 фола = техническое поражение. Зеркалим судейский фол.
+  if (newFouls >= FOUL_REMOVE_THRESHOLD) {
+    return applyJudgeRemove(withFouls, userId);
+  }
+  return ok(withFouls);
 }
 
 // Judge presses the red "Выйти из игры" — the entire game is ended. The lobby
@@ -1250,6 +1284,7 @@ export function applyJudgeRemove(state: GameState, targetUserId: string): Engine
     // DAY_LAST_WORD на ход дня не влияет (он уже разрешён).
     disqualifiedThisDay:
       state.phase === GAME_PHASE.DAY_SPEECH ||
+      state.phase === GAME_PHASE.DAY_VOTE_INTRO ||
       state.phase === GAME_PHASE.DAY_VOTE ||
       state.phase === GAME_PHASE.DAY_REVOTE ||
       state.phase === GAME_PHASE.DAY_SHOOTOUT ||

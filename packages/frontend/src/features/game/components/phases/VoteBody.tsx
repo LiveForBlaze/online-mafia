@@ -31,7 +31,7 @@ export function VoteBody({
   size = 'desktop',
 }: VoteBodyProps) {
   const [pending, setPending] = useState(false);
-  const { expired } = useCountdown(state.phaseDeadline);
+  const { expired } = useCountdown(state.phaseDeadline, state.phaseStartedAt);
 
   const hasVoted =
     viewerSeat !== null && Object.prototype.hasOwnProperty.call(state.votes, String(viewerSeat));

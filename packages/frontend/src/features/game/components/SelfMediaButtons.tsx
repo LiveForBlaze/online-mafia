@@ -4,7 +4,7 @@
 import { useLocalParticipant } from '@livekit/components-react';
 import { useTranslation } from 'react-i18next';
 
-import { CLIENT_EVENT, DAY_PHASES, FOUL_MUTE_THRESHOLD } from '@mafia/shared';
+import { CLIENT_EVENT, DAY_PHASES, FOUL_REMOVE_THRESHOLD } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
@@ -33,9 +33,11 @@ export function SelfMediaButtons() {
     !viewer.isJudge &&
     viewer.isAlive &&
     !viewer.isRemoved &&
-    // Игрок с 3+ фолами уже muted — нажатие = добровольная техпотеря.
-    // Прячем кнопку и резервный гард есть на сервере (applyOutOfTurn).
-    viewer.foulsCount < FOUL_MUTE_THRESHOLD &&
+    // 4-й фол = техническое поражение. До этого момента кнопка доступна
+    // (включая «жертвенный» 4-й клик при 3 фолах — игрок сознательно
+    // принимает дисквал, чтобы сказать важное). Серверный гард на 4+ в
+    // applyOutOfTurn держит ту же границу.
+    viewer.foulsCount < FOUL_REMOVE_THRESHOLD &&
     DAY_PHASES.includes(state.phase) &&
     viewer.seat !== state.currentSpeakerSeat &&
     !inActiveWindow;

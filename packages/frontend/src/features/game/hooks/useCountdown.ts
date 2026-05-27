@@ -14,7 +14,43 @@ interface CountdownResult {
   warning: boolean;
 }
 
-export function useCountdown(deadlineIso: string | null): CountdownResult {
+/**
+ * Pure computation of countdown state from a deadline and the server-reported
+ * phase start. Exposed for unit tests.
+ *
+ * The phase start is used to cap `secondsLeft` at the phase's intended
+ * duration. Without the cap, a client whose clock runs slightly behind the
+ * server's would compute `remainingMs > duration` at the moment the phase
+ * begins, and `Math.ceil(60100 / 1000) = 61` makes the timer briefly display
+ * "1:01" before falling to "1:00". Capping at `deadline - startedAt` prevents
+ * any displayed value from exceeding the actual phase length.
+ */
+export function computeCountdown(
+  deadlineIso: string | null,
+  startedAtIso: string | null,
+  nowMs: number,
+): CountdownResult {
+  if (!deadlineIso) {
+    return { secondsLeft: 0, expired: false, hasTimer: false, warning: false };
+  }
+  const deadlineMs = new Date(deadlineIso).getTime();
+  const remainingMs = deadlineMs - nowMs;
+  const durationMs = startedAtIso ? deadlineMs - new Date(startedAtIso).getTime() : Infinity;
+  const cappedMs = Math.min(remainingMs, durationMs);
+  const secondsLeft = Math.max(0, Math.ceil(cappedMs / 1000));
+  const expired = remainingMs <= 0;
+  return {
+    secondsLeft,
+    expired,
+    hasTimer: true,
+    warning: !expired && secondsLeft <= 10,
+  };
+}
+
+export function useCountdown(
+  deadlineIso: string | null,
+  startedAtIso: string | null = null,
+): CountdownResult {
   // Ticking state — incremented every 500 ms to force a re-render. We don't store
   // the actual remaining time in state because deriving it from `Date.now()` on
   // every render avoids drift between the React tick and the wall clock.
@@ -26,18 +62,7 @@ export function useCountdown(deadlineIso: string | null): CountdownResult {
     return () => clearInterval(id);
   }, [deadlineIso]);
 
-  if (!deadlineIso) {
-    return { secondsLeft: 0, expired: false, hasTimer: false, warning: false };
-  }
-  const remainingMs = new Date(deadlineIso).getTime() - Date.now();
-  const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1000));
-  const expired = remainingMs <= 0;
-  return {
-    secondsLeft,
-    expired,
-    hasTimer: true,
-    warning: !expired && secondsLeft <= 10,
-  };
+  return computeCountdown(deadlineIso, startedAtIso, Date.now());
 }
 
 /** Format a positive seconds value as M:SS for display. */
