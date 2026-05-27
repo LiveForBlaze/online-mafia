@@ -167,7 +167,7 @@ function LobbyRow({
             current: lobby.memberCount,
             max: lobby.maxMembers,
           })}
-          className="h-1 w-full max-w-[6rem] overflow-hidden rounded-full bg-card-deep"
+          className="h-1 flex-1 overflow-hidden rounded-full bg-card-deep"
         >
           <div
             className={cn(
@@ -190,8 +190,10 @@ function LobbyRow({
         </span>
       </div>
 
-      {/* Action. */}
-      <div role="cell" className="mt-2 sm:mt-0 sm:text-right">
+      {/* Action. На мобиле — full-width, на десктопе — авто-ширина и слева
+          в ячейке (без text-right): иначе между статусом и кнопкой возникает
+          двойная пустота — trailing у статуса плюс leading у action. */}
+      <div role="cell" className="mt-2 sm:mt-0">
         <Button
           onClick={(e) => {
             e.stopPropagation();
