@@ -77,6 +77,10 @@ model User {
 - Юзер не может одновременно быть в `ClubMember` И `ClubJoinRequest` для одного клуба
 - `Club.headId` всегда указывает на юзера который ЕСТЬ в `ClubMember` этого клуба
 - При `leaveClub` где `userId === headId`: транзакционно auto-transfer на старейшего active member (по joinedAt). Если других нет — клуб удаляется.
+- **Юзер может состоять не более чем в `MAX_CLUBS_PER_USER = 3` клубах одновременно.** Это лимит на `ClubMember` rows, не на pending requests. Проверяется в:
+  - `createClub` — отказ если у создателя уже 3 active membership (он сразу станет 4-м, как member нового клуба)
+  - `submitJoinRequest` — превентивный отказ, чтобы не плодить бесполезные заявки
+  - `approveJoinRequest` — повторная проверка для target (race-safe: между submit и approve юзер мог апрувнуться в другие)
 
 **`primaryClubId` логика чтения:**
 
@@ -105,14 +109,14 @@ model User {
 | PATCH  | `/auth/me/primary-club`        | `{ clubId: string \| null }` | auth                | Set/clear primary. Сервер валидирует что юзер active в этом клубе.                                                     |
 
 **Error codes** (`CLUB_ERROR` constant в `shared/constants/clubs.ts`):
-`not_found`, `name_taken`, `name_rejected`, `not_member`, `not_head`, `not_pending`, `already_member`, `already_pending`, `target_not_member`, `cannot_kick_head`.
+`not_found`, `name_taken`, `name_rejected`, `not_member`, `not_head`, `not_pending`, `already_member`, `already_pending`, `target_not_member`, `cannot_kick_head`, `max_clubs_reached`, `target_max_clubs_reached`.
 
 HTTP mapping (см. `lobby.routes.ts:lobbyErrorToHttpStatus` как образец):
 
 - `not_found` → 404
 - `name_rejected` → 400
 - `not_head`, `not_member` → 403
-- `name_taken`, `already_member`, `already_pending`, `not_pending`, `target_not_member`, `cannot_kick_head` → 409
+- `name_taken`, `already_member`, `already_pending`, `not_pending`, `target_not_member`, `cannot_kick_head`, `max_clubs_reached`, `target_max_clubs_reached` → 409
 
 **Rate-limits** (per-user через `keyGenerator: request.user.sub`):
 
