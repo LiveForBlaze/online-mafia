@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
+import { ChevronDown } from 'lucide-react';
 
 import {
   BAN_RESTRICTION,
@@ -363,6 +364,9 @@ function UsersTab() {
 
 function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () => void }) {
   const { t } = useTranslation();
+  // По умолчанию свёрнуто — список юзеров часто длинный, разворачиваем
+  // только когда админ реально работает с конкретным аккаунтом.
+  const [expanded, setExpanded] = useState(false);
   const [restrictions, setRestrictions] = useState<BanRestrictionCode[]>(
     user.banRestrictions as BanRestrictionCode[],
   );
@@ -386,6 +390,9 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
     if ((user.banReason ?? '') !== reason) return true;
     return false;
   }, [user.banRestrictions, user.banReason, restrictions, reason]);
+
+  const hasBan = user.banRestrictions.length > 0;
+  const hasSiteBan = user.banRestrictions.includes(BAN_RESTRICTION.SITE_ACCESS);
 
   function toggle(code: BanRestrictionCode) {
     setRestrictions((curr) =>
@@ -451,10 +458,58 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* Свёрнутая строка-кликабель. Клик по любой части ряда раскрывает
+          панель действий. Иконка-чеврон вращается на 180° когда expanded. */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className={cn(
+          'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
+          'hover:bg-bg/40 focus:outline-none focus:bg-bg/40',
+        )}
+        aria-expanded={expanded}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-fg truncate">{user.nickname}</span>
+            {user.isAdmin && (
+              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
+                admin
+              </span>
+            )}
+            {user.isBot && (
+              <span className="rounded bg-muted/20 px-1.5 py-0.5 text-[10px] uppercase text-muted">
+                bot
+              </span>
+            )}
+            {hasSiteBan ? (
+              <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-danger">
+                {t('admin.users.statusBlocked')}
+              </span>
+            ) : hasBan ? (
+              <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-warning">
+                {t('admin.users.statusRestricted', { count: user.banRestrictions.length })}
+              </span>
+            ) : null}
+          </div>
+          <div className="text-xs text-muted truncate">
+            {user.email} · #{user.publicCode}
+          </div>
+        </div>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted transition-transform',
+            expanded && 'rotate-180',
+          )}
+          aria-hidden="true"
+        />
+      </button>
+
+      {expanded && (
+        <div className="border-t border-border p-4 space-y-3">
+          {/* Никнейм-редактор + delete справа. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
             {editingName ? (
               <input
                 value={draftName}
@@ -474,110 +529,99 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
               <button
                 type="button"
                 onClick={() => setEditingName(true)}
-                className="text-base font-semibold text-fg hover:underline"
+                className="text-sm text-muted hover:text-fg hover:underline"
                 title={t('admin.users.renameHint')}
               >
-                {user.nickname}
+                ✎ {t('admin.users.renameAction')}
               </button>
             )}
-            {user.isAdmin && (
-              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
-                admin
-              </span>
-            )}
-            {user.isBot && (
-              <span className="rounded bg-muted/20 px-1.5 py-0.5 text-[10px] uppercase text-muted">
-                bot
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-muted">
-            {user.email} · #{user.publicCode}
-          </div>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={hardDelete}
-          disabled={busy || user.isAdmin}
-          className="border-danger/40 text-danger hover:bg-danger/10"
-        >
-          {t('admin.users.delete')}
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-xs uppercase tracking-wider text-muted">
-          {t('admin.users.restrictionsLabel')}
-        </div>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {ALL_BAN_RESTRICTIONS.map((code) => (
-            <label
-              key={code}
-              className={cn(
-                'flex items-start gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer transition-colors',
-                restrictions.includes(code)
-                  ? 'border-danger/60 bg-danger/5'
-                  : 'border-border hover:bg-bg',
-              )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={hardDelete}
+              disabled={busy || user.isAdmin}
+              className="border-danger/40 text-danger hover:bg-danger/10"
             >
-              <input
-                type="checkbox"
-                checked={restrictions.includes(code)}
-                onChange={() => toggle(code)}
-                className="mt-0.5"
-              />
-              <span>
-                <div className="font-medium text-fg">{t(`admin.users.restrictions.${code}`)}</div>
-                <div className="text-xs text-muted">
-                  {t(`admin.users.restrictionsDesc.${code}`)}
-                </div>
-              </span>
-            </label>
-          ))}
-        </div>
-
-        <div>
-          <label className="text-xs uppercase tracking-wider text-muted">
-            {t('admin.users.reasonLabel')}
-          </label>
-          <input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            maxLength={280}
-            placeholder={t('admin.users.reasonPlaceholder')}
-            className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={commitRestrictions}
-            disabled={busy || !isDirty}
-          >
-            {t('admin.users.apply')}
-          </Button>
-          <Button variant="secondary" size="sm" onClick={applyAll} disabled={busy}>
-            {t('admin.users.applyAll')}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={clearAll}
-            disabled={busy || restrictions.length === 0}
-          >
-            {t('admin.users.unban')}
-          </Button>
-        </div>
-
-        {user.bannedAt && (
-          <div className="text-xs text-muted">
-            {t('admin.users.bannedAt')}: {new Date(user.bannedAt).toLocaleString()}
+              {t('admin.users.delete')}
+            </Button>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-2">
+            <div className="text-xs uppercase tracking-wider text-muted">
+              {t('admin.users.restrictionsLabel')}
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {ALL_BAN_RESTRICTIONS.map((code) => (
+                <label
+                  key={code}
+                  className={cn(
+                    'flex items-start gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer transition-colors',
+                    restrictions.includes(code)
+                      ? 'border-danger/60 bg-danger/5'
+                      : 'border-border hover:bg-bg',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={restrictions.includes(code)}
+                    onChange={() => toggle(code)}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <div className="font-medium text-fg">
+                      {t(`admin.users.restrictions.${code}`)}
+                    </div>
+                    <div className="text-xs text-muted">
+                      {t(`admin.users.restrictionsDesc.${code}`)}
+                    </div>
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-wider text-muted">
+                {t('admin.users.reasonLabel')}
+              </label>
+              <input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={280}
+                placeholder={t('admin.users.reasonPlaceholder')}
+                className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={commitRestrictions}
+                disabled={busy || !isDirty}
+              >
+                {t('admin.users.apply')}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={applyAll} disabled={busy}>
+                {t('admin.users.applyAll')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={clearAll}
+                disabled={busy || restrictions.length === 0}
+              >
+                {t('admin.users.unban')}
+              </Button>
+            </div>
+
+            {user.bannedAt && (
+              <div className="text-xs text-muted">
+                {t('admin.users.bannedAt')}: {new Date(user.bannedAt).toLocaleString()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
