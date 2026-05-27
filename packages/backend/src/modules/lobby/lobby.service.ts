@@ -93,9 +93,17 @@ export async function createLobby(
         lobbyId: { in: stalePlayerMemberships.map((m) => m.lobbyId) },
       },
     });
-    for (const { lobbyId: oldId } of stalePlayerMemberships) {
-      void broadcastLobbyUpdate(oldId);
-    }
+    // Чистка может застать гонку: лобби в момент SELECT было WAITING, но
+    // успело перейти в IN_GAME до DELETE. LobbyMember уже удалён, а
+    // GameParticipant остался — юзер становится «фантомом» в играющей
+    // партии. removeUserFromActiveGameForLobby делает no-op если игры нет,
+    // иначе помечает участника removed и пушит обновлённый state. Параллельно.
+    await Promise.allSettled(
+      stalePlayerMemberships.flatMap(({ lobbyId: oldId }) => [
+        broadcastLobbyUpdate(oldId),
+        removeUserFromActiveGameForLobby(oldId, hostId),
+      ]),
+    );
   }
 
   const passwordHash = input.password ? await hashPassword(input.password) : null;
@@ -320,9 +328,14 @@ export async function joinLobby(
     if (result.kind === 'error') return fail(result.error);
 
     // Broadcast по каждому старому лобби — там игрок исчез из списка.
-    for (const evictedId of evictedFromLobbies) {
-      void broadcastLobbyUpdate(evictedId);
-    }
+    // Плюс защита от race: лобби могло уйти в IN_GAME между SELECT и
+    // DELETE, тогда юзер остался GameParticipant'ом — чистим явно.
+    await Promise.allSettled(
+      evictedFromLobbies.flatMap((evictedId) => [
+        broadcastLobbyUpdate(evictedId),
+        removeUserFromActiveGameForLobby(evictedId, userId),
+      ]),
+    );
   } catch (error) {
     if (isSerializationFailure(error)) return fail(LOBBY_ERROR.SEAT_CONTENTION);
     if (isUniqueConstraintViolation(error)) return fail(LOBBY_ERROR.SEAT_CONTENTION);
@@ -638,9 +651,10 @@ export async function expireStaleLobbies(): Promise<string[]> {
   });
 
   for (const { id } of stale) {
-    clearLobbyChat(id);
-    void broadcastLobbyUpdate(id);
+    clearLobbyChat(id); // synchronous, in-memory
   }
+  // Broadcast'ы параллельно — каждый дёргает Prisma findUnique.
+  await Promise.allSettled(stale.map(({ id }) => broadcastLobbyUpdate(id)));
   return stale.map((l) => l.id);
 }
 
