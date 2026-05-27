@@ -17,10 +17,11 @@
     },
     "lobbies": {
       "searchPlaceholder": "Поиск по названию лобби",
-      "filterAll": "Все",
+      "filterActive": "Активные",
+      "filterAll": "Все (включая закрытые)",
       "filterWaiting": "Ожидают",
       "filterInGame": "Идут",
-      "filterClosed": "Закрытые",
+      "filterClosed": "Только закрытые",
       "count": "Найдено: {{count}}",
       "empty": "Лобби нет",
       "forceClose": "Закрыть",

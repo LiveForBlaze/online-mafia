@@ -22,7 +22,10 @@ import { endActiveGameForLobby } from '../game/game.service.js';
 // ---- Lobbies ----
 
 export interface ListLobbiesInput {
-  status?: LobbyStatus | 'ALL';
+  // 'ACTIVE' — meta-статус: WAITING ∪ IN_GAME. Дефолт для админ-UI: закрытые
+  // лобби визуально шумят и не требуют действий, их прячем пока админ
+  // явно не запросит "Все" или "Закрытые".
+  status?: LobbyStatus | 'ALL' | 'ACTIVE';
   search?: string;
   limit?: number;
 }
@@ -31,7 +34,9 @@ export async function listLobbiesForAdmin(
   input: ListLobbiesInput,
 ): Promise<{ lobbies: AdminLobbySummary[]; total: number }> {
   const where: Prisma.LobbyWhereInput = {};
-  if (input.status && input.status !== 'ALL') {
+  if (input.status === 'ACTIVE') {
+    where.status = { in: [LobbyStatus.WAITING, LobbyStatus.IN_GAME] };
+  } else if (input.status && input.status !== 'ALL') {
     where.status = input.status;
   }
   if (input.search?.trim()) {

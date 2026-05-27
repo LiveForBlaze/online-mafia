@@ -10,7 +10,6 @@
 //   DELETE /admin/users/:id              — anonymise + lock out
 
 import type { FastifyPluginAsync } from 'fastify';
-import { LobbyStatus } from '@prisma/client';
 import {
   adminRenameLobbyInputSchema,
   adminRenameUserInputSchema,
@@ -43,10 +42,17 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     '/lobbies',
     guard,
     async (request, reply) => {
-      const status = (request.query.status as LobbyStatus | 'ALL' | undefined) ?? 'ALL';
-      // Простая валидация — если кто-то прислал мусор, считаем ALL.
-      const safeStatus =
-        status === 'WAITING' || status === 'IN_GAME' || status === 'CLOSED' ? status : 'ALL';
+      const status = request.query.status;
+      // Дефолт — ACTIVE (WAITING+IN_GAME). Чтобы посмотреть закрытые,
+      // админ явно выбирает "ALL" или "CLOSED".
+      const safeStatus: 'WAITING' | 'IN_GAME' | 'CLOSED' | 'ALL' | 'ACTIVE' =
+        status === 'WAITING' ||
+        status === 'IN_GAME' ||
+        status === 'CLOSED' ||
+        status === 'ALL' ||
+        status === 'ACTIVE'
+          ? status
+          : 'ACTIVE';
       const result = await listLobbiesForAdmin({
         status: safeStatus,
         search: request.query.search,

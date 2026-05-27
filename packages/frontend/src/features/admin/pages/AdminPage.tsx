@@ -88,9 +88,13 @@ function TabButton({
 
 // ---------- Lobbies tab ----------
 
+type LobbyStatusFilter = 'ACTIVE' | 'ALL' | 'WAITING' | 'IN_GAME' | 'CLOSED';
+
 function LobbiesTab() {
   const { t } = useTranslation();
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'WAITING' | 'IN_GAME' | 'CLOSED'>('ALL');
+  // Дефолтный фильтр — ACTIVE (открытые + в игре). Закрытые шумят и
+  // не требуют действий, их прячем пока админ не запросит явно.
+  const [statusFilter, setStatusFilter] = useState<LobbyStatusFilter>('ACTIVE');
   const [search, setSearch] = useState('');
   const [lobbies, setLobbies] = useState<AdminLobbySummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -135,15 +139,14 @@ function LobbiesTab() {
         />
         <select
           value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as 'ALL' | 'WAITING' | 'IN_GAME' | 'CLOSED')
-          }
+          onChange={(e) => setStatusFilter(e.target.value as LobbyStatusFilter)}
           className="rounded-md border border-border bg-card px-3 py-2 text-sm"
         >
-          <option value="ALL">{t('admin.lobbies.filterAll')}</option>
+          <option value="ACTIVE">{t('admin.lobbies.filterActive')}</option>
           <option value="WAITING">{t('admin.lobbies.filterWaiting')}</option>
           <option value="IN_GAME">{t('admin.lobbies.filterInGame')}</option>
           <option value="CLOSED">{t('admin.lobbies.filterClosed')}</option>
+          <option value="ALL">{t('admin.lobbies.filterAll')}</option>
         </select>
       </div>
 
@@ -262,15 +265,19 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
       </td>
       <td className="px-3 py-2">{lobby.memberCount}</td>
       <td className="px-3 py-2 text-right">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={closeNow}
-          disabled={busy || lobby.status === 'CLOSED'}
-          className="border-danger/40 text-danger hover:bg-danger/10"
-        >
-          {t('admin.lobbies.forceClose')}
-        </Button>
+        {lobby.status === 'CLOSED' ? (
+          <span className="text-muted text-xs">—</span>
+        ) : (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={closeNow}
+            disabled={busy}
+            className="border-danger/40 text-danger hover:bg-danger/10"
+          >
+            {t('admin.lobbies.forceClose')}
+          </Button>
+        )}
       </td>
     </tr>
   );
