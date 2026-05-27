@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 
 import {
   BAN_RESTRICTION,
@@ -22,7 +22,9 @@ import {
 
 import { Button } from '@/components/ui/Button.js';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
+import { toast } from '@/components/ui/Toaster.js';
 import { cn } from '@/lib/cn.js';
+import { useDebouncedValue } from '@/lib/useDebouncedValue.js';
 import { ApiError } from '@/lib/api-client.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { adminApi } from '@/features/admin/api/admin.api.js';
@@ -100,11 +102,13 @@ function LobbiesTab() {
   // не требуют действий, их прячем пока админ не запросит явно.
   const [statusFilter, setStatusFilter] = useState<LobbyStatusFilter>('ACTIVE');
   const [search, setSearch] = useState('');
+  // Debounce: API запрос идёт через 300мс после последнего keystroke,
+  // а не на каждый символ.
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [lobbies, setLobbies] = useState<AdminLobbySummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // При смене фильтров — забываем offset, иначе вторая страница «висит»
@@ -112,11 +116,10 @@ function LobbiesTab() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError(null);
     adminApi
       .listLobbies({
         status: statusFilter,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         offset: 0,
         limit: PAGE_SIZE,
       })
@@ -127,7 +130,7 @@ function LobbiesTab() {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'error');
+        if (!cancelled) toast.error(err instanceof Error ? err.message : 'error');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -135,24 +138,23 @@ function LobbiesTab() {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, search, refreshKey]);
+  }, [statusFilter, debouncedSearch, refreshKey]);
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
   async function loadMore() {
     setLoadingMore(true);
-    setError(null);
     try {
       const res = await adminApi.listLobbies({
         status: statusFilter,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         offset: lobbies.length,
         limit: PAGE_SIZE,
       });
       setLobbies((curr) => [...curr, ...res.lobbies]);
       setTotal(res.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'error');
+      toast.error(err instanceof Error ? err.message : 'error');
     } finally {
       setLoadingMore(false);
     }
@@ -185,12 +187,6 @@ function LobbiesTab() {
         {t('admin.shownOf', { shown: lobbies.length, total })}
         {loading && <span className="ml-2">…</span>}
       </div>
-
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
@@ -236,19 +232,25 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
   const [busy, setBusy] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
 
+  function cancelRename() {
+    setRenaming(false);
+    setDraftName(lobby.name);
+  }
+
   async function commitRename() {
-    if (draftName.trim() === lobby.name || !draftName.trim()) {
-      setRenaming(false);
-      setDraftName(lobby.name);
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed === lobby.name) {
+      cancelRename();
       return;
     }
     setBusy(true);
     try {
-      await adminApi.renameLobby(lobby.id, { name: draftName.trim() });
+      await adminApi.renameLobby(lobby.id, { name: trimmed });
       setRenaming(false);
+      toast.success(t('admin.lobbies.renamed'));
       onChanged();
     } catch (err) {
-      alert((err as Error).message);
+      toast.error(err instanceof Error ? err.message : 'error');
     } finally {
       setBusy(false);
     }
@@ -259,9 +261,10 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
     setBusy(true);
     try {
       await adminApi.closeLobby(lobby.id);
+      toast.success(t('admin.lobbies.closed'));
       onChanged();
     } catch (err) {
-      alert((err as Error).message);
+      toast.error(err instanceof Error ? err.message : 'error');
     } finally {
       setBusy(false);
     }
@@ -271,20 +274,40 @@ function LobbyRow({ lobby, onChanged }: { lobby: AdminLobbySummary; onChanged: (
     <tr>
       <td className="px-3 py-2">
         {renaming ? (
-          <input
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitRename();
-              if (e.key === 'Escape') {
-                setRenaming(false);
-                setDraftName(lobby.name);
-              }
-            }}
-            autoFocus
-            className="w-full rounded border border-accent bg-bg px-2 py-1 text-sm"
-          />
+          // Явные кнопки save/cancel вместо onBlur=commit — клик мимо случайно
+          // сохранял черновик. Enter сохраняет, Escape отменяет.
+          <div className="flex items-center gap-1">
+            <input
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename();
+                if (e.key === 'Escape') cancelRename();
+              }}
+              autoFocus
+              disabled={busy}
+              maxLength={60}
+              className="flex-1 min-w-0 rounded border border-accent bg-bg px-2 py-1 text-sm"
+            />
+            <button
+              type="button"
+              onClick={commitRename}
+              disabled={busy}
+              aria-label={t('common.save')}
+              className="shrink-0 rounded p-1 text-success hover:bg-success/10 disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={cancelRename}
+              disabled={busy}
+              aria-label={t('common.cancel')}
+              className="shrink-0 rounded p-1 text-muted hover:bg-bg disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         ) : (
           <button
             type="button"
@@ -349,6 +372,7 @@ function StatusPill({ status }: { status: 'WAITING' | 'IN_GAME' | 'CLOSED' }) {
 function UsersTab() {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   // Боты и удалённые аккаунты по умолчанию скрыты на бэке. Тут — toggle
   // включить ботов обратно для редких кейсов когда они нужны (debug,
   // ручная чистка).
@@ -357,16 +381,14 @@ function UsersTab() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError(null);
     adminApi
       .listUsers({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         includeBots,
         offset: 0,
         limit: PAGE_SIZE,
@@ -378,7 +400,7 @@ function UsersTab() {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'error');
+        if (!cancelled) toast.error(err instanceof Error ? err.message : 'error');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -386,16 +408,15 @@ function UsersTab() {
     return () => {
       cancelled = true;
     };
-  }, [search, includeBots, refreshKey]);
+  }, [debouncedSearch, includeBots, refreshKey]);
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
   async function loadMore() {
     setLoadingMore(true);
-    setError(null);
     try {
       const res = await adminApi.listUsers({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         includeBots,
         offset: users.length,
         limit: PAGE_SIZE,
@@ -403,7 +424,7 @@ function UsersTab() {
       setUsers((curr) => [...curr, ...res.users]);
       setTotal(res.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'error');
+      toast.error(err instanceof Error ? err.message : 'error');
     } finally {
       setLoadingMore(false);
     }
@@ -433,12 +454,6 @@ function UsersTab() {
         {t('admin.shownOf', { shown: users.length, total })}
         {loading && <span className="ml-2">…</span>}
       </div>
-
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
 
       <div className="space-y-3">
         {users.map((u) => (
@@ -517,27 +532,34 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
     setBusy(true);
     try {
       await adminApi.setRestrictions(user.id, restrictions, reason || null);
+      toast.success(t('admin.users.restrictionsApplied'));
       onChanged();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : (err as Error).message);
+      toast.error(err instanceof ApiError ? err.message : (err as Error).message);
     } finally {
       setBusy(false);
     }
   }
 
+  function cancelRename() {
+    setEditingName(false);
+    setDraftName(user.nickname);
+  }
+
   async function commitRename() {
-    if (draftName.trim() === user.nickname || !draftName.trim()) {
-      setEditingName(false);
-      setDraftName(user.nickname);
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed === user.nickname) {
+      cancelRename();
       return;
     }
     setBusy(true);
     try {
-      await adminApi.renameUser(user.id, { nickname: draftName.trim() });
+      await adminApi.renameUser(user.id, { nickname: trimmed });
       setEditingName(false);
+      toast.success(t('admin.users.renamed'));
       onChanged();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : (err as Error).message);
+      toast.error(err instanceof ApiError ? err.message : (err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -548,9 +570,10 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
     setBusy(true);
     try {
       await adminApi.deleteUser(user.id);
+      toast.success(t('admin.users.deleted'));
       onChanged();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : (err as Error).message);
+      toast.error(err instanceof ApiError ? err.message : (err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -610,20 +633,39 @@ function UserCard({ user, onChanged }: { user: AdminUserSummary; onChanged: () =
           {/* Никнейм-редактор + delete справа. */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             {editingName ? (
-              <input
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitRename();
-                  if (e.key === 'Escape') {
-                    setEditingName(false);
-                    setDraftName(user.nickname);
-                  }
-                }}
-                autoFocus
-                className="rounded border border-accent bg-bg px-2 py-1 text-sm font-semibold"
-              />
+              // Явные save/cancel вместо onBlur=commit.
+              <div className="flex items-center gap-1">
+                <input
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitRename();
+                    if (e.key === 'Escape') cancelRename();
+                  }}
+                  autoFocus
+                  disabled={busy}
+                  maxLength={30}
+                  className="rounded border border-accent bg-bg px-2 py-1 text-sm font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={commitRename}
+                  disabled={busy}
+                  aria-label={t('common.save')}
+                  className="rounded p-1 text-success hover:bg-success/10 disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelRename}
+                  disabled={busy}
+                  aria-label={t('common.cancel')}
+                  className="rounded p-1 text-muted hover:bg-bg disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             ) : (
               <button
                 type="button"

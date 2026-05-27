@@ -8,6 +8,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 
 import { MainLayout } from '@/components/layout/MainLayout.js';
+import { Toaster } from '@/components/ui/Toaster.js';
 import { AdminPage } from '@/features/admin/pages/AdminPage.js';
 import { BannedScreen } from '@/features/auth/components/BannedScreen.js';
 import { useHydrateCurrentUser } from '@/features/auth/hooks/useCurrentUser.js';
@@ -38,42 +39,45 @@ export function App() {
   }
 
   return (
-    <Routes>
-      <Route path={ROUTE_PATH.LOGIN} element={<LoginPage />} />
-      <Route path={ROUTE_PATH.REGISTER} element={<RegisterPage />} />
+    <>
+      <Toaster />
+      <Routes>
+        <Route path={ROUTE_PATH.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTE_PATH.REGISTER} element={<RegisterPage />} />
 
-      {/* Authenticated shell — top nav + page content. */}
-      <Route
-        element={
-          <AuthGuard>
-            <MainLayout />
-          </AuthGuard>
-        }
-      >
-        <Route path={ROUTE_PATH.HOME} element={<LobbyListPage />} />
-        <Route path={ROUTE_PATH.USER} element={<UserPage />} />
-        <Route path={ROUTE_PATH.PLAYERS} element={<PlayersPage />} />
-        <Route path={ROUTE_PATH.CLUBS} element={<ClubsPage />} />
-        <Route path={ROUTE_PATH.TOURNAMENTS} element={<TournamentsPage />} />
-        <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />
-        <Route path={ROUTE_PATH.ABOUT} element={<AboutPage />} />
-        <Route path={ROUTE_PATH.LOBBY_ROOM} element={<LobbyRoomPage />} />
-        {/* /admin сам делает Navigate в HOME для не-админов, чтобы /admin
+        {/* Authenticated shell — top nav + page content. */}
+        <Route
+          element={
+            <AuthGuard>
+              <MainLayout />
+            </AuthGuard>
+          }
+        >
+          <Route path={ROUTE_PATH.HOME} element={<LobbyListPage />} />
+          <Route path={ROUTE_PATH.USER} element={<UserPage />} />
+          <Route path={ROUTE_PATH.PLAYERS} element={<PlayersPage />} />
+          <Route path={ROUTE_PATH.CLUBS} element={<ClubsPage />} />
+          <Route path={ROUTE_PATH.TOURNAMENTS} element={<TournamentsPage />} />
+          <Route path={ROUTE_PATH.RULES} element={<RulesPage />} />
+          <Route path={ROUTE_PATH.ABOUT} element={<AboutPage />} />
+          <Route path={ROUTE_PATH.LOBBY_ROOM} element={<LobbyRoomPage />} />
+          {/* /admin сам делает Navigate в HOME для не-админов, чтобы /admin
             прямой ссылкой не давал белый экран. Серверный гард — отдельно. */}
-        <Route path={ROUTE_PATH.ADMIN} element={<AdminPage />} />
-      </Route>
+          <Route path={ROUTE_PATH.ADMIN} element={<AdminPage />} />
+        </Route>
 
-      {/* Full-screen game page — no top nav. */}
-      <Route
-        path={ROUTE_PATH.GAME_ROOM}
-        element={
-          <AuthGuard>
-            <GamePage />
-          </AuthGuard>
-        }
-      />
+        {/* Full-screen game page — no top nav. */}
+        <Route
+          path={ROUTE_PATH.GAME_ROOM}
+          element={
+            <AuthGuard>
+              <GamePage />
+            </AuthGuard>
+          }
+        />
 
-      <Route path="*" element={<Navigate to={ROUTE_PATH.HOME} replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to={ROUTE_PATH.HOME} replace />} />
+      </Routes>
+    </>
   );
 }
