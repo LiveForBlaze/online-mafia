@@ -246,7 +246,8 @@
       "saved": "Saved",
       "back": "Back",
       "logout": "Sign out",
-      "loggingOut": "Signing out..."
+      "loggingOut": "Signing out...",
+      "bannedEdit": "Profile editing is blocked by an administrator"
     },
     "errors": {
       "invalid_credentials": "Wrong email or password",
@@ -373,7 +374,8 @@
       "playersNeeded": "{{n}} players needed",
       "youAreReady": "You are ready",
       "youWillBeReady": "Tap to mark ready",
-      "markNotReadyShort": "Not ready"
+      "markNotReadyShort": "Not ready",
+      "bannedReady": "Action unavailable — you are banned from games"
     },
     "errors": {
       "lobby_not_found": "Lobby not found",
@@ -399,6 +401,7 @@
       "title": "Lobby chat",
       "placeholder": "Type a message...",
       "send": "Send",
+      "bannedPlaceholder": "Chat disabled — you are currently banned",
       "empty": "No messages yet. Say hi!",
       "sendError": "Could not send message. Please try again."
     }

@@ -6,10 +6,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LogOut } from 'lucide-react';
 
-import type { LobbyDetails, Role } from '@mafia/shared';
+import { BAN_RESTRICTION, type LobbyDetails, type Role } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { formatRelativeTime } from '@/features/lobby/lib/relativeTime.js';
 
 import { JudgeSlot } from './JudgeSlot.js';
@@ -86,6 +87,12 @@ export function LobbyRoom({
 
   const viewerMember = lobby.members.find((m) => m.userId === currentUserId);
   const viewerIsReady = viewerMember?.isReady ?? false;
+  // PARTICIPATE_GAMES бан выключает «Готов» — забанённый игрок не должен
+  // запускать игру дальше. Бэкенд тоже отбьёт, но без FE-гейта кнопка
+  // выглядит активной.
+  const cannotParticipate = useAuthStore((s) => s.user?.banRestrictions ?? []).includes(
+    BAN_RESTRICTION.PARTICIPATE_GAMES,
+  );
   // Judges don't toggle "ready" — they're the ones starting. Hide the
   // button for them so the layout doesn't dangle an unusable control.
   const showReadyButton = Boolean(viewerMember) && !viewerMember?.isJudge;
@@ -174,7 +181,8 @@ export function LobbyRoom({
                 <Button
                   size="md"
                   onClick={() => onToggleReady(!viewerIsReady)}
-                  disabled={isReadyPending}
+                  disabled={isReadyPending || cannotParticipate}
+                  title={cannotParticipate ? t('lobby.room.bannedReady') : undefined}
                   className={cn(
                     'min-w-[180px] justify-center',
                     viewerIsReady

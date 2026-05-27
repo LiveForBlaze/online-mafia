@@ -9,11 +9,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
-import { LOBBY_CHAT_MAX_LENGTH, type LobbyChatMessage } from '@mafia/shared';
+import { BAN_RESTRICTION, LOBBY_CHAT_MAX_LENGTH, type LobbyChatMessage } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { Input } from '@/components/ui/Input.js';
 import { cn } from '@/lib/cn.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { useLobbyChat } from '@/features/lobby/hooks/useLobbyChat.js';
 import { userProfilePath } from '@/routes/paths.js';
 
@@ -29,6 +30,11 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // PARTICIPATE_GAMES бан выключает возможность писать в чат лобби —
+  // бэкенд всё равно отбьёт, но без FE-гейта поле выглядит активным.
+  const banned = useAuthStore((s) => s.user?.banRestrictions ?? []).includes(
+    BAN_RESTRICTION.PARTICIPATE_GAMES,
+  );
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // YouTube-style "follow new messages while you're at the bottom" tracker.
@@ -103,13 +109,13 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
           ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={t('lobby.chat.placeholder')}
+          placeholder={banned ? t('lobby.chat.bannedPlaceholder') : t('lobby.chat.placeholder')}
           maxLength={LOBBY_CHAT_MAX_LENGTH}
-          disabled={sending}
+          disabled={sending || banned}
           aria-label={t('lobby.chat.placeholder')}
           className="flex-1"
         />
-        <Button type="submit" size="sm" disabled={sending || draft.trim().length === 0}>
+        <Button type="submit" size="sm" disabled={sending || banned || draft.trim().length === 0}>
           {t('lobby.chat.send')}
         </Button>
       </form>

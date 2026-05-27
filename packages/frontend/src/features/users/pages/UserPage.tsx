@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Lock } from 'lucide-react';
 
 import {
+  BAN_RESTRICTION,
   COMMON_AVATARS,
   REWARD_AVATARS,
   isStandardAvatar,
@@ -386,6 +387,10 @@ function OwnProfileSection() {
 
   if (!user) return null;
 
+  // EDIT_PROFILE бан выключает форму редактирования. Бэкенд отбросит
+  // PATCH /users/me, но UX без FE-гейта сбивает — поле выглядит активным.
+  const cannotEdit = user.banRestrictions.includes(BAN_RESTRICTION.EDIT_PROFILE);
+
   function extractErrorMessage(error: unknown): string {
     if (error instanceof ApiError) return authErrorMessage(error.body.error);
     return authErrorMessage(undefined);
@@ -540,7 +545,7 @@ function OwnProfileSection() {
               maxLength={24}
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
-              disabled={saving}
+              disabled={saving || cannotEdit}
             />
             <p className="mt-1 text-xs text-muted">{t('auth.profile.nicknameHint')}</p>
           </div>
@@ -552,7 +557,7 @@ function OwnProfileSection() {
               maxLength={80}
               value={realName}
               onChange={(event) => setRealName(event.target.value)}
-              disabled={saving}
+              disabled={saving || cannotEdit}
             />
             <p className="mt-1 text-xs text-muted">{t('profile.real_name_hint')}</p>
           </div>
@@ -562,7 +567,7 @@ function OwnProfileSection() {
             <CountrySelect
               value={country || null}
               onChange={(v) => setCountry(v ?? '')}
-              disabled={saving}
+              disabled={saving || cannotEdit}
             />
             <p className="mt-1 text-xs text-muted">{t('profile.country_hint')}</p>
           </div>
@@ -574,7 +579,7 @@ function OwnProfileSection() {
               maxLength={80}
               value={clubName}
               onChange={(event) => setClubName(event.target.value)}
-              disabled={saving}
+              disabled={saving || cannotEdit}
             />
             <p className="mt-1 text-xs text-muted">{t('profile.club_hint')}</p>
           </div>
@@ -591,9 +596,20 @@ function OwnProfileSection() {
             </p>
           )}
 
-          <Button type="submit" size="md" className="w-full" disabled={saving || !dirty}>
+          <Button
+            type="submit"
+            size="md"
+            className="w-full"
+            disabled={saving || !dirty || cannotEdit}
+            title={cannotEdit ? t('auth.profile.bannedEdit') : undefined}
+          >
             {saving ? t('auth.profile.saving') : t('auth.profile.save')}
           </Button>
+          {cannotEdit && (
+            <p role="alert" className="text-xs text-warning text-center">
+              {t('auth.profile.bannedEdit')}
+            </p>
+          )}
         </form>
 
         {/* Big visual gap before the danger zone — logout above is benign,
