@@ -35,7 +35,6 @@ model User {
   // once the clubs module exists.
   realName String?
   country  String?
-  clubName String?
 
   // Nullable to support users who sign up only via OAuth (no password set) and bots.
   passwordHash String?
@@ -89,6 +88,12 @@ model User {
   // достижений живёт в shared/constants/achievements.ts — здесь только
   // сами факты выдачи. Никогда не выдаём один и тот же id дважды.
   achievements Json @default("[]")
+
+  primaryClubId    String?
+  primaryClub      Club?             @relation("UserPrimaryClub", fields: [primaryClubId], references: [id], onDelete: SetNull)
+  headOfClubs      Club[]            @relation("ClubHead")
+  clubMemberships  ClubMember[]
+  clubJoinRequests ClubJoinRequest[]
 
   // Платформенные права. Назначается через ENV ADMIN_EMAILS на старте
   // бэкенда — нет UI или API чтобы дать админку через приложение, иначе
@@ -240,4 +245,46 @@ model GameEvent {
 
   @@unique([gameId, seq])
   @@index([gameId, createdAt])
+}
+
+// User clubs. Many-to-many: a user can be in multiple clubs simultaneously.
+// Head is denormalised as Club.headId — exactly one head per club. The head
+// MUST also exist in ClubMember (enforced in code, not DB).
+model Club {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  publicCode String   @unique
+  headId     String
+  head       User     @relation("ClubHead", fields: [headId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  members      ClubMember[]
+  joinRequests ClubJoinRequest[]
+  primaryFor   User[]            @relation("UserPrimaryClub")
+
+  @@index([headId])
+}
+
+model ClubMember {
+  clubId   String
+  club     Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@id([clubId, userId])
+  @@index([userId])
+}
+
+model ClubJoinRequest {
+  clubId      String
+  club        Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedAt DateTime @default(now())
+
+  @@id([clubId, userId])
+  @@index([clubId])
+  @@index([userId])
 }
