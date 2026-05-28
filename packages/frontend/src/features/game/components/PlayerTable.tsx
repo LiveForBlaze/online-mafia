@@ -1,23 +1,17 @@
-// Table layout has two variants:
-//
-// Desktop (sm+): 12-tile ring grid — 10 player seats around the perimeter,
-// judge and info tiles in the centre row.
+// Desktop-only table layout (lg+): 12-tile ring grid — 10 player seats
+// around the perimeter, judge and info tiles in the centre row.
 //
 //   P9   P10  P1   P2
 //   P8   J    I    P3
 //   P7   P6   P5   P4
 //
-// Mobile (< sm): no scroll, the whole game lives in one viewport. We hide
-// the judge tile entirely and surface the stage info (phase, timer, speaker,
-// check result) as a compact strip via MobileStage (rendered by the parent
-// page). This component renders only the 5×2 grid of player seats.
-// Tapping a tile asks the parent to open MobileSeatZoom.
+// Mobile (<lg) uses MobileGameView in GamePage instead — PlayerTable is
+// hidden there by its container's `hidden lg:block`.
 
 import type { ReactNode } from 'react';
 
 import type { GameParticipantPublic, GameStateProjected } from '@mafia/shared';
 
-import { MobileSeatTile } from './MobileSeatTile.js';
 import { SeatVideoTile } from './SeatVideoTile.js';
 
 interface PlayerTableProps {
@@ -29,8 +23,6 @@ interface PlayerTableProps {
     participant: GameParticipantPublic,
   ) => { label: string; onClick: () => void; disabled?: boolean } | null;
   judgeControlsFor?: (participant: GameParticipantPublic) => React.ReactNode | null;
-  // Mobile-only: open the fullscreen overlay for this seat.
-  onZoomSeat?: (seat: number) => void;
 }
 
 // Mapping from seat number to its position in the desktop 4×3 grid.
@@ -57,7 +49,6 @@ export function PlayerTable({
   infoTile,
   actionFor,
   judgeControlsFor,
-  onZoomSeat,
 }: PlayerTableProps) {
   const bySeat = new Map<number, GameParticipantPublic>();
   for (const p of state.participants) {
@@ -71,9 +62,9 @@ export function PlayerTable({
 
   return (
     <>
-      {/* Desktop ring layout — kicks in only at lg+ so landscape phones
-          (which clear sm: at ~800px wide) still get the compact mobile grid. */}
-      <div className="hidden lg:grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
+      {/* Desktop ring layout (lg+). The parent container is hidden on
+          mobile; MobileGameView handles the <lg viewport instead. */}
+      <div className="grid grid-cols-4 grid-rows-3 gap-2 w-full h-full min-h-0">
         {Object.entries(SEAT_POSITION).map(([seatKey, position]) => {
           const seat = Number(seatKey);
           const participant = bySeat.get(seat);
@@ -118,34 +109,6 @@ export function PlayerTable({
         >
           {infoTile}
         </div>
-      </div>
-
-      {/* Mobile 5×2 grid. Tiles stretch to fill the height the parent gives us
-          so the layout adapts to portrait → landscape rotation. Judge tile
-          and info tile intentionally not rendered — handled by MobileStage. */}
-      <div className="lg:hidden grid grid-cols-5 grid-rows-2 gap-1.5 w-full h-full min-h-0">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((seat) => {
-          const participant = bySeat.get(seat);
-          return (
-            <MobileSeatTile
-              key={seat}
-              seat={seat}
-              participant={participant}
-              isSelf={participant?.userId === viewerUserId}
-              isSpeaker={state.currentSpeakerSeat === seat}
-              isNominated={state.nominationSeats.includes(seat)}
-              isDeadButSpeaking={
-                !!participant &&
-                !participant.isAlive &&
-                seat === state.currentSpeakerSeat &&
-                (seat === state.farewellSeat || seat === state.lastWordSeat)
-              }
-              voteCountAgainst={votesAgainst.get(seat)}
-              action={participant ? (actionFor?.(participant) ?? null) : null}
-              onZoom={() => onZoomSeat?.(seat)}
-            />
-          );
-        })}
       </div>
     </>
   );

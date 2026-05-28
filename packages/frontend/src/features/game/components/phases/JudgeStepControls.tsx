@@ -1,4 +1,4 @@
-// Судейская связка «Назад / Дальше» в InfoTile и MobileStage.
+// Судейская связка «Назад / Дальше» в InfoTile и MobileControlPanel.
 //
 // «Дальше» делегируется в judgeStep — он сам решает next speaker / next round /
 // next phase. «Назад» откатывает последний шаг через стек снимков на сервере

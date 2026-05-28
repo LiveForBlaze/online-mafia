@@ -72,7 +72,7 @@ export function actionForSeatInCurrentPhase(args: ActionForSeatArgs): SeatAction
 
     case GAME_PHASE.DAY_VOTE:
     case GAME_PHASE.DAY_REVOTE:
-      // Кнопка «ЗА» живёт в InfoTile (и MobileStage), не на тайле — чтобы
+      // Кнопка «ЗА» живёт в InfoTile (и MobileControlPanel), не на тайле — чтобы
       // игроки не искали её среди десяти мест.
       return null;
 

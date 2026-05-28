@@ -1,6 +1,6 @@
 // End-of-game review.
 //
-// Rendered inside InfoTile (desktop) and MobileStage (mobile) once
+// Rendered inside InfoTile (desktop) and MobileControlPanel (mobile) once
 // state.status flips to 'finished'. Everyone's role is unmasked in the
 // projection at that point, so we can finally show the full table and the
 // Лучший Ход submissions with correctness shading.
