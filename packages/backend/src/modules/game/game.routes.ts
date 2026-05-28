@@ -3,6 +3,9 @@
 // The realtime channel is Socket.IO; REST is used only for the initial fetch
 // of game state when the user first opens /game/:id and for issuing LiveKit tokens.
 
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { BAN_RESTRICTION } from '@mafia/shared';
 
@@ -103,6 +106,24 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
         url: result.url,
         roomName: result.roomName,
       });
+    },
+  );
+
+  // Admin-only debug log streaming endpoint.
+  // Returns the per-game JSONL file as application/x-ndjson.
+  app.get<{ Params: { id: string } }>(
+    '/:id/debug-log',
+    { preHandler: [app.authenticate, app.requireAdmin] },
+    async (request, reply) => {
+      const dir = process.env.DEBUG_LOG_DIR ?? '/data/debug-logs';
+      const file = join(dir, `${request.params.id}.jsonl`);
+      try {
+        await stat(file);
+      } catch {
+        return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'log_not_found' });
+      }
+      reply.type('application/x-ndjson');
+      return reply.send(createReadStream(file));
     },
   );
 };
