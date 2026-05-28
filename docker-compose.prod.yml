@@ -45,6 +45,8 @@ services:
       NODE_ENV: production
     expose:
       - '3000'
+    volumes:
+      - ./data/debug-logs:/data/debug-logs
     depends_on:
       postgres:
         condition: service_healthy

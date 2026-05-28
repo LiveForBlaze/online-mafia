@@ -45,3 +45,6 @@ ruvector.db
 
 # Misc
 *.tmp
+
+# Debug log dumps written by the backend at runtime.
+data/debug-logs/
