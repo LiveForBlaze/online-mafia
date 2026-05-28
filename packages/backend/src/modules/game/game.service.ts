@@ -566,6 +566,17 @@ export async function leaveGameAsParticipant(
     if (!engineResult.ok) return fail(engineResult.error);
 
     let next = engineResult.data;
+    // Drop the LobbyMember row too — without this, the home page still shows
+    // the lobby in «Идут сейчас» with a «Вернуться в игру» button for someone
+    // who already pressed the red exit. The GameParticipant row stays (with
+    // isRemoved=true) so stats / replay / admin still see the player; only
+    // the lobby-membership affordance is cleared. Tolerant of the row being
+    // already gone (e.g. concurrent kick).
+    await prisma.lobbyMember
+      .delete({
+        where: { lobbyId_userId: { lobbyId: next.lobbyId, userId: ctx.userId } },
+      })
+      .catch(() => undefined);
     next = await persistEvent(next, GAME_EVENT_TYPE.PLAYER_REMOVED, ctx.userId, {
       targetUserId: ctx.userId,
       selfRemoved: true,

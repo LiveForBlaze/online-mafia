@@ -161,7 +161,8 @@
       "action": "მოქმედება"
     },
     "statusOpen": "ღია",
-    "statusFull": "სავსე"
+    "statusFull": "სავსე",
+    "statusInGame": "თამაშში"
   },
   "rewardPromo": {
     "titleLocked": "ალფა-ავატარები — სერიოზულად მოთამაშეებისთვის",

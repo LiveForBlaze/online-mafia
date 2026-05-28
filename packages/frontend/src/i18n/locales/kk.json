@@ -161,7 +161,8 @@
       "action": "Әрекет"
     },
     "statusOpen": "Ашық",
-    "statusFull": "Толған"
+    "statusFull": "Толған",
+    "statusInGame": "Ойында"
   },
   "rewardPromo": {
     "titleLocked": "Альфа-аватарлар — шынайы ойнайтындарға",

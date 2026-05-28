@@ -165,7 +165,8 @@
       "action": "Дія"
     },
     "statusOpen": "Відкрито",
-    "statusFull": "Заповнено"
+    "statusFull": "Заповнено",
+    "statusInGame": "У грі"
   },
   "rewardPromo": {
     "titleLocked": "Альфа-аватари — для тих, хто грає всерйоз",

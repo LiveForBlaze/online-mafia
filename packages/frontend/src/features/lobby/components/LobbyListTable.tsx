@@ -10,7 +10,7 @@ import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
-import type { LobbySummary } from '@mafia/shared';
+import { LOBBY_STATUS, type LobbySummary } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
@@ -19,11 +19,11 @@ import { userProfilePath } from '@/routes/paths.js';
 
 interface LobbyListTableProps {
   lobbies: LobbySummary[];
-  onJoin: (lobby: LobbySummary) => void;
+  onAction: (lobby: LobbySummary) => void;
   joiningId?: string | null;
 }
 
-export function LobbyListTable({ lobbies, onJoin, joiningId }: LobbyListTableProps) {
+export function LobbyListTable({ lobbies, onAction, joiningId }: LobbyListTableProps) {
   const { t } = useTranslation();
   // На одной строке table-header'ы (#, Лобби, Ведущий, Игроки, Статус…)
   // создают визуально пустую таблицу с одним рядом — feedback от
@@ -64,7 +64,7 @@ export function LobbyListTable({ lobbies, onJoin, joiningId }: LobbyListTablePro
               key={lobby.id}
               lobby={lobby}
               isJoining={joiningId === lobby.id}
-              onJoin={() => onJoin(lobby)}
+              onAction={() => onAction(lobby)}
             />
           ))}
         </div>
@@ -76,11 +76,11 @@ export function LobbyListTable({ lobbies, onJoin, joiningId }: LobbyListTablePro
 function LobbyRow({
   lobby,
   isJoining,
-  onJoin,
+  onAction,
 }: {
   lobby: LobbySummary;
   isJoining: boolean;
-  onJoin: () => void;
+  onAction: () => void;
 }) {
   const { t } = useTranslation();
   const ratio =
@@ -91,21 +91,40 @@ function LobbyRow({
   // (на одной странице 100 лобби максимум, коллизий не будет).
   const shortId = lobby.id.replace(/-/g, '').slice(-4);
   const isFull = lobby.memberCount >= lobby.maxMembers;
+  const isInGame = lobby.status === LOBBY_STATUS.IN_GAME;
+  // IN_GAME строки: для участника = «Вернуться в игру», для зрителя — пока
+  // ничего. Зрительский режим — отдельная фича. Disabled-кнопка с надписью
+  // «скоро» доходчивее, чем скрывать строку.
+  const canResume = isInGame && lobby.isViewerMember && lobby.gameId !== null;
+  const isSpectatorOnly = isInGame && !lobby.isViewerMember;
 
-  function triggerJoin() {
-    if (!isJoining) onJoin();
+  function triggerAction() {
+    if (isJoining) return;
+    if (isSpectatorOnly) return;
+    onAction();
   }
   function handleRowClick(e: MouseEvent<HTMLDivElement>) {
     if (e.defaultPrevented) return;
-    triggerJoin();
+    triggerAction();
   }
   function handleRowKey(e: KeyboardEvent<HTMLDivElement>) {
     if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      triggerJoin();
+      triggerAction();
     }
   }
+
+  const actionLabel = canResume
+    ? t('lobby.list.liveJoinButton')
+    : isSpectatorOnly
+      ? t('lobby.list.liveSpectateSoon')
+      : lobby.isViewerMember
+        ? t('lobby.card.continue')
+        : t('lobby.card.join');
+  const actionDisabled = isJoining || isSpectatorOnly || (isFull && !lobby.isViewerMember);
+  const actionVariant: 'primary' | 'secondary' =
+    canResume || !lobby.isViewerMember ? 'primary' : 'secondary';
 
   return (
     <div
@@ -179,14 +198,28 @@ function LobbyRow({
         </div>
       </div>
 
-      {/* Status. */}
+      {/* Status. WAITING + не полное → «open». WAITING + full → «full».
+          IN_GAME → «в игре» (accent-цветом, чтобы строка визуально читалась
+          иначе остальных). */}
       <div role="cell" className="hidden sm:flex items-center gap-1.5 text-xs">
         <span
           aria-hidden="true"
-          className={cn('h-1.5 w-1.5 rounded-full', isFull ? 'bg-warning' : 'bg-success')}
+          className={cn(
+            'h-1.5 w-1.5 rounded-full',
+            isInGame ? 'bg-accent' : isFull ? 'bg-warning' : 'bg-success',
+          )}
         />
-        <span className={cn(isFull ? 'text-warning' : 'text-success', 'uppercase tracking-wider')}>
-          {isFull ? t('lobbyTable.statusFull') : t('lobbyTable.statusOpen')}
+        <span
+          className={cn(
+            isInGame ? 'text-accent' : isFull ? 'text-warning' : 'text-success',
+            'uppercase tracking-wider',
+          )}
+        >
+          {isInGame
+            ? t('lobbyTable.statusInGame')
+            : isFull
+              ? t('lobbyTable.statusFull')
+              : t('lobbyTable.statusOpen')}
         </span>
       </div>
 
@@ -197,14 +230,14 @@ function LobbyRow({
         <Button
           onClick={(e) => {
             e.stopPropagation();
-            triggerJoin();
+            triggerAction();
           }}
-          disabled={isJoining || (isFull && !lobby.isViewerMember)}
-          variant={lobby.isViewerMember ? 'secondary' : 'primary'}
+          disabled={actionDisabled}
+          variant={actionVariant}
           size="sm"
           className="w-full sm:w-auto whitespace-nowrap"
         >
-          {lobby.isViewerMember ? t('lobby.card.continue') : t('lobby.card.join')}
+          {actionLabel}
         </Button>
       </div>
     </div>

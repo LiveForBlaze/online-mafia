@@ -161,7 +161,8 @@
       "action": "Action"
     },
     "statusOpen": "Open",
-    "statusFull": "Full"
+    "statusFull": "Full",
+    "statusInGame": "In game"
   },
   "rewardPromo": {
     "titleLocked": "Alpha avatars — for those who play for real",
