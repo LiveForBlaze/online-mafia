@@ -11,6 +11,7 @@
 
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { env } from '../../config/env.js';
+import { appendDebugLog } from '../../lib/debug-log.js';
 
 import { liveKitRoomNameForGame } from './game.livekit.js';
 import type { GameParticipant, GameState } from './game.state.js';
@@ -77,4 +78,19 @@ export async function syncMediaPermissions(state: GameState): Promise<void> {
       }
     }),
   );
+
+  const snapshot = state.participants
+    .filter((p) => !p.isJudge)
+    .map((p) => ({
+      seat: p.seat,
+      userId: p.userId,
+      canPublish: computeCanPublish(state, p),
+      isAlive: p.isAlive,
+      isRemoved: p.isRemoved,
+    }));
+  void appendDebugLog(state.id, {
+    cat: 'media',
+    type: 'snapshot',
+    data: { phase: state.phase, dayNumber: state.dayNumber, participants: snapshot },
+  });
 }
