@@ -629,7 +629,17 @@
       "introHint": "მიკროფონები და კამერები ღიაა — მიესალმე, გაიცანი მაგიდა.",
       "myMafiaVote": "შენი არჩევანი: №{{seat}}",
       "voteTallyTitle": "კენჭისყრის შედეგი",
-      "unnominate": "მოხსნა"
+      "unnominate": "მოხსნა",
+      "mobile": {
+        "pinned": "აქტიური",
+        "followSpeaker": "მოლაპარაკეს",
+        "makeActive": "აქტიურად დაყენება",
+        "noActionsAvailable": "ამჟამად არაფერია ხელმისაწვდომი",
+        "more": "მეტი"
+      },
+      "seatLabel": "ადგილი {{n}}",
+      "revertStep": "ნაბიჯის გაუქმება",
+      "openLog": "თამაშის ჟურნალი"
     },
     "errors": {
       "not_participant": "შენ ამ თამაშში არ ხარ",

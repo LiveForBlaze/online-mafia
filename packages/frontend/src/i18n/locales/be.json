@@ -640,7 +640,17 @@
       "introHint": "Мікрафоны і камеры адкрытыя — прадстаўцеся, пазнаёмцеся са сталом.",
       "myMafiaVote": "Ваш выбар: №{{seat}}",
       "voteTallyTitle": "Вынікі галасавання",
-      "unnominate": "Зняць"
+      "unnominate": "Зняць",
+      "mobile": {
+        "pinned": "Актыўны",
+        "followSpeaker": "За тым, хто гаворыць",
+        "makeActive": "Зрабіць актыўным",
+        "noActionsAvailable": "Зараз нічога недаступна",
+        "more": "Яшчэ"
+      },
+      "seatLabel": "Месца {{n}}",
+      "revertStep": "Скасаваць крок",
+      "openLog": "Журнал партыі"
     },
     "errors": {
       "not_participant": "Вас няма ў гэтай гульні",

@@ -629,7 +629,17 @@
       "introHint": "Mics and cameras open — say hi, get to know the table.",
       "myMafiaVote": "Your pick: №{{seat}}",
       "voteTallyTitle": "Vote tally",
-      "unnominate": "Unnom."
+      "unnominate": "Unnom.",
+      "mobile": {
+        "pinned": "Pinned",
+        "followSpeaker": "Follow speaker",
+        "makeActive": "Make active",
+        "noActionsAvailable": "Nothing available right now",
+        "more": "More"
+      },
+      "seatLabel": "Seat {{n}}",
+      "revertStep": "Revert step",
+      "openLog": "Game log"
     },
     "errors": {
       "not_participant": "You're not in this game",

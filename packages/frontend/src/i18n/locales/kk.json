@@ -629,7 +629,17 @@
       "introHint": "Микрофондар мен камералар ашық — сәлемдесіңіз, үстелмен танысыңыз.",
       "myMafiaVote": "Сіздің таңдау: №{{seat}}",
       "voteTallyTitle": "Дауыс беру қорытындысы",
-      "unnominate": "Алу"
+      "unnominate": "Алу",
+      "mobile": {
+        "pinned": "Белсенді",
+        "followSpeaker": "Сөйлеушіге",
+        "makeActive": "Белсенді ету",
+        "noActionsAvailable": "Қазір ештеңе қолжетімді емес",
+        "more": "Тағы"
+      },
+      "seatLabel": "Орын {{n}}",
+      "revertStep": "Қадамды қайтару",
+      "openLog": "Ойын журналы"
     },
     "errors": {
       "not_participant": "Сіз бұл ойында емессіз",
