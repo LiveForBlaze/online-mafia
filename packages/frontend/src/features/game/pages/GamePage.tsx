@@ -203,7 +203,12 @@ export function GamePage() {
               viewerIsJudge && !participant.isJudge ? (
                 <JudgeSeatControls
                   targetUserId={participant.userId}
+                  targetSeat={participant.seat}
                   foulsCount={participant.foulsCount}
+                  isNominated={
+                    participant.seat !== null && state.nominationSeats.includes(participant.seat)
+                  }
+                  phase={state.phase}
                 />
               ) : null
             }
@@ -228,7 +233,13 @@ export function GamePage() {
             viewerIsJudge && !zoomedParticipant.isJudge ? (
               <JudgeSeatControls
                 targetUserId={zoomedParticipant.userId}
+                targetSeat={zoomedParticipant.seat}
                 foulsCount={zoomedParticipant.foulsCount}
+                isNominated={
+                  zoomedParticipant.seat !== null &&
+                  state.nominationSeats.includes(zoomedParticipant.seat)
+                }
+                phase={state.phase}
               />
             ) : null
           }

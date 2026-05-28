@@ -381,7 +381,12 @@
       "noMatches": "შესაბამისობა ვერ მოიძებნა",
       "filter_all": "ყველა",
       "filter_public": "ღია",
-      "filter_private": "პრივატული"
+      "filter_private": "პრივატული",
+      "liveGamesTitle": "მიმდინარე თამაშები",
+      "liveHost": "მასპინძლობს {{nickname}}",
+      "liveMembers": "{{count}}/{{max}} მოთამაშე",
+      "liveJoinButton": "თამაშში დაბრუნება",
+      "liveSpectateSoon": "ნახვა — მალე"
     },
     "card": {
       "private": "პრივატული",
@@ -622,7 +627,8 @@
       "voteSpaceHint": "მინიშნება: Space = კი",
       "introHint": "მიკროფონები და კამერები ღიაა — მიესალმე, გაიცანი მაგიდა.",
       "myMafiaVote": "შენი არჩევანი: №{{seat}}",
-      "voteTallyTitle": "კენჭისყრის შედეგი"
+      "voteTallyTitle": "კენჭისყრის შედეგი",
+      "unnominate": "მოხსნა"
     },
     "errors": {
       "not_participant": "შენ ამ თამაშში არ ხარ",

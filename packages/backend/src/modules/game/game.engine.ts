@@ -342,6 +342,33 @@ export function applyNominate(
   });
 }
 
+/**
+ * Judge unnominates a seat. Used when a nomination was called by mistake
+ * or the speaker withdraws it. Allowed before voting begins (DAY_SPEECH
+ * and DAY_VOTE_INTRO). The "one-nomination-per-speech" lock is cleared so
+ * the current speaker may nominate again within the same speech if they
+ * choose to.
+ */
+export function applyJudgeUnnominate(
+  state: GameState,
+  targetSeat: number,
+): EngineResult<GameState> {
+  if (state.phase !== GAME_PHASE.DAY_SPEECH && state.phase !== GAME_PHASE.DAY_VOTE_INTRO) {
+    return fail(ENGINE_ERROR.WRONG_PHASE);
+  }
+  if (!state.nominationSeats.includes(targetSeat)) {
+    return fail(ENGINE_ERROR.TARGET_NOT_FOUND);
+  }
+  return ok({
+    ...state,
+    nominationSeats: state.nominationSeats.filter((s) => s !== targetSeat),
+    // Освобождаем лок «один раз за речь» — у нас нет точного мэппинга
+    // «кто кого выставил», поэтому судейская отмена сбрасывает блок для
+    // текущего спикера универсально.
+    lastNominatorSeat: null,
+  });
+}
+
 export function applyCastVote(
   state: GameState,
   actorUserId: string,

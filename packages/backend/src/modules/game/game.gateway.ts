@@ -48,6 +48,7 @@ import {
   judgeRevert,
   judgeRevokeFoul,
   judgeRemovePlayer,
+  judgeUnnominate,
   leaveGameAsParticipant,
   nominatePlayer,
   pickRoleCard,
@@ -139,6 +140,12 @@ export function registerGameGateway(app: FastifyInstance): void {
       CLIENT_EVENT.NOMINATE_PLAYER,
       withSchema(socket, nominatePayloadSchema, (data) =>
         nominatePlayer({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
+      ),
+    );
+    socket.on(
+      CLIENT_EVENT.UNNOMINATE_PLAYER,
+      withSchema(socket, nominatePayloadSchema, (data) =>
+        judgeUnnominate({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
       ),
     );
     socket.on(

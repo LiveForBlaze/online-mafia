@@ -103,6 +103,19 @@ function DesktopVoteBody(p: InnerProps) {
   const { t } = useTranslation();
   return (
     <div className="space-y-2">
+      {/* Кнопка «ЗА» — главный CTA — рендерится ПЕРВОЙ, чтобы её не уносило
+          под скролл, когда тайл переполнен бюллетенем (VotesBreakdown).
+          Раньше CTA стоял внизу, и при 3+ кандидатах в раскладке игроки
+          жаловались что «не вижу кнопку, скроллить надо». */}
+      {p.canVote && (
+        <Button
+          onClick={p.onVote}
+          disabled={p.pending}
+          className="w-full bg-danger hover:bg-danger/90"
+        >
+          {t('game.ui.voteForButton')}
+        </Button>
+      )}
       {!p.votingClosed && p.currentCandidate !== undefined ? (
         <>
           <p className="text-2xl sm:text-3xl font-extrabold text-warning leading-tight">
@@ -120,16 +133,6 @@ function DesktopVoteBody(p: InnerProps) {
         </>
       ) : (
         <p className="text-sm text-muted">{t('game.ui.voteClosed')}</p>
-      )}
-
-      {p.canVote && (
-        <Button
-          onClick={p.onVote}
-          disabled={p.pending}
-          className="w-full bg-danger hover:bg-danger/90 mt-2"
-        >
-          {t('game.ui.voteForButton')}
-        </Button>
       )}
 
       {p.viewerIsAlive && p.hasVoted && (

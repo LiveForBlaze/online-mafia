@@ -392,7 +392,12 @@
       "noMatches": "Ничего не нашлось",
       "filter_all": "Все",
       "filter_public": "Открытые",
-      "filter_private": "Приватные"
+      "filter_private": "Приватные",
+      "liveGamesTitle": "Идут сейчас",
+      "liveHost": "Ведёт {{nickname}}",
+      "liveMembers": "{{count}}/{{max}} игроков",
+      "liveJoinButton": "Вернуться в игру",
+      "liveSpectateSoon": "Просмотр — скоро"
     },
     "card": {
       "private": "Приватное",
@@ -633,7 +638,8 @@
       "voteSpaceHint": "Подсказка: пробел = «ЗА»",
       "introHint": "Микрофоны и камеры открыты — представьтесь, познакомьтесь со столом.",
       "myMafiaVote": "Ваш выбор: №{{seat}}",
-      "voteTallyTitle": "Итоги голосования"
+      "voteTallyTitle": "Итоги голосования",
+      "unnominate": "Снять"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",

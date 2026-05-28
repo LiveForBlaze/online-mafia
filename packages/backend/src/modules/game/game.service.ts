@@ -28,6 +28,7 @@ import {
   applyJudgeFoul,
   applyJudgeRemove,
   applyJudgeUnfoul,
+  applyJudgeUnnominate,
   applyLiftAllVote,
   applyMafiaTarget,
   applyNextSpeaker,
@@ -72,6 +73,7 @@ export const GAME_EVENT_TYPE = {
   PHASE_CHANGED: 'phase_changed',
   SPEAKER_ADVANCED: 'speaker_advanced',
   PLAYER_NOMINATED: 'player_nominated',
+  PLAYER_UNNOMINATED: 'player_unnominated',
   PLAYER_VOTED: 'player_voted',
   PLAYER_KILLED_BY_VOTE: 'player_killed_by_vote',
   MAFIA_TARGETED: 'mafia_targeted',
@@ -271,22 +273,45 @@ export async function getGameLogForHost(
   gameId: string,
   viewerUserId: string,
 ): Promise<ServiceResult<{ lines: string[] }>> {
+  // In-memory state может отсутствовать: партия закончилась и была
+  // выгружена, или сервер пересобрался посреди дебрифа (пользователь
+  // жаловался: «Failed to load log» сразу после деплоя). DB всегда хранит
+  // и GameParticipant, и GameEvent — собираем лог из них, in-memory state
+  // используем только как ускорение.
   const state = getGame(gameId);
-  if (!state) return fail(GAME_ERROR.GAME_NOT_FOUND);
-  const viewer = findByUserId(state, viewerUserId);
-  if (!viewer || !viewer.isJudge) return fail(GAME_ERROR.NOT_JUDGE);
+
+  const seatByUser = new Map<string, number | null>();
+  const roleByUser = new Map<string, string | null>();
+  let viewerIsJudge = false;
+
+  if (state) {
+    for (const p of state.participants) {
+      seatByUser.set(p.userId, p.seat);
+      roleByUser.set(p.userId, p.role);
+    }
+    const viewer = findByUserId(state, viewerUserId);
+    viewerIsJudge = Boolean(viewer?.isJudge);
+  } else {
+    const game = await prisma.game.findUnique({
+      where: { id: gameId },
+      include: {
+        participants: { select: { userId: true, seat: true, role: true, isJudge: true } },
+      },
+    });
+    if (!game) return fail(GAME_ERROR.GAME_NOT_FOUND);
+    for (const p of game.participants) {
+      seatByUser.set(p.userId, p.seat);
+      roleByUser.set(p.userId, p.role);
+      if (p.userId === viewerUserId && p.isJudge) viewerIsJudge = true;
+    }
+  }
+
+  if (!viewerIsJudge) return fail(GAME_ERROR.NOT_JUDGE);
 
   const events = await prisma.gameEvent.findMany({
     where: { gameId },
     orderBy: { seq: 'asc' },
   });
-
-  const seatByUser = new Map<string, number | null>();
-  const roleByUser = new Map<string, string | null>();
-  for (const p of state.participants) {
-    seatByUser.set(p.userId, p.seat);
-    roleByUser.set(p.userId, p.role);
-  }
 
   const lines: string[] = [];
   for (const ev of events) {
@@ -673,6 +698,26 @@ export async function nominatePlayer(
 
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.PLAYER_NOMINATED, ctx.userId, { targetSeat });
+    return ok(await commit(next));
+  });
+}
+
+export async function judgeUnnominate(
+  ctx: ActionContext,
+  targetSeat: number,
+): Promise<ServiceResult<GameState>> {
+  return withLock(ctx.gameId, async () => {
+    const loaded = loadGameForUser(ctx);
+    if (!loaded.ok) return loaded;
+    const judgeCheck = requireJudge(loaded.data.state, ctx.userId);
+    if (!judgeCheck.ok) return judgeCheck;
+
+    pushHistorySnapshot(loaded.data.state);
+    const engineResult = applyJudgeUnnominate(loaded.data.state, targetSeat);
+    if (!engineResult.ok) return fail(engineResult.error);
+
+    let next = engineResult.data;
+    next = await persistEvent(next, GAME_EVENT_TYPE.PLAYER_UNNOMINATED, ctx.userId, { targetSeat });
     return ok(await commit(next));
   });
 }

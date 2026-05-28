@@ -180,6 +180,34 @@ export async function listUserActiveLobbies(viewerUserId: string): Promise<Lobby
   return rows.map((row) => toLobbySummary(row, row._count.members, true));
 }
 
+// Public list of in-progress games for the home page. По жалобе #1 «не
+// видно активных игр»: предыдущий /active возвращал ТОЛЬКО лобби, где
+// viewer состоит, и для зрителей со стороны была пустота. Этот вариант
+// показывает все НЕприватные IN_GAME лобби с хостом-человеком, чтобы
+// пользователь мог увидеть какие партии сейчас идут.
+export async function listLiveGames(viewerUserId: string): Promise<LobbySummary[]> {
+  const rows = await prisma.lobby.findMany({
+    where: {
+      isPrivate: false,
+      status: 'IN_GAME',
+      host: { isBot: false },
+    },
+    include: {
+      host: { select: { id: true, nickname: true, publicCode: true } },
+      game: { select: { id: true } },
+      _count: { select: { members: { where: { isJudge: false } } } },
+      members: {
+        where: { userId: viewerUserId },
+        select: { userId: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  return rows.map((row) => toLobbySummary(row, row._count.members, row.members.length > 0));
+}
+
 export async function listPublicLobbies(viewerUserId: string): Promise<LobbySummary[]> {
   // Fetch the `members` relation filtered to the viewer's row only — that way we know
   // membership per lobby without loading every member in the result set.

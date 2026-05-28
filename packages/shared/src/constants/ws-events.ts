@@ -64,6 +64,7 @@ export const CLIENT_EVENT = {
   // Game actions by players
   CAST_VOTE: 'client:cast_vote',
   NOMINATE_PLAYER: 'client:nominate_player',
+  UNNOMINATE_PLAYER: 'client:unnominate_player',
   MAFIA_TARGET: 'client:mafia_target',
   DON_CHECK: 'client:don_check',
   SHERIFF_CHECK: 'client:sheriff_check',

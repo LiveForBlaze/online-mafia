@@ -381,7 +381,12 @@
       "noMatches": "Сәйкестік жоқ",
       "filter_all": "Барлығы",
       "filter_public": "Ашық",
-      "filter_private": "Жабық"
+      "filter_private": "Жабық",
+      "liveGamesTitle": "Қазір ойнап жатыр",
+      "liveHost": "{{nickname}} жүргізеді",
+      "liveMembers": "{{count}}/{{max}} ойыншы",
+      "liveJoinButton": "Ойынға қайту",
+      "liveSpectateSoon": "Бақылау — жуықта"
     },
     "card": {
       "private": "Жабық",
@@ -622,7 +627,8 @@
       "voteSpaceHint": "Кеңес: Space = ҮШІН",
       "introHint": "Микрофондар мен камералар ашық — сәлемдесіңіз, үстелмен танысыңыз.",
       "myMafiaVote": "Сіздің таңдау: №{{seat}}",
-      "voteTallyTitle": "Дауыс беру қорытындысы"
+      "voteTallyTitle": "Дауыс беру қорытындысы",
+      "unnominate": "Алу"
     },
     "errors": {
       "not_participant": "Сіз бұл ойында емессіз",

@@ -23,6 +23,7 @@ import {
   kickMember,
   leaveLobby,
   listPublicLobbies,
+  listLiveGames,
   listUserActiveLobbies,
   preassignRole,
   setReady,
@@ -146,6 +147,15 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // Declared before /:id so the literal segment wins over the param route.
   app.get('/active', { preHandler: [app.authenticate] }, async (request, reply) => {
     const lobbies = await listUserActiveLobbies(request.user.sub);
+    return reply.send({ lobbies });
+  });
+
+  // ---- All in-progress public games (для главной: «Идут сейчас»). ----
+  // Возвращает чужие IN_GAME лобби тоже, чтобы пользователь увидел какие
+  // партии играются вокруг. Просмотр самой партии без участия — отдельная
+  // фича (spectator mode) и пока не реализован, но список нужен уже сейчас.
+  app.get('/live', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const lobbies = await listLiveGames(request.user.sub);
     return reply.send({ lobbies });
   });
 

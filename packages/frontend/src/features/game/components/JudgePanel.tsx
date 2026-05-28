@@ -55,19 +55,30 @@ export function JudgePanel({ state }: JudgePanelProps) {
   );
 }
 
-/** Per-seat judge controls (foul, unfoul, remove). Returned by GamePage when the viewer is judge. */
+/** Per-seat judge controls (foul, unfoul, remove, unnominate). */
 export function JudgeSeatControls({
   targetUserId,
+  targetSeat,
   foulsCount,
+  isNominated,
+  phase,
 }: {
   targetUserId: string;
+  targetSeat: number | null;
   foulsCount: number;
+  isNominated: boolean;
+  phase: GameStateProjected['phase'];
 }) {
   const { t } = useTranslation();
-  // По правилу пользователя: 4 фола НЕ удаляют автоматически. Кнопка «Фол»
-  // блокируется и подсвечивается красным — это сигнал ведущему: «решай
-  // вручную (либо снять случайный, либо удалить)».
+  // 4-й фол сразу же дисквалифицирует игрока — после этого кнопка
+  // блокируется (уже снят). До 4-го клика накручиваем нормально.
   const foulLocked = foulsCount >= 4;
+  // ФИИМ: судья может «отменить выставление» только до старта
+  // голосования. После DAY_VOTE сделать это невозможно без ломки счёта.
+  const canUnnominate =
+    isNominated &&
+    targetSeat !== null &&
+    (phase === GAME_PHASE.DAY_SPEECH || phase === GAME_PHASE.DAY_VOTE_INTRO);
   return (
     <>
       <Button
@@ -92,6 +103,16 @@ export function JudgeSeatControls({
       >
         {t('game.ui.removeFoul')}
       </Button>
+      {canUnnominate && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 text-xs px-2 bg-warning/20 text-warning hover:bg-warning/30"
+          onClick={() => emitGameAction(CLIENT_EVENT.UNNOMINATE_PLAYER, { targetSeat })}
+        >
+          {t('game.ui.unnominate')}
+        </Button>
+      )}
       <Button
         size="sm"
         variant="ghost"

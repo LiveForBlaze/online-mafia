@@ -23,7 +23,7 @@ import { JoinPrivateLobbyDialog } from '@/features/lobby/components/JoinPrivateL
 import { LobbyListTable } from '@/features/lobby/components/LobbyListTable.js';
 import { RewardAvatarPromo } from '@/features/lobby/components/RewardAvatarPromo.js';
 import { useHomeStats } from '@/features/lobby/hooks/useHomeStats.js';
-import { useLobbies } from '@/features/lobby/hooks/useLobbies.js';
+import { useLiveLobbies, useLobbies } from '@/features/lobby/hooks/useLobbies.js';
 import {
   useExtractLobbyErrorMessage,
   useJoinLobby,
@@ -35,6 +35,7 @@ export function LobbyListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const lobbiesQuery = useLobbies();
+  const liveLobbiesQuery = useLiveLobbies();
   const activeGameQuery = useActiveGame();
   const statsQuery = useHomeStats();
   const join = useJoinLobby();
@@ -177,6 +178,8 @@ export function LobbyListPage() {
           />
         )}
 
+        <LiveGamesSection lobbies={liveLobbiesQuery.data?.lobbies ?? []} />
+
         <RewardAvatarPromo />
 
         <HowItWorksSection />
@@ -197,5 +200,47 @@ export function LobbyListPage() {
         />
       </div>
     </div>
+  );
+}
+
+// Список идущих сейчас публичных партий. Просмотр чужой партии (spectator
+// mode) — это отдельная фича; пока что список показывает что игры идут,
+// и для свой собственной партии оставляет ссылку «вернуться».
+function LiveGamesSection({ lobbies }: { lobbies: LobbySummary[] }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  if (lobbies.length === 0) return null;
+  return (
+    <section className="space-y-2">
+      <h2 className="text-base font-semibold text-fg">{t('lobby.list.liveGamesTitle')}</h2>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {lobbies.map((lobby) => (
+          <li
+            key={lobby.id}
+            className="rounded-md border border-border bg-card px-3 py-2 flex items-center justify-between gap-3"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-fg truncate">{lobby.name}</p>
+              <p className="text-xs text-muted truncate">
+                {t('lobby.list.liveHost', { nickname: lobby.hostNickname })} ·{' '}
+                {t('lobby.list.liveMembers', {
+                  count: lobby.memberCount,
+                  max: lobby.maxMembers,
+                })}
+              </p>
+            </div>
+            {lobby.isViewerMember && lobby.gameId ? (
+              <Button size="sm" onClick={() => navigate(gameRoomPath(lobby.gameId!))}>
+                {t('lobby.list.liveJoinButton')}
+              </Button>
+            ) : (
+              <span className="text-xs text-muted whitespace-nowrap">
+                {t('lobby.list.liveSpectateSoon')}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

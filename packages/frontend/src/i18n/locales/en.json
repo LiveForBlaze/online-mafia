@@ -381,7 +381,12 @@
       "noMatches": "No matches",
       "filter_all": "All",
       "filter_public": "Open",
-      "filter_private": "Private"
+      "filter_private": "Private",
+      "liveGamesTitle": "Live games",
+      "liveHost": "Hosted by {{nickname}}",
+      "liveMembers": "{{count}}/{{max}} players",
+      "liveJoinButton": "Resume game",
+      "liveSpectateSoon": "Spectate — soon"
     },
     "card": {
       "private": "Private",
@@ -622,7 +627,8 @@
       "voteSpaceHint": "Tip: Space = FOR",
       "introHint": "Mics and cameras open — say hi, get to know the table.",
       "myMafiaVote": "Your pick: №{{seat}}",
-      "voteTallyTitle": "Vote tally"
+      "voteTallyTitle": "Vote tally",
+      "unnominate": "Unnom."
     },
     "errors": {
       "not_participant": "You're not in this game",

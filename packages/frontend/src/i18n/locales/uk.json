@@ -392,7 +392,12 @@
       "noMatches": "Нічого не знайдено",
       "filter_all": "Усі",
       "filter_public": "Відкриті",
-      "filter_private": "Приватні"
+      "filter_private": "Приватні",
+      "liveGamesTitle": "Зараз грають",
+      "liveHost": "Веде {{nickname}}",
+      "liveMembers": "{{count}}/{{max}} гравців",
+      "liveJoinButton": "Повернутись у гру",
+      "liveSpectateSoon": "Перегляд — скоро"
     },
     "card": {
       "private": "Приватне",
@@ -633,7 +638,8 @@
       "voteSpaceHint": "Підказка: пробіл = «ЗА»",
       "introHint": "Мікрофони та камери відкриті — представтеся, познайомтеся зі столом.",
       "myMafiaVote": "Ваш вибір: №{{seat}}",
-      "voteTallyTitle": "Підсумки голосування"
+      "voteTallyTitle": "Підсумки голосування",
+      "unnominate": "Зняти"
     },
     "errors": {
       "not_participant": "Вас немає в цій грі",

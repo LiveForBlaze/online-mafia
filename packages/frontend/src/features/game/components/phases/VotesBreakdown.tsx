@@ -13,6 +13,8 @@ import { useTranslation } from 'react-i18next';
 
 import { type GameStateProjected } from '@mafia/shared';
 
+import { cn } from '@/lib/cn.js';
+
 interface VotesBreakdownProps {
   state: GameStateProjected;
   /** Размер тайла: 'desktop' — крупно с заголовком, 'mobile' — компактно одной строкой. */
@@ -36,27 +38,37 @@ export function VotesBreakdown({ state, size = 'desktop' }: VotesBreakdownProps)
 
   if (size === 'mobile') {
     return (
-      <div className="w-full mt-1 text-[10px] font-mono text-muted">
+      <div className="w-full mt-1 text-xs font-mono">
         {rows.map(({ candidate, voters }) => (
-          <p key={candidate} className="truncate">
-            <span className="text-warning">№{candidate}</span>
-            <span className="text-fg ml-1">({voters.length})</span>
-            <span className="ml-1">{voters.map((v) => `№${v}`).join(', ')}</span>
+          <p key={candidate} className="truncate leading-snug">
+            <span className="text-warning font-bold">№{candidate}</span>
+            <span className="text-fg ml-1 font-bold">({voters.length})</span>
+            <span className="ml-1 text-muted">{voters.map((v) => `№${v}`).join(', ')}</span>
           </p>
         ))}
       </div>
     );
   }
 
+  // Десктоп: крупнее шрифт + двух-колоночная сетка для длинных бюллетеней
+  // (если кандидатов 3+, чтобы не убегали под скролл). По жалобе пользователя
+  // «голоса мелким шрифтом, иногда не видно».
   return (
-    <div className="text-xs mt-2 border-t border-border/60 pt-2">
-      <p className="uppercase tracking-wider text-muted mb-1">{t('game.ui.voteTallyTitle')}</p>
-      <ul className="space-y-0.5">
+    <div className="text-sm mt-2 border-t border-border/60 pt-2">
+      <p className="uppercase tracking-wider text-muted mb-1 text-xs">
+        {t('game.ui.voteTallyTitle')}
+      </p>
+      <ul
+        className={cn(
+          'gap-x-4',
+          rows.length >= 3 ? 'grid grid-cols-1 sm:grid-cols-2 gap-y-0.5' : 'space-y-0.5',
+        )}
+      >
         {rows.map(({ candidate, voters }) => (
           <li key={candidate} className="flex items-baseline gap-2">
-            <span className="font-mono text-warning w-10">№{candidate}</span>
-            <span className="font-semibold text-fg w-6">{voters.length}</span>
-            <span className="text-muted font-mono truncate">
+            <span className="font-mono font-bold text-warning w-10">№{candidate}</span>
+            <span className="font-bold text-fg w-6">{voters.length}</span>
+            <span className="text-fg/85 font-mono truncate">
               {voters.map((v) => `№${v}`).join(', ')}
             </span>
           </li>

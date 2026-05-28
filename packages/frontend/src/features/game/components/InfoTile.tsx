@@ -38,7 +38,12 @@ export function InfoTile({
   viewerIsJudge,
 }: InfoTileProps) {
   return (
-    <div className="relative w-full h-full min-h-0 rounded-md border border-border bg-card-deep p-3 overflow-auto flex flex-col gap-2">
+    // Внутренний скролл оставляем — иначе очень длинный список голосов
+    // ломает layout всей сетки. Но padding ужали с p-3 до p-2 (4px → 8px
+    // вокруг), и gap-2 → gap-1.5 — это освобождает место под CTA + tally
+    // без скролла на типовых ноутбучных разрешениях. По жалобе #11
+    // «отступы можно убрать, важная инфа под скроллом».
+    <div className="relative w-full h-full min-h-0 rounded-md border border-border bg-card-deep p-2 overflow-auto flex flex-col gap-1.5">
       <InfoGlyph />
       <Header state={state} />
       <Body

@@ -10,6 +10,7 @@ import { lobbyApi } from '@/features/lobby/api/lobby.api.js';
 export const LOBBY_QUERY_KEY = {
   list: () => ['lobbies'] as const,
   active: () => ['lobbies', 'active'] as const,
+  live: () => ['lobbies', 'live'] as const,
   details: (id: string) => ['lobby', id] as const,
 } as const;
 
@@ -39,6 +40,16 @@ export function useActiveLobbies() {
   return useQuery({
     queryKey: LOBBY_QUERY_KEY.active(),
     queryFn: () => lobbyApi.listActive(),
+    ...ALWAYS_FRESH,
+  });
+}
+
+// All in-progress public games for the home page «Идут сейчас» section.
+// Independent of useActiveLobbies (which is viewer-scoped — own active games).
+export function useLiveLobbies() {
+  return useQuery({
+    queryKey: LOBBY_QUERY_KEY.live(),
+    queryFn: () => lobbyApi.listLive(),
     ...ALWAYS_FRESH,
   });
 }
