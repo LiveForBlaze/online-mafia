@@ -69,8 +69,21 @@ export function MiniTile({
         />
       )}
       {!isDead && !showCamera && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Avatar avatarUrl={participant.avatarUrl} nickname={participant.nickname} size={32} />
+        <div className="absolute inset-0 flex items-center justify-center bg-card-deep">
+          {/* Размер 32 был мизерным на тайле ~70-90px — игрок видел просто
+              букву на тёмном фоне. Avatar=64 заполняет тайл нормально;
+              на мини-тайлах размер не уходит за рамки сетки. */}
+          <Avatar avatarUrl={participant.avatarUrl} nickname={participant.nickname} size={64} />
+        </div>
+      )}
+      {/* Никнейм поверх нижней части тайла — без него игроки видят только
+          сидень и не понимают кто это до тапа. Тонкий градиент гасит
+          подложку чтобы текст читался на любом видео. */}
+      {!isDead && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5">
+          <p className="truncate text-[10px] font-semibold text-white leading-none">
+            {participant.nickname}
+          </p>
         </div>
       )}
       {isDead && (

@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useLocalParticipant } from '@livekit/components-react';
 import { useTranslation } from 'react-i18next';
+import { Camera, CameraOff, Mic, MicOff, MoreHorizontal } from 'lucide-react';
 
 import {
   CLIENT_EVENT,
@@ -19,6 +20,21 @@ import { cn } from '@/lib/cn.js';
 import { formatCountdown, useCountdown } from '@/features/game/hooks/useCountdown.js';
 import { emitGameAction } from '@/features/game/socket/game.socket.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
+
+// Должно совпадать с STEPS_WITHIN_PHASE в JudgePanel.tsx (desktop). Если
+// текущая фаза имеет внутреннюю ротацию (спикер/раунд голосования/tied/
+// последнее слово) — судья шлёт ADVANCE_SPEAKER (сервер сам перейдёт в
+// следующую фазу, когда внутренние шаги исчерпаны). В остальных фазах —
+// обычный ADVANCE_PHASE. До этого мобильная панель всегда слала SPEAKER,
+// и «Далее» молчал в фазах без спикера (PLAYER_INTRODUCTION, NIGHT_*,
+// MORNING_ANNOUNCEMENT).
+const STEPS_WITHIN_PHASE: ReadonlyArray<string> = [
+  GAME_PHASE.DAY_SPEECH,
+  GAME_PHASE.DAY_VOTE,
+  GAME_PHASE.DAY_REVOTE,
+  GAME_PHASE.DAY_SHOOTOUT,
+  GAME_PHASE.DAY_LAST_WORD,
+];
 
 interface MobileControlPanelProps {
   state: GameStateProjected;
@@ -123,7 +139,11 @@ export function MobileControlPanel(props: MobileControlPanelProps) {
 
       {viewerIsJudge && (
         <Button
-          onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_SPEAKER)}
+          onClick={() =>
+            STEPS_WITHIN_PHASE.includes(state.phase)
+              ? emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_SPEAKER)
+              : emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_PHASE)
+          }
           disabled={state.status === 'finished'}
           className="w-full"
         >
@@ -170,11 +190,11 @@ export function MobileControlPanel(props: MobileControlPanelProps) {
           }}
           aria-label={t(isMicrophoneEnabled ? 'game.ui.micDisable' : 'game.ui.micEnable')}
           className={cn(
-            'flex-1 h-8 rounded-md text-xs',
+            'flex-1 h-8 rounded-md inline-flex items-center justify-center',
             isMicrophoneEnabled ? 'bg-black/60 text-white' : 'bg-danger/80 text-white',
           )}
         >
-          🎤
+          {isMicrophoneEnabled ? <Mic size={16} /> : <MicOff size={16} />}
         </button>
         <button
           type="button"
@@ -187,19 +207,19 @@ export function MobileControlPanel(props: MobileControlPanelProps) {
           }}
           aria-label={t(isCameraEnabled ? 'game.ui.cameraDisable' : 'game.ui.cameraEnable')}
           className={cn(
-            'flex-1 h-8 rounded-md text-xs',
+            'flex-1 h-8 rounded-md inline-flex items-center justify-center',
             isCameraEnabled ? 'bg-black/60 text-white' : 'bg-danger/80 text-white',
           )}
         >
-          📷
+          {isCameraEnabled ? <Camera size={16} /> : <CameraOff size={16} />}
         </button>
         <button
           type="button"
           onClick={() => setOverflowOpen((v) => !v)}
           aria-label={t('game.ui.mobile.more')}
-          className="w-8 h-8 rounded-md bg-card border border-border text-fg"
+          className="w-8 h-8 rounded-md bg-card border border-border text-fg inline-flex items-center justify-center"
         >
-          ⋯
+          <MoreHorizontal size={16} />
         </button>
       </div>
 

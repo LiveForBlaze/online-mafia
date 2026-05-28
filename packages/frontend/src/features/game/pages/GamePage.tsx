@@ -21,7 +21,6 @@ import { MediaRoom } from '@/features/game/components/MediaRoom.js';
 import { MobileGameView } from '@/features/game/components/mobile/MobileGameView.js';
 import { PhaseHeader } from '@/features/game/components/PhaseHeader.js';
 import { RoleCardPickerDialog } from '@/features/game/components/RoleCardPickerDialog.js';
-import { RotateDeviceOverlay } from '@/features/game/components/RotateDeviceOverlay.js';
 import { AchievementUnlockDialog } from '@/features/users/components/AchievementUnlockDialog.js';
 import { actionForSeatInCurrentPhase } from '@/features/game/lib/actionForSeat.js';
 import { PlayerTable } from '@/features/game/components/PlayerTable.js';
@@ -228,7 +227,9 @@ export function GamePage() {
         viewerRole={viewerRole}
         viewerIsJudge={viewerIsJudge}
       />
-      <RotateDeviceOverlay />
+      {/* RotateDeviceOverlay убран: новая мобильная вёрстка
+          (MobileGameView) полноценно работает в портрете, оверлей был
+          актуален только для старой landscape-only сетки. */}
       {/* Unlock-уведомление по итогам партии. Слушает очередь из
           useAchievementUnlockStore — её наполняет useGameConnection
           по SERVER_EVENT.ACHIEVEMENTS_UNLOCKED. */}

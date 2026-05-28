@@ -111,7 +111,7 @@ export function MediaRoom({ gameId, children }: MediaRoomProps) {
           сама исчезает, когда блок снят. */}
       <StartAudio
         label={t('game.media.allowAudio')}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-md bg-primary text-primary-fg px-4 py-2 text-sm font-semibold shadow-lg"
+        className="fixed top-2 right-2 z-50 rounded-md border border-warning/60 bg-warning/15 text-warning px-2 py-1 text-[11px] font-semibold shadow-md hover:bg-warning/25"
       />
       {/* Recovery после reconnect — пересубскрайбит все remote audio
           публикации, чтобы пропавший звук вернулся без F5. */}

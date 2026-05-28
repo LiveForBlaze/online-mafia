@@ -11,7 +11,17 @@ import { env } from '@/lib/env.js';
 let socket: Socket | null = null;
 
 export function connectGameSocket(): Socket {
-  if (socket && socket.connected) return socket;
+  // Reuse the singleton even when it's still mid-handshake. Previously this
+  // guard required `socket.connected === true`, so if a second caller
+  // (useLobbyChat after useLobbyConnection in the same render) ran while
+  // socket A was still connecting, the helper would create socket B,
+  // replace the module-level variable, and leak A. useLobbyConnection's
+  // listeners stayed attached to A — and Socket.IO subsequently delivered
+  // LOBBY_UPDATED frames to A, the orphaned socket with no React listeners,
+  // so the lobby page never noticed the game had started. Reusing the
+  // existing socket object regardless of `connected` keeps every caller on
+  // the same instance and the same listener set.
+  if (socket) return socket;
   socket = io(env.VITE_BACKEND_URL, {
     withCredentials: true,
     autoConnect: true,
