@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -16,6 +16,7 @@ describe('appendDebugLog', () => {
 
   afterEach(() => {
     configureDebugLogDirForTests(null);
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it('writes one JSONL line per call to the per-game file', async () => {
