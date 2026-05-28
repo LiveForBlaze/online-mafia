@@ -17,6 +17,7 @@ import {
   SERVER_EVENT,
   bestMoveGuessPayloadSchema,
   castVotePayloadSchema,
+  clientDiagPayloadSchema,
   donCheckPayloadSchema,
   judgeFoulPayloadSchema,
   judgeRemovePayloadSchema,
@@ -160,6 +161,23 @@ export function registerGameGateway(app: FastifyInstance): void {
         judgeUnnominate({ gameId: getGameIdFromSocket(socket), userId }, data.targetSeat),
       ),
     );
+    socket.on(CLIENT_EVENT.CLIENT_DIAG, (payload, ack) => {
+      const parsed = clientDiagPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
+        ack?.({ ok: false, error: 'invalid_payload' });
+        return;
+      }
+      const gameRoom = [...socket.rooms].find((r) => r.startsWith('game:'));
+      const gameId = gameRoom ? gameRoom.slice('game:'.length) : null;
+      void appendDebugLog(gameId, {
+        cat: 'client',
+        type: parsed.data.type,
+        actor: socket.data.user?.nickname ?? null,
+        userId,
+        data: parsed.data.data,
+      });
+      ack?.({ ok: true });
+    });
     socket.on(
       CLIENT_EVENT.CAST_VOTE,
       withSchema(socket, castVotePayloadSchema, (data) =>
