@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router';
 
 import { App } from './App.js';
+import { pushDiag } from '@/features/game/socket/diag-log.js';
 import './i18n/index.js';
 import { bootstrapTheme } from './lib/theme.js';
 import './styles/globals.css';
@@ -43,3 +44,15 @@ ReactDOM.createRoot(rootElement).render(
     </QueryClientProvider>
   </React.StrictMode>,
 );
+
+window.addEventListener('error', (event) => {
+  pushDiag('error', {
+    message: event.message,
+    source: event.filename,
+    line: event.lineno,
+    col: event.colno,
+  });
+});
+window.addEventListener('unhandledrejection', (event) => {
+  pushDiag('error', { message: String(event.reason ?? 'unhandled rejection') });
+});

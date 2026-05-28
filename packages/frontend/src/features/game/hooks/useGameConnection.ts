@@ -13,6 +13,7 @@ import {
   type GameStateProjected,
 } from '@mafia/shared';
 
+import { pushDiag } from '@/features/game/socket/diag-log.js';
 import { connectGameSocket, emitGameAction } from '@/features/game/socket/game.socket.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
@@ -68,6 +69,15 @@ export function useGameConnection(gameId: string | undefined): void {
               role: viewer.role,
             }
           : null,
+      });
+      pushDiag('game.delta', {
+        gameId: payload.id,
+        phase: payload.phase,
+        dayNumber: payload.dayNumber,
+        status: payload.status,
+        viewerSeat: viewer?.seat ?? null,
+        viewerIsAlive: viewer?.isAlive ?? false,
+        viewerIsJudge: viewer?.isJudge ?? false,
       });
     }
     function handleConnectError(err: Error) {

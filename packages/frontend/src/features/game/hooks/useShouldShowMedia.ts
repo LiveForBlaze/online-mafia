@@ -14,6 +14,7 @@ import {
   shouldShowParticipantMedia,
   type MediaVisibilityArgs,
 } from '@/features/game/lib/media-visibility.js';
+import { pushDiag } from '@/features/game/socket/diag-log.js';
 
 function useMediaArgs(targetUserId: string, now: number): MediaVisibilityArgs | null {
   const viewerId = useAuthStore((s) => s.user?.id);
@@ -86,6 +87,15 @@ export function useShouldHearAudio(targetUserId: string): boolean {
       currentSpeakerSeat: args.currentSpeakerSeat,
       farewellSeat: args.farewellSeat,
       lastWordSeat: args.lastWordSeat,
+    });
+    pushDiag('audio.decision', {
+      target: targetUserId,
+      targetSeat: args.targetSeat,
+      result,
+      phase: args.phase,
+      viewerIsAlive: args.viewerIsAlive,
+      viewerIsJudge: args.viewerIsJudge,
+      judgeOverhearAll: args.judgeOverhearAll,
     });
   }
   return result;
