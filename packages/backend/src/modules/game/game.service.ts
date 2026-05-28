@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 import { GAME_PHASE, LOBBY, ROLE, type GameStateProjected, type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { appendDebugLog } from '../../lib/debug-log.js';
 import { logger } from '../../lib/logger.js';
 import { withLock } from '../../lib/mutex.js';
 import { broadcastLobbyUpdate } from '../lobby/lobby.broadcast.js';
@@ -628,6 +629,16 @@ async function persistEvent(
       actorId: actorUserId,
       payload: payload as Prisma.InputJsonValue,
     },
+  });
+  void appendDebugLog(state.id, {
+    cat: 'game',
+    type,
+    actor:
+      actorUserId !== null
+        ? (state.participants.find((p) => p.userId === actorUserId)?.nickname ?? null)
+        : null,
+    userId: actorUserId,
+    data: payload,
   });
   return { ...state, nextEventSeq: state.nextEventSeq + 1 };
 }
