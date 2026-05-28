@@ -8,6 +8,7 @@ import helmet from '@fastify/helmet';
 
 import { env } from './config/env.js';
 import { prisma } from './db/prisma.client.js';
+import { startDebugLogSweeper, stopDebugLogSweeper } from './lib/debug-log-sweeper.js';
 import { rateLimitPlugin } from './plugins/rate-limit.js';
 import { securityPlugin } from './plugins/security.js';
 import { socketioPlugin } from './plugins/socketio.js';
@@ -127,6 +128,13 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(gameModule, { prefix: `${API_PREFIX}/game` });
   await app.register(clubsModule, { prefix: `${API_PREFIX}/clubs` });
   await app.register(adminModule, { prefix: `${API_PREFIX}/admin` });
+
+  // Start the debug-log retention sweeper. Single timer, unref'd, torn down
+  // via Fastify's onClose so tests/CI don't leak handles.
+  const debugLogSweeperHandle = startDebugLogSweeper();
+  app.addHook('onClose', async () => {
+    stopDebugLogSweeper(debugLogSweeperHandle);
+  });
 
   return app;
 }
