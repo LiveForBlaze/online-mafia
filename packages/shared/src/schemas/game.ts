@@ -240,5 +240,15 @@ export const liveKitTokenResponseSchema = z.object({
 });
 export type LiveKitTokenResponse = z.infer<typeof liveKitTokenResponseSchema>;
 
+// Client → server diagnostic ping. Free-form `data` for the writer; only
+// the wrapper is validated so we never accept a wildly oversized payload.
+// `data` is `unknown` so we never accidentally unpack a credential string —
+// the value is appended verbatim to the JSONL debug log.
+export const clientDiagPayloadSchema = z.object({
+  type: z.string().min(1).max(64),
+  data: z.unknown(),
+});
+export type ClientDiagPayload = z.infer<typeof clientDiagPayloadSchema>;
+
 // Re-export referenced types for convenience.
 export type { GamePhase, Role, Team };
