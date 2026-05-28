@@ -43,6 +43,25 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
   });
   if (!game || game.statsApplied || !game.endedAt) return;
 
+  // Партии без победителя — это «технический» финиш через applyJudgeEndGame
+  // (хост вышел / закрыл игру раньше времени). checkWinner всегда выставляет
+  // RED или BLACK, поэтому отсутствие winnerTeam надёжно отличает aborted-
+  // партию от натурально завершённой. По решению владельца такие игры не
+  // идут в статистику — ни gamesPlayed/wins/losses у игроков, ни
+  // gamesAsJudge у ведущего, ни ачивки. Помечаем statsApplied=true чтобы
+  // потенциальный replay/recovery не пытался применить их позже.
+  if (game.winnerTeam === null) {
+    await prisma.game.update({
+      where: { id: gameId },
+      data: { statsApplied: true },
+    });
+    logger.info(
+      { gameId },
+      'finalizeGameStats: skipping aborted game (no winner — judge ended early)',
+    );
+    return;
+  }
+
   const winner = (game.winnerTeam ?? null) as Team | null;
 
   // Аккумулируем новые ачивки из транзакции, чтобы после её коммита
