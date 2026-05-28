@@ -397,7 +397,8 @@
       "liveHost": "Веде {{nickname}}",
       "liveMembers": "{{count}}/{{max}} гравців",
       "liveJoinButton": "Повернутись у гру",
-      "liveSpectateSoon": "Перегляд — скоро"
+      "liveSpectateSoon": "Перегляд — скоро",
+      "cannotCreateBanned": "Створення лобі заблоковано адміністратором"
     },
     "card": {
       "private": "Приватне",

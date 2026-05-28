@@ -397,7 +397,8 @@
       "liveHost": "Ведёт {{nickname}}",
       "liveMembers": "{{count}}/{{max}} игроков",
       "liveJoinButton": "Вернуться в игру",
-      "liveSpectateSoon": "Просмотр — скоро"
+      "liveSpectateSoon": "Просмотр — скоро",
+      "cannotCreateBanned": "Создание лобби заблокировано администратором"
     },
     "card": {
       "private": "Приватное",

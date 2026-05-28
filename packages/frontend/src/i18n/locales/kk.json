@@ -386,7 +386,8 @@
       "liveHost": "{{nickname}} жүргізеді",
       "liveMembers": "{{count}}/{{max}} ойыншы",
       "liveJoinButton": "Ойынға қайту",
-      "liveSpectateSoon": "Бақылау — жуықта"
+      "liveSpectateSoon": "Бақылау — жуықта",
+      "cannotCreateBanned": "Лобби құру әкімші тарапынан бұғатталған"
     },
     "card": {
       "private": "Жабық",

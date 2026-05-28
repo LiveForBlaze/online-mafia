@@ -68,7 +68,7 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
             onClick={onCreateLobby}
             size="lg"
             disabled={cannotCreate}
-            title={cannotCreate ? t('lobby.errors.host_has_active_lobby') : undefined}
+            title={cannotCreate ? t('lobby.list.cannotCreateBanned') : undefined}
           >
             + {t('common.create_lobby')}
           </Button>

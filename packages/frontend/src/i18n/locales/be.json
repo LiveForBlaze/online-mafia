@@ -397,7 +397,8 @@
       "liveHost": "Вядзе {{nickname}}",
       "liveMembers": "{{count}}/{{max}} гульцоў",
       "liveJoinButton": "Вярнуцца ў гульню",
-      "liveSpectateSoon": "Прагляд — хутка"
+      "liveSpectateSoon": "Прагляд — хутка",
+      "cannotCreateBanned": "Стварэнне лобі заблакаванае адміністратарам"
     },
     "card": {
       "private": "Прыватнае",
