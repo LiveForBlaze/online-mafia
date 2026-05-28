@@ -137,7 +137,13 @@ export function GamePage() {
   };
 
   return (
-    <MediaRoom gameId={gameId}>
+    // key={gameId} заставляет React полностью перемонтировать MediaRoom
+    // (и LiveKitRoom внутри) при переходе между партиями. Без этого ключа
+    // react-router reuse'ит компонент на одном и том же маршруте /game/:id
+    // с новым параметром, LiveKitRoom не создаёт новый Room и старый
+    // не disconnect'ится — отсюда накопление WS-сессий при последовательной
+    // игре в нескольких партиях.
+    <MediaRoom key={gameId} gameId={gameId}>
       {/*
         Locked to the viewport at every breakpoint — game screen never scrolls.
         Mobile uses 100dvh so collapsing browser chrome doesn't crop the
