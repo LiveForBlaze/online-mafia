@@ -9,6 +9,7 @@ import { BAN_RESTRICTION, SERVER_EVENT, lobbyChatSendPayloadSchema } from '@mafi
 import { z } from 'zod';
 
 import { prisma } from '../../db/prisma.client.js';
+import { appendDebugLog } from '../../lib/debug-log.js';
 import { logger } from '../../lib/logger.js';
 import { socketHasRestriction } from '../../plugins/socketio.js';
 
@@ -56,6 +57,13 @@ export function registerLobbyGateway(app: FastifyInstance): void {
           },
           'diag LOBBY_JOIN rejected',
         );
+        void appendDebugLog(null, {
+          cat: 'socket',
+          type: 'lobby.join_rejected',
+          actor: socket.data.user?.nickname ?? null,
+          userId,
+          data: { lobbyId: parsed.data.lobbyId, socketId: socket.id, result: 'not_member' },
+        });
         ack?.({ ok: false, error: 'not_member' });
         return;
       }
@@ -75,6 +83,13 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         },
         'diag LOBBY_JOIN ok',
       );
+      void appendDebugLog(null, {
+        cat: 'socket',
+        type: 'lobby.join',
+        actor: socket.data.user?.nickname ?? null,
+        userId,
+        data: { lobbyId: parsed.data.lobbyId, socketId: socket.id, result: 'joined' },
+      });
       // Returning to the lobby (fresh page mount or socket reconnect) always
       // drops the player back to "not ready". The "Готов" flag is a deliberate
       // act, not a sticky preference — if the player walked off to change
@@ -158,6 +173,13 @@ export function registerLobbyGateway(app: FastifyInstance): void {
         },
         'diag LOBBY_LEAVE',
       );
+      void appendDebugLog(null, {
+        cat: 'socket',
+        type: 'lobby.leave',
+        actor: socket.data.user?.nickname ?? null,
+        userId: socket.data.user?.sub ?? null,
+        data: { lobbyId: parsed.data.lobbyId, socketId: socket.id },
+      });
       // Игрок ушёл с экрана лобби (navigate / close-tab fallback / etc.) —
       // нельзя оставлять его «готов» в чужом списке. Сбрасываем флаг, но
       // не удаляем membership: если он вернётся обратно, всё что нужно — это

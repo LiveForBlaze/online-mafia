@@ -28,6 +28,7 @@ import {
 } from '@mafia/shared';
 import { z } from 'zod';
 
+import { appendDebugLog } from '../../lib/debug-log.js';
 import { logger } from '../../lib/logger.js';
 import { socketHasRestriction } from '../../plugins/socketio.js';
 
@@ -120,6 +121,17 @@ export function registerGameGateway(app: FastifyInstance): void {
         },
         'diag GAME_JOIN ok',
       );
+      void appendDebugLog(parsed.data.gameId, {
+        cat: 'socket',
+        type: 'game.join',
+        actor: socket.data.user?.nickname ?? null,
+        userId,
+        data: {
+          socketId: socket.id,
+          deliveredInitialState: Boolean(state),
+          phase: state?.phase ?? null,
+        },
+      });
       ack?.({ ok: true });
     });
 

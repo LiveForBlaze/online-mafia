@@ -11,6 +11,7 @@ import type { Server as IOServer } from 'socket.io';
 import { SERVER_EVENT } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { appendDebugLog } from '../../lib/debug-log.js';
 import { logger } from '../../lib/logger.js';
 
 import { toLobbyDetails } from './lobby.mappers.js';
@@ -101,5 +102,17 @@ export async function broadcastLobbyUpdate(lobbyId: string): Promise<void> {
       },
       'diag LOBBY_UPDATED emitted',
     );
+    void appendDebugLog(null, {
+      cat: 'socket',
+      type: 'lobby_updated.emit',
+      actor: socket.data.user?.nickname ?? null,
+      userId,
+      data: {
+        lobbyId,
+        socketId,
+        lobbyStatus: lobby.status,
+        gameId: lobby.game?.id ?? null,
+      },
+    });
   }
 }

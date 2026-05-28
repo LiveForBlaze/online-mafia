@@ -13,6 +13,7 @@ import { BAN_RESTRICTION, type BanRestrictionCode } from '@mafia/shared';
 import { env } from '../config/env.js';
 import { prisma } from '../db/prisma.client.js';
 import { COOKIE_NAME } from '../modules/auth/auth.cookies.js';
+import { appendDebugLog } from '../lib/debug-log.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -126,6 +127,15 @@ export const socketioPlugin = fp(
         },
         'diag socket connected',
       );
+      const gameRoomUp = [...socket.rooms].find((r) => r.startsWith('game:'));
+      const gameIdUp = gameRoomUp ? gameRoomUp.slice('game:'.length) : null;
+      void appendDebugLog(gameIdUp, {
+        cat: 'socket',
+        type: 'conn.up',
+        actor: socket.data.user?.nickname ?? null,
+        userId: socket.data.user?.sub ?? null,
+        data: { socketId: socket.id },
+      });
       socket.on('disconnect', (reason) => {
         app.log.info(
           {
@@ -137,6 +147,15 @@ export const socketioPlugin = fp(
           },
           'diag socket disconnected',
         );
+        const gameRoomDown = [...socket.rooms].find((r) => r.startsWith('game:'));
+        const gameIdDown = gameRoomDown ? gameRoomDown.slice('game:'.length) : null;
+        void appendDebugLog(gameIdDown, {
+          cat: 'socket',
+          type: 'conn.down',
+          actor: socket.data.user?.nickname ?? null,
+          userId: socket.data.user?.sub ?? null,
+          data: { socketId: socket.id, reason },
+        });
       });
     });
 

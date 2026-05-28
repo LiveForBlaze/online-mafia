@@ -8,6 +8,7 @@ import type { Server as IOServer } from 'socket.io';
 
 import { SERVER_EVENT } from '@mafia/shared';
 
+import { appendDebugLog } from '../../lib/debug-log.js';
 import { logger } from '../../lib/logger.js';
 import { projectFor } from './game.engine.js';
 import { activeGameIds, getGame } from './game.registry.js';
@@ -130,5 +131,12 @@ export function broadcastGameState(gameId: string): void {
       },
       'diag GAME_STATE_DELTA emitted',
     );
+    void appendDebugLog(gameId, {
+      cat: 'socket',
+      type: 'state_delta.emit',
+      actor: socket.data.user?.nickname ?? null,
+      userId,
+      data: { socketId, phase: state.phase, dayNumber: state.dayNumber },
+    });
   }
 }
