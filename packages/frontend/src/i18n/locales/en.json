@@ -387,7 +387,7 @@
       "liveHost": "Hosted by {{nickname}}",
       "liveMembers": "{{count}}/{{max}} players",
       "liveJoinButton": "Resume game",
-      "liveSpectateSoon": "Spectate — soon",
+      "liveSpectateSoon": "Soon",
       "cannotCreateBanned": "Lobby creation is blocked by an administrator"
     },
     "card": {

@@ -387,7 +387,7 @@
       "liveHost": "მასპინძლობს {{nickname}}",
       "liveMembers": "{{count}}/{{max}} მოთამაშე",
       "liveJoinButton": "თამაშში დაბრუნება",
-      "liveSpectateSoon": "ნახვა — მალე",
+      "liveSpectateSoon": "მალე",
       "cannotCreateBanned": "ლობის შექმნა ადმინისტრატორის მიერ დაბლოკილია"
     },
     "card": {

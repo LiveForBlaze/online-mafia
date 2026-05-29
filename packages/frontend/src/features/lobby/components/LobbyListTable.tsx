@@ -123,8 +123,15 @@ function LobbyRow({
         ? t('lobby.card.continue')
         : t('lobby.card.join');
   const actionDisabled = isJoining || isSpectatorOnly || (isFull && !lobby.isViewerMember);
-  const actionVariant: 'primary' | 'secondary' =
-    canResume || !lobby.isViewerMember ? 'primary' : 'secondary';
+  // Зрительский режим — disabled-«скоро» — рисуем ghost'ом: визуально не
+  // тянет внимание как primary-CTA и не вводит в заблуждение что туда
+  // можно тапнуть. Resume / Join — primary (красный). Continue для
+  // existing-member-WAITING — secondary (нейтральный border).
+  const actionVariant: 'primary' | 'secondary' | 'ghost' = isSpectatorOnly
+    ? 'ghost'
+    : canResume || !lobby.isViewerMember
+      ? 'primary'
+      : 'secondary';
 
   return (
     <div
