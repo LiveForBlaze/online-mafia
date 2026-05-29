@@ -66,7 +66,16 @@ function parseCookieHeader(header: string | undefined): Record<string, string> {
     }
     const key = trimmed.slice(0, eqIdx).trim();
     const value = trimmed.slice(eqIdx + 1).trim();
-    if (key) result[key] = decodeURIComponent(value);
+    if (key) {
+      try {
+        result[key] = decodeURIComponent(value);
+      } catch {
+        // Malformed percent-encoding (e.g. a stray "%"). Keep the raw value
+        // instead of letting decodeURIComponent throw — a single bad cookie
+        // must not crash the whole Socket.IO handshake.
+        result[key] = value;
+      }
+    }
   }
   return result;
 }

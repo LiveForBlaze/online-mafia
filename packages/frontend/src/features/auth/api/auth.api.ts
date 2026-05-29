@@ -29,7 +29,8 @@ export const authApi = {
     apiClient.post<AuthSessionResponse>(AUTH_PATH.REGISTER, input),
   login: (input: LoginInput) => apiClient.post<AuthSessionResponse>(AUTH_PATH.LOGIN, input),
   logout: () => apiClient.post<void>(AUTH_PATH.LOGOUT),
-  getCurrentUser: () => apiClient.get<AuthSessionResponse>(AUTH_PATH.ME),
+  getCurrentUser: (signal?: AbortSignal) =>
+    apiClient.get<AuthSessionResponse>(AUTH_PATH.ME, signal),
   updateNickname: (input: UpdateNicknameInput) =>
     apiClient.patch<AuthSessionResponse>(AUTH_PATH.UPDATE_NICKNAME, input),
   updateProfile: (input: UpdateProfileInput) =>

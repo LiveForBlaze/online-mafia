@@ -43,7 +43,10 @@ export const createLobbyInputSchema = z
 export type CreateLobbyInput = z.infer<typeof createLobbyInputSchema>;
 
 export const joinLobbyInputSchema = z.object({
-  password: z.string().optional(),
+  // Bound the length so a wrong-password attempt can't ship an arbitrarily large
+  // string. We don't enforce a min here — an incorrect password is simply rejected
+  // downstream — only the same upper bound as a real lobby password.
+  password: z.string().max(LOBBY.PASSWORD_MAX_LENGTH).optional(),
   preferredRole: memberRoleSchema.optional(),
 });
 export type JoinLobbyInput = z.infer<typeof joinLobbyInputSchema>;

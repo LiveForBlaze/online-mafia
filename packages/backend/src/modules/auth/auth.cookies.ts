@@ -35,7 +35,10 @@ export function setSessionCookie(reply: FastifyReply, token: string): void {
 }
 
 export function clearSessionCookie(reply: FastifyReply): void {
-  reply.clearCookie(COOKIE_NAME.SESSION, { path: '/' });
+  // Clearing must echo the same attributes (secure, sameSite, path) the cookie
+  // was set with — otherwise some browsers won't match it and the cookie
+  // survives. maxAge is dropped so clearCookie can set its own expiry in the past.
+  reply.clearCookie(COOKIE_NAME.SESSION, baseCookieOptions());
 }
 
 export function setOAuthTempCookie(reply: FastifyReply, name: string, value: string): void {

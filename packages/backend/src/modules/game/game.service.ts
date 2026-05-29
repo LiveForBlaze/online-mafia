@@ -47,6 +47,7 @@ import {
   pushHistorySnapshot,
   registerGame,
   setGame,
+  unregisterGame,
 } from './game.registry.js';
 import { snapshotState } from './game.snapshot.js';
 import { finalizeGameStats } from './game.stats.js';
@@ -486,6 +487,8 @@ export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
     setGame(finished);
     void syncMediaPermissions(finished);
     broadcastGameState(game.id);
+    // This path commits via setGame (not commit()), so schedule cleanup here too.
+    scheduleFinishedGameCleanup(game.id);
   }
 }
 
@@ -668,6 +671,9 @@ async function commit(state: GameState): Promise<GameState> {
     // Боты — одноразовые: создаются для конкретного лобби, после игры
     // никому не нужны. Чистим из БД чтобы не копились.
     await cleanupBotsAfterGame(state.id);
+    // Free the in-memory registry entry after a grace period (and drop any
+    // pending pick timer immediately) so finished games don't accumulate.
+    scheduleFinishedGameCleanup(state.id);
   }
   return state;
 }
@@ -827,6 +833,30 @@ function clearPickTimer(gameId: string): void {
     clearTimeout(t);
     pickTimers.delete(gameId);
   }
+}
+
+// A finished game stays in the in-memory registry on purpose so the final
+// GAME_OVER broadcast (and any late reconnect) can still find its state. But it
+// must not stay forever — otherwise every game ever played accumulates in
+// memory. This schedules removal after a grace period and immediately drops any
+// pending pick timer for the game. Idempotent: re-finishing re-arms the timer.
+const FINISHED_GAME_TTL_MS = 10 * 60_000;
+const cleanupTimers = new Map<string, NodeJS.Timeout>();
+
+function scheduleFinishedGameCleanup(gameId: string): void {
+  // A finished game can never be back in ROLE_DISTRIBUTION, so any pending
+  // auto-pick timer is dead weight — drop it now rather than waiting for it to
+  // fire and no-op.
+  clearPickTimer(gameId);
+  const existing = cleanupTimers.get(gameId);
+  if (existing) clearTimeout(existing);
+  const t = setTimeout(() => {
+    unregisterGame(gameId);
+    cleanupTimers.delete(gameId);
+  }, FINISHED_GAME_TTL_MS);
+  // Don't keep the process alive solely to run this cleanup.
+  t.unref?.();
+  cleanupTimers.set(gameId, t);
 }
 
 /** Schedule the auto-pick fallback for the seat that's currently picking.

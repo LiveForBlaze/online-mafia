@@ -421,9 +421,13 @@ export async function setReady(
 ): Promise<ServiceResult<LobbyDetails>> {
   const member = await prisma.lobbyMember.findUnique({
     where: { lobbyId_userId: { lobbyId, userId } },
-    select: { userId: true },
+    select: { userId: true, lobby: { select: { status: true } } },
   });
   if (!member) return fail(LOBBY_ERROR.NOT_MEMBER);
+  // Only a WAITING lobby accepts ready-flips. Once the game has started the
+  // flag is meaningless — without this guard a member could toggle it after
+  // IN_GAME and desync the lobby view from the game.
+  if (member.lobby.status !== 'WAITING') return fail(LOBBY_ERROR.NOT_OPEN);
 
   await prisma.lobbyMember.update({
     where: { lobbyId_userId: { lobbyId, userId } },

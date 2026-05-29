@@ -6,7 +6,7 @@ import { CLIENT_EVENT, GAME_PHASE, type GameStateProjected } from '@mafia/shared
 
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
-import { emitGameAction } from '@/features/game/socket/game.socket.js';
+import { fireGameAction } from '@/features/game/socket/game.socket.js';
 
 interface JudgePanelProps {
   state: GameStateProjected;
@@ -36,9 +36,9 @@ export function JudgePanel({ state }: JudgePanelProps) {
   // - Вне таких фаз — обычный advance phase.
   function step() {
     if (STEPS_WITHIN_PHASE.includes(state.phase)) {
-      emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_SPEAKER);
+      fireGameAction(CLIENT_EVENT.JUDGE_ADVANCE_SPEAKER);
     } else {
-      emitGameAction(CLIENT_EVENT.JUDGE_ADVANCE_PHASE);
+      fireGameAction(CLIENT_EVENT.JUDGE_ADVANCE_PHASE);
     }
   }
 
@@ -90,7 +90,7 @@ export function JudgeSeatControls({
         )}
         disabled={foulLocked}
         title={foulLocked ? t('game.ui.foulLocked') : undefined}
-        onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_ISSUE_FOUL, { targetUserId })}
+        onClick={() => fireGameAction(CLIENT_EVENT.JUDGE_ISSUE_FOUL, { targetUserId })}
       >
         {t('game.ui.issueFoul')}
       </Button>
@@ -99,7 +99,7 @@ export function JudgeSeatControls({
         variant="ghost"
         className="h-6 text-xs px-2"
         disabled={foulsCount <= 0}
-        onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_REVOKE_FOUL, { targetUserId })}
+        onClick={() => fireGameAction(CLIENT_EVENT.JUDGE_REVOKE_FOUL, { targetUserId })}
       >
         {t('game.ui.removeFoul')}
       </Button>
@@ -108,7 +108,7 @@ export function JudgeSeatControls({
           size="sm"
           variant="ghost"
           className="h-6 text-xs px-2 bg-warning/20 text-warning hover:bg-warning/30"
-          onClick={() => emitGameAction(CLIENT_EVENT.UNNOMINATE_PLAYER, { targetSeat })}
+          onClick={() => fireGameAction(CLIENT_EVENT.UNNOMINATE_PLAYER, { targetSeat })}
         >
           {t('game.ui.unnominate')}
         </Button>
@@ -117,7 +117,7 @@ export function JudgeSeatControls({
         size="sm"
         variant="ghost"
         className="h-6 text-xs px-2"
-        onClick={() => emitGameAction(CLIENT_EVENT.JUDGE_REMOVE_PLAYER, { targetUserId })}
+        onClick={() => fireGameAction(CLIENT_EVENT.JUDGE_REMOVE_PLAYER, { targetUserId })}
       >
         {t('game.ui.removePlayer')}
       </Button>
