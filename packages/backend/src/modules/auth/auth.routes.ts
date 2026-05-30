@@ -425,7 +425,18 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
         return reply.redirect(env.FRONTEND_URL);
       } catch (error) {
-        request.log.error({ error }, 'Google OAuth callback failed');
+        // Log only name + message, never the raw error object: arctic's token
+        // responses can ride along inside a thrown error and would otherwise
+        // leak the access/id token into logs.
+        request.log.error(
+          {
+            err: {
+              name: error instanceof Error ? error.name : typeof error,
+              message: error instanceof Error ? error.message : 'unknown error',
+            },
+          },
+          'Google OAuth callback failed',
+        );
         clearOAuthTempCookies(reply);
         return reply.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
       }

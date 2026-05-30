@@ -9,6 +9,7 @@ import { requiredAchievementForAvatar } from '@mafia/shared';
 import type { User } from '@prisma/client';
 
 import { prisma } from '../../db/prisma.client.js';
+import { logger } from '../../lib/logger.js';
 import { moderateName } from '../../lib/moderation.js';
 import { verifyPassword } from '../../lib/password.js';
 import { handOffOrDisbandHeadClubs } from '../clubs/club.service.js';
@@ -27,7 +28,9 @@ export async function updateNickname(userId: string, nickname: string): Promise<
   });
   // Push the new nickname to every lobby / active game this user is in so
   // other sockets see it without reloading. Fire-and-forget; never blocks.
-  void broadcastLobbiesContainingUser(userId);
+  broadcastLobbiesContainingUser(userId).catch((err: unknown) => {
+    logger.warn({ err, userId }, 'failed to broadcast profile change to lobbies');
+  });
   refreshUserInActiveGames(userId, { nickname: normalized });
   return { ok: true, user: updated };
 }
@@ -107,7 +110,9 @@ export async function updateProfile(
   // If the avatar changed, push the new snapshot to the user's lobby and
   // active game so other connected sockets see it without reloading.
   if (data.avatarUrl !== undefined) {
-    void broadcastLobbiesContainingUser(userId);
+    broadcastLobbiesContainingUser(userId).catch((err: unknown) => {
+      logger.warn({ err, userId }, 'failed to broadcast profile change to lobbies');
+    });
     refreshUserInActiveGames(userId, { avatarUrl: updated.avatarUrl });
   }
   return { ok: true, user: updated };

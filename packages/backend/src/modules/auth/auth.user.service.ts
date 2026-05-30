@@ -20,12 +20,14 @@ export async function registerWithPassword(input: RegisterInput): Promise<AuthRe
   const normalizedEmail = input.email.toLowerCase().trim();
   const normalizedNickname = input.nickname.trim();
 
-  // Email must still be unique. Nicknames are no longer constrained.
-  const emailTaken = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-    select: { id: true },
-  });
-  if (emailTaken) return { ok: false, error: AUTH_ERROR.EMAIL_TAKEN };
+  // Email uniqueness is enforced by the DB unique constraint + the
+  // isEmailCollision catch on create() below — NOT by an early findUnique.
+  // Skipping the early check is deliberate: an early "email taken" return would
+  // respond instantly for existing emails but only after moderateName + argon2
+  // for new ones, giving an attacker a timing oracle to enumerate registered
+  // emails. Letting both paths run the same moderate+hash work keeps timing
+  // uniform; registration isn't a hot path, so the extra hash on a taken email
+  // is an acceptable cost.
 
   // AI-moderate the nickname before we hash the password — argon2 is the most
   // expensive step here, no point burning it on a name we're about to reject.
