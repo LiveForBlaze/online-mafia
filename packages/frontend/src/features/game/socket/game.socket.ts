@@ -57,6 +57,16 @@ export function emitGameAction<TResponse = unknown>(
   });
 }
 
+/** Fire-and-forget variant for click handlers that don't need the ack.
+ *  Swallows (but logs) rejections from a disconnect or ack timeout so they
+ *  never surface as unhandled promise rejections. */
+export function fireGameAction(eventName: string, payload?: unknown): void {
+  void emitGameAction(eventName, payload).catch((err: unknown) => {
+    // eslint-disable-next-line no-console
+    console.error(`game action "${eventName}" failed`, err);
+  });
+}
+
 export function getGameSocket(): Socket | null {
   return socket;
 }

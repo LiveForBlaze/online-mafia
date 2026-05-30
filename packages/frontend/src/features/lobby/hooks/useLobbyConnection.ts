@@ -42,8 +42,8 @@ export function useLobbyConnection(lobbyId: string | undefined): void {
       // useLobby. Дополнительно вызываем invalidate как страховку: если
       // payload пришёл в неожиданном формате (старый клиент / новый сервер),
       // react-query сам перетянет актуальный snapshot через REST.
-      queryClient.setQueryData(LOBBY_QUERY_KEY.details(lobbyId!), payload);
-      void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.details(lobbyId!) });
+      queryClient.setQueryData(LOBBY_QUERY_KEY.details(id), payload);
+      void queryClient.invalidateQueries({ queryKey: LOBBY_QUERY_KEY.details(id) });
     }
 
     socket.on('connect', joinRoom);
@@ -59,7 +59,7 @@ export function useLobbyConnection(lobbyId: string | undefined): void {
       socket.off('connect', joinRoom);
       socket.io.off('reconnect', joinRoom);
       socket.off(SERVER_EVENT.LOBBY_UPDATED, handleLobbyUpdate);
-      void emitGameAction<Ack>(CLIENT_EVENT.LOBBY_LEAVE, { lobbyId });
+      void emitGameAction<Ack>(CLIENT_EVENT.LOBBY_LEAVE, { lobbyId: id });
     };
   }, [lobbyId, queryClient]);
 }

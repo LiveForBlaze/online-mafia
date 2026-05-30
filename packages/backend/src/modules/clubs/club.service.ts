@@ -29,6 +29,16 @@ export type ServiceResult<T> = ServiceSuccess<T> | ServiceFailure;
 const ok = <T>(data: T): ServiceSuccess<T> => ({ ok: true, data });
 const fail = (error: ClubErrorCode): ServiceFailure => ({ ok: false, error });
 
+// Thrown from inside a membership transaction when the authoritative in-tx
+// re-count finds the per-user club limit is already reached. Carries the error
+// code so the catch block can translate it back into a ServiceFailure. The
+// early (out-of-tx) guard stays for fast UX; this is the race-proof backstop.
+class ClubLimitReachedError extends Error {
+  constructor(public readonly code: ClubErrorCode) {
+    super(code);
+  }
+}
+
 const DEFAULT_PAGE_SIZE = 50;
 
 // Перепроверка лимита перед каждой операцией которая делает юзера членом
@@ -133,22 +143,39 @@ export async function createClub(
   });
 
   try {
-    const club = await prisma.$transaction(async (tx) => {
-      const created = await tx.club.create({
-        data: {
-          name,
-          publicCode,
-          headId: creatorUserId,
-        },
-      });
-      await tx.clubMember.create({
-        data: { clubId: created.id, userId: creatorUserId },
-      });
-      return created;
-    });
+    const club = await prisma.$transaction(
+      async (tx) => {
+        // Authoritative re-check inside the serializable transaction closes the
+        // TOCTOU window between the early guard above and the insert: two
+        // concurrent createClub calls can't both slip past a stale count.
+        if (
+          (await tx.clubMember.count({ where: { userId: creatorUserId } })) >= MAX_CLUBS_PER_USER
+        ) {
+          throw new ClubLimitReachedError(CLUB_ERROR.MAX_CLUBS_REACHED);
+        }
+        const created = await tx.club.create({
+          data: {
+            name,
+            publicCode,
+            headId: creatorUserId,
+          },
+        });
+        await tx.clubMember.create({
+          data: { clubId: created.id, userId: creatorUserId },
+        });
+        return created;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
     logger.info({ clubId: club.id, headId: creatorUserId, name }, 'club created');
     return getClubByCode(club.publicCode, creatorUserId);
   } catch (error) {
+    if (error instanceof ClubLimitReachedError) return fail(error.code);
+    // Serialization conflict between two concurrent membership writes — the
+    // limit was the contended invariant, so report it as reached.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+      return fail(CLUB_ERROR.MAX_CLUBS_REACHED);
+    }
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002' &&
@@ -292,17 +319,32 @@ export async function approveJoinRequest(
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      // Will throw P2025 if no row — we surface as NOT_PENDING.
-      await tx.clubJoinRequest.delete({
-        where: { clubId_userId: { clubId: club.id, userId: targetUserId } },
-      });
-      await tx.clubMember.create({
-        data: { clubId: club.id, userId: targetUserId },
-      });
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        // Authoritative re-check inside the serializable transaction: two heads
+        // approving the same user into different clubs at once can't both pass a
+        // stale count and push the user past MAX_CLUBS_PER_USER.
+        if (
+          (await tx.clubMember.count({ where: { userId: targetUserId } })) >= MAX_CLUBS_PER_USER
+        ) {
+          throw new ClubLimitReachedError(CLUB_ERROR.TARGET_MAX_CLUBS_REACHED);
+        }
+        // Will throw P2025 if no row — we surface as NOT_PENDING.
+        await tx.clubJoinRequest.delete({
+          where: { clubId_userId: { clubId: club.id, userId: targetUserId } },
+        });
+        await tx.clubMember.create({
+          data: { clubId: club.id, userId: targetUserId },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   } catch (error) {
+    if (error instanceof ClubLimitReachedError) return fail(error.code);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      // Serialization conflict — the contended invariant here is the target's
+      // club limit, so report it as reached.
+      if (error.code === 'P2034') return fail(CLUB_ERROR.TARGET_MAX_CLUBS_REACHED);
       if (error.code === 'P2025') return fail(CLUB_ERROR.NOT_PENDING);
       // ALREADY_MEMBER unlikely (we removed Request which preceded Member),
       // but guard anyway in case of race with a manual DB insert.

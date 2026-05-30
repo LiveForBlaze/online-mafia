@@ -49,7 +49,21 @@ async function request<TResponse>(path: string, options: RequestOptions = {}): P
   }
 
   const text = await response.text();
-  const data = text.length > 0 ? (JSON.parse(text) as unknown) : undefined;
+  let data: unknown;
+  if (text.length > 0) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // The backend always returns JSON; a non-JSON body means an upstream proxy
+      // or infrastructure error. Surface a clean ApiError instead of letting the
+      // SyntaxError escape as an unhandled rejection.
+      throw new ApiError(response.ok ? 502 : response.status, {
+        error: response.ok
+          ? 'invalid_json_response'
+          : `Request failed with status ${response.status}`,
+      });
+    }
+  }
 
   if (!response.ok) {
     throw new ApiError(response.status, (data ?? {}) as ApiErrorBody);

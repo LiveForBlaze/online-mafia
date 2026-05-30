@@ -2,7 +2,7 @@
 // status / progress block, and action buttons. Mutation handling and routing
 // concerns are owned by the parent page.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LogOut } from 'lucide-react';
 
@@ -247,12 +247,23 @@ export function LobbyRoom({
 function LobbyHeaderCard({ lobby }: { lobby: LobbyDetails }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<number | null>(null);
+
+  // Clear any pending "copied" reset timer if the card unmounts, so the callback
+  // never fires on an unmounted component.
+  useEffect(
+    () => () => {
+      if (copiedTimer.current !== null) window.clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
 
   async function handleShare() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      if (copiedTimer.current !== null) window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(false), 1800);
     } catch {
       // Clipboard might be unavailable (insecure context, denied permission).
       // Silent fail keeps the button non-disruptive — user can copy the URL manually.

@@ -52,7 +52,9 @@ export const loginInputSchema = z.object({
   email: emailSchema,
   // We intentionally do not apply the strong passwordSchema rules here —
   // they belong to registration, not login (an old user may have an old-format password).
-  password: z.string().min(1, 'Password is required'),
+  // A max length is still enforced: the plaintext is fed to argon2.verify, which is
+  // intentionally CPU-expensive, so an unbounded password is a cheap DoS vector.
+  password: z.string().min(1, 'Password is required').max(128, 'Password is too long'),
 });
 export type LoginInput = z.infer<typeof loginInputSchema>;
 

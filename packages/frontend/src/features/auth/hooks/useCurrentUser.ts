@@ -19,11 +19,16 @@ export function useHydrateCurrentUser(): void {
     const controller = new AbortController();
 
     authApi
-      .getCurrentUser()
+      .getCurrentUser(controller.signal)
       .then((response) => {
         setUser(response.user);
       })
       .catch((error: unknown) => {
+        // Request aborted because the component unmounted — not an error, and the
+        // store may already be torn down. Bail out without touching state or logging.
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
         // 401 is the expected outcome when the user is not logged in — clear, do not log.
         if (error instanceof ApiError && error.status === 401) {
           setUser(null);

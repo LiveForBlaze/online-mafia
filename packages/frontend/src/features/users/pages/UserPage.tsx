@@ -10,7 +10,7 @@
 // isolated danger zone way below, with a confirmation dialog that requires
 // retyping the email.
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -354,9 +354,19 @@ function OwnProfileSection() {
   );
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savedRecently, setSavedRecently] = useState(false);
+  const savedTimer = useRef<number | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Clear the pending "saved" reset timer on unmount so it can't fire on an
+  // unmounted component.
+  useEffect(
+    () => () => {
+      if (savedTimer.current !== null) window.clearTimeout(savedTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -445,7 +455,8 @@ function OwnProfileSection() {
     try {
       await Promise.all(tasks);
       setSavedRecently(true);
-      window.setTimeout(() => setSavedRecently(false), 2000);
+      if (savedTimer.current !== null) window.clearTimeout(savedTimer.current);
+      savedTimer.current = window.setTimeout(() => setSavedRecently(false), 2000);
     } catch {
       // Errors are surfaced via the mutation state above; no need to throw.
     }

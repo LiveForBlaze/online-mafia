@@ -10,7 +10,13 @@ export const nicknameSchema = z
   .max(24, 'Nickname must be at most 24 characters long')
   .regex(/^[\p{L}\p{N}_\-. ]+$/u, 'Nickname contains forbidden characters');
 
-export const emailSchema = z.string().email('Invalid email address');
+// Max length per RFC 5321 (254 chars). Bounding the input prevents a client
+// from forcing the server to process arbitrarily large strings on every
+// login/register request (cheap DoS-hardening, not a correctness requirement).
+export const emailSchema = z
+  .string()
+  .max(254, 'Invalid email address')
+  .email('Invalid email address');
 
 export const passwordSchema = z
   .string()

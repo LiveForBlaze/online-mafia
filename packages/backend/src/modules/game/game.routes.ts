@@ -115,6 +115,13 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
     '/:id/debug-log',
     { preHandler: [app.authenticate, app.requireAdmin] },
     async (request, reply) => {
+      // Defence-in-depth against path traversal: the id is interpolated into a
+      // filesystem path, so reject anything that isn't a plain id token (no
+      // slashes, dots, or other path metacharacters) before touching the FS.
+      // The route is already admin-gated, but a stray `../` must never escape the dir.
+      if (!/^[a-zA-Z0-9_-]+$/.test(request.params.id)) {
+        return reply.code(HTTP_STATUS.NOT_FOUND).send({ error: 'log_not_found' });
+      }
       const dir = process.env.DEBUG_LOG_DIR ?? '/data/debug-logs';
       const file = join(dir, `${request.params.id}.jsonl`);
       try {

@@ -120,6 +120,10 @@ model User {
   // cleanupOrphanBots, listUsersForAdmin (default isBot=false) — горячие пути
   // на User.isBot. Boolean-колонка, селективность средняя.
   @@index([isBot])
+  // Postgres не индексирует FK автоматически. primaryClubId зовётся при
+  // отображении primary-клуба и каскадном SetNull когда клуб удаляют —
+  // без индекса это seqscan по всей таблице User.
+  @@index([primaryClubId])
 }
 
 // A waiting room before a game starts. A lobby may be public or private.

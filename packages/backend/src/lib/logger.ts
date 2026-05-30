@@ -21,6 +21,10 @@ const REDACT_PATHS = [
   '*.jwt',
   '*.JWT_SECRET',
   '*.LIVEKIT_API_SECRET',
+  '*.ANTHROPIC_API_KEY',
+  // Anthropic SDK sends the key in this header; redact it if a request/error
+  // object from the moderation client ever reaches a log call.
+  '*["x-api-key"]',
 ];
 
 export const logger = pino({

@@ -9,7 +9,7 @@ import { CLIENT_EVENT, DAY_PHASES, FOUL_REMOVE_THRESHOLD } from '@mafia/shared';
 import { cn } from '@/lib/cn.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { useGameStore } from '@/features/game/store/game.store.js';
-import { emitGameAction } from '@/features/game/socket/game.socket.js';
+import { fireGameAction } from '@/features/game/socket/game.socket.js';
 
 export function SelfMediaButtons() {
   const { t } = useTranslation();
@@ -79,7 +79,7 @@ export function SelfMediaButtons() {
       {showFoulButton && (
         <button
           type="button"
-          onClick={() => emitGameAction(CLIENT_EVENT.SAY_OUT_OF_TURN)}
+          onClick={() => fireGameAction(CLIENT_EVENT.SAY_OUT_OF_TURN)}
           aria-label={t('game.ui.sayOutOfTurn')}
           title={t('game.ui.sayOutOfTurnHint')}
           className="inline-flex items-center justify-center h-7 px-2 rounded-full bg-warning/85 hover:bg-warning text-[10px] font-semibold uppercase tracking-wider text-fg shadow"

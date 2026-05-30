@@ -6,7 +6,7 @@
 // Lobby host can fill remaining player slots with one click — useful when you want to
 // test the full 10-player flow without recruiting friends.
 
-import { GAME, LOBBY } from '@mafia/shared';
+import { GAME } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
 
@@ -143,7 +143,6 @@ export async function fillLobbyWithBots(
       break;
     }
   }
-  void LOBBY;
   if (added > 0) void broadcastLobbyUpdate(lobbyId);
   return { ok: true, added };
 }
