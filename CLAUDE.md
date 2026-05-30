@@ -38,7 +38,8 @@ Frontend tests currently use `--passWithNoTests` (silent green). Real frontend t
 
 - CI: `.github/workflows/ci.yml` — lint/typecheck/test/build, then SSH deploy to VPS on push to `main`
 - Prod: `ssh root@89.167.60.120`, `/opt/online-mafia`, docker-compose
-- DB migrations on prod: `docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy`
+- DB migrations on prod run **automatically** as part of the deploy: the SSH step does `git pull` → `docker compose up -d --build` → `prisma migrate deploy`. No manual step needed on a normal push to `main`.
+- Run a migration out-of-band (e.g. recovery, or applying without a redeploy): `docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy`. Check state first with `... prisma migrate status`.
 - Prisma recovery from P3018: `migrate resolve --rolled-back` (procedure in auto-memory)
 
 ## Security notes
