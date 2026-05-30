@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwind from '@tailwindcss/vite';
 import path from 'node:path';
@@ -28,5 +28,14 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+  },
+  // Vitest: component tests run in jsdom; pure-logic tests work there too.
+  // The setup file wires jest-dom matchers, auto-cleanup, and a lightweight
+  // react-i18next mock so `t(key)` returns the key (no locale files needed).
+  test: {
+    environment: 'jsdom',
+    globals: false,
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });
