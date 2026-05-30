@@ -14,6 +14,12 @@ import { env } from '../config/env.js';
 import { prisma } from '../db/prisma.client.js';
 import { COOKIE_NAME } from '../modules/auth/auth.cookies.js';
 import { appendDebugLog } from '../lib/debug-log.js';
+import { logger } from '../lib/logger.js';
+import {
+  consumeRateLimit,
+  sweepExpiredBuckets,
+  type RateBucket,
+} from '../lib/rate-limit-bucket.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -189,16 +195,13 @@ export const socketioPlugin = fp(
     // Shared module-scope map of buckets, keyed by `${userId}:${event}`.
     // Анонимные/незаауентифицированные сокеты (не должны сюда долетать — их
     // отрубает io.use auth выше — но defence-in-depth) валятся в socket.id.
-    const buckets = new Map<string, { count: number; resetAt: number }>();
+    const buckets = new Map<string, RateBucket>();
     // Лёгкая периодическая чистка: каждые 30 секунд удаляем bucket'ы, чьё
     // окно истекло и нет нового трафика — иначе Map пухнет на длинных
     // сессиях. Лимит сам по себе тоже expire-on-read, эта чистка — для
     // GC долгоживущих узлов.
     const sweepTimer = setInterval(() => {
-      const now = Date.now();
-      for (const [k, v] of buckets) {
-        if (v.resetAt <= now) buckets.delete(k);
-      }
+      sweepExpiredBuckets(buckets, Date.now());
     }, 30_000);
     io.use((socket, next) => {
       socket.use((packet, dispatch) => {
@@ -207,14 +210,8 @@ export const socketioPlugin = fp(
         const limit = RATE_LIMITS[event] ?? RATE_LIMITS.__default__ ?? 200;
         const ownerKey = socket.data.user?.sub ?? `socket:${socket.id}`;
         const bucketKey = `${ownerKey}:${event}`;
-        const now = Date.now();
-        const bucket = buckets.get(bucketKey);
-        if (!bucket || bucket.resetAt <= now) {
-          buckets.set(bucketKey, { count: 1, resetAt: now + RATE_WINDOW_MS });
-          return dispatch();
-        }
-        bucket.count += 1;
-        if (bucket.count > limit) {
+        const allowed = consumeRateLimit(buckets, bucketKey, limit, Date.now(), RATE_WINDOW_MS);
+        if (!allowed) {
           // Не дисконнектим сокет — лишь отказываем пакету. Socket.IO
           // отдаст ошибку в ack callback клиента, а соединение продолжит
           // жить, так что broadcast'ы и server-push доходят моментально.
@@ -249,32 +246,38 @@ export const socketioPlugin = fp(
     // socket.data is refreshed so per-event gates use up-to-date flags
     // without a DB lookup per event.
     const RECHECK_INTERVAL_MS = 5 * 60 * 1000;
-    const recheckTimer = setInterval(async () => {
-      const sockets = await io.fetchSockets();
-      await Promise.allSettled(
-        sockets.map(async (s) => {
-          const user = s.data.user;
-          if (!user) return;
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.sub },
-            select: { tokenVersion: true, banRestrictions: true },
-          });
-          if (!dbUser || dbUser.tokenVersion !== user.v) {
-            s.disconnect(true);
-            return;
-          }
-          if (dbUser.banRestrictions.includes(BAN_RESTRICTION.SITE_ACCESS)) {
-            s.disconnect(true);
-            return;
-          }
-          // In-place обновление кеша restrictions — следующий event-handler
-          // увидит свежий список без DB-запроса.
-          s.data.user = {
-            ...user,
-            banRestrictions: dbUser.banRestrictions as BanRestrictionCode[],
-          };
-        }),
-      );
+    const recheckTimer = setInterval(() => {
+      // Wrapped so a failure in fetchSockets() or an unexpected throw can't
+      // surface as an unhandled rejection from this fire-and-forget interval.
+      void (async () => {
+        const sockets = await io.fetchSockets();
+        await Promise.allSettled(
+          sockets.map(async (s) => {
+            const user = s.data.user;
+            if (!user) return;
+            const dbUser = await prisma.user.findUnique({
+              where: { id: user.sub },
+              select: { tokenVersion: true, banRestrictions: true },
+            });
+            if (!dbUser || dbUser.tokenVersion !== user.v) {
+              s.disconnect(true);
+              return;
+            }
+            if (dbUser.banRestrictions.includes(BAN_RESTRICTION.SITE_ACCESS)) {
+              s.disconnect(true);
+              return;
+            }
+            // In-place обновление кеша restrictions — следующий event-handler
+            // увидит свежий список без DB-запроса.
+            s.data.user = {
+              ...user,
+              banRestrictions: dbUser.banRestrictions as BanRestrictionCode[],
+            };
+          }),
+        );
+      })().catch((err) => {
+        logger.warn({ err }, 'socket restriction-recheck interval failed');
+      });
     }, RECHECK_INTERVAL_MS);
 
     app.addHook('onClose', async () => {

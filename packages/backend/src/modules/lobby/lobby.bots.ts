@@ -9,6 +9,7 @@
 import { GAME } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { logger } from '../../lib/logger.js';
 
 import { broadcastLobbyUpdate } from './lobby.broadcast.js';
 import { LOBBY_ERROR, type LobbyErrorCode } from './lobby.errors.js';
@@ -138,8 +139,11 @@ export async function fillLobbyWithBots(
         },
       });
       added += 1;
-    } catch {
-      // Lobby was modified concurrently; stop adding and return what we managed.
+    } catch (err) {
+      // Usually a unique-constraint clash — the lobby filled up concurrently, so
+      // we stop and return what we managed. Log it (at warn) so a genuine DB
+      // error here isn't silently swallowed as "concurrent modification".
+      logger.warn({ err, lobbyId, seat }, 'fillLobbyWithBots: stopped adding bots');
       break;
     }
   }
