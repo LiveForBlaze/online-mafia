@@ -2,6 +2,7 @@
 
 import { prisma } from '../../db/prisma.client.js';
 
+import { endActiveGameForLobby } from '../game/game.service.js';
 import { broadcastLobbyUpdate } from './lobby.broadcast.js';
 import { clearLobbyChat } from './lobby.chat.js';
 
@@ -35,4 +36,46 @@ export async function expireStaleLobbies(): Promise<string[]> {
   // Broadcast'ы параллельно — каждый дёргает Prisma findUnique.
   await Promise.allSettled(stale.map(({ id }) => broadcastLobbyUpdate(id)));
   return stale.map((l) => l.id);
+}
+
+// «Зомби-партия»: лобби в IN_GAME, привязанная игра не завершена
+// (endedAt=null), но в журнале событий нет ни одного события свежее
+// ZOMBIE_GAME_INACTIVITY_MS. Это игра, которая стартовала и была тут же
+// брошена (все вышли, она не дошла до GAME_ENDED) — иначе фазовые переходы
+// писали бы события. Свипер WAITING-лобби её не трогает (она IN_GAME), а
+// сама она никогда не закроется. Чистим по НЕАКТИВНОСТИ, а не по возрасту:
+// реальная долгая партия пишет события и под фильтр не попадёт.
+export const ZOMBIE_GAME_INACTIVITY_MS = 3 * 60 * 60 * 1000; // 3 hours
+
+// Завершает все зомби-партии и закрывает их лобби. Игру гасим БЕЗ
+// finalizeStats — брошенная партия никого не штрафует поражением. Возвращает
+// список закрытых lobby id.
+export async function expireZombieGames(): Promise<string[]> {
+  const cutoff = new Date(Date.now() - ZOMBIE_GAME_INACTIVITY_MS);
+  const zombies = await prisma.lobby.findMany({
+    where: {
+      status: 'IN_GAME',
+      game: {
+        endedAt: null,
+        events: { none: { createdAt: { gte: cutoff } } },
+      },
+    },
+    select: { id: true },
+  });
+  if (zombies.length === 0) return [];
+
+  // Гасим игру по одному лобби: endActiveGameForLobby ставит endedAt (после
+  // этого recovery на буте её пропустит), чистит ботов и in-memory registry.
+  for (const { id } of zombies) {
+    await endActiveGameForLobby(id, { finalizeStats: false });
+    clearLobbyChat(id);
+  }
+
+  await prisma.lobby.updateMany({
+    where: { id: { in: zombies.map((l) => l.id) } },
+    data: { status: 'CLOSED' },
+  });
+
+  await Promise.allSettled(zombies.map(({ id }) => broadcastLobbyUpdate(id)));
+  return zombies.map((l) => l.id);
 }

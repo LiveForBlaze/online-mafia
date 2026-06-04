@@ -69,7 +69,16 @@ export async function removeUserFromActiveGameForLobby(
 // Called when the host leaves the parent lobby — without this, the game stays
 // open in the registry and the host's home page bounces them right back into
 // it via the active-game query.
-export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
+//
+// finalizeStats=false skips the per-user stats bump. Used by the zombie-game
+// sweeper: a game that was started and immediately abandoned (everyone left,
+// it never reached a terminal phase) should just be torn down — penalizing
+// every participant with a loss for a table they never really played is wrong.
+export async function endActiveGameForLobby(
+  lobbyId: string,
+  opts: { finalizeStats?: boolean } = {},
+): Promise<void> {
+  const { finalizeStats = true } = opts;
   const game = await prisma.game.findUnique({
     where: { lobbyId },
     select: { id: true, endedAt: true },
@@ -81,8 +90,9 @@ export async function endActiveGameForLobby(lobbyId: string): Promise<void> {
     data: { endedAt: new Date() },
   });
   // Финализируем статистику — winner=null, поэтому все игроки получат
-  // losses+1. Хост ушёл, никто не победил.
-  await finalizeGameStats(game.id);
+  // losses+1. Хост ушёл, никто не победил. Брошенные зомби-партии этот шаг
+  // пропускают (finalizeStats=false) — штрафовать за них некого.
+  if (finalizeStats) await finalizeGameStats(game.id);
   // Боты этого матча — одноразовые, чистим из БД.
   await cleanupBotsAfterGame(game.id);
 

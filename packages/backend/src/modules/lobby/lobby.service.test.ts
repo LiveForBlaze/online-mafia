@@ -54,7 +54,7 @@ import { prisma } from '../../db/prisma.client.js';
 import { verifyPassword } from '../../lib/password.js';
 import { broadcastLobbyUpdate } from './lobby.broadcast.js';
 import { endActiveGameForLobby, removeUserFromActiveGameForLobby } from '../game/game.service.js';
-import { setReady, joinLobby, kickMember, leaveLobby } from './lobby.service.js';
+import { setReady, joinLobby, kickMember, leaveLobby, expireZombieGames } from './lobby.service.js';
 
 const mockedPrisma = vi.mocked(prisma, true);
 const mockedVerify = vi.mocked(verifyPassword);
@@ -303,5 +303,39 @@ describe('leaveLobby', () => {
     });
     expect(mockedRemoveUser).toHaveBeenCalledWith('lobby-1', 'user-2');
     expect(mockedPrisma.lobby.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('expireZombieGames', () => {
+  it('ends abandoned IN_GAME games without touching stats and closes their lobbies', async () => {
+    mockedPrisma.lobby.findMany.mockResolvedValue([
+      { id: 'zombie-1' },
+      { id: 'zombie-2' },
+    ] as never);
+
+    const closed = await expireZombieGames();
+
+    expect(closed).toEqual(['zombie-1', 'zombie-2']);
+    // The game is ended WITHOUT finalizing stats — an abandoned game must not
+    // penalize anyone with a loss.
+    expect(mockedEndGame).toHaveBeenCalledWith('zombie-1', { finalizeStats: false });
+    expect(mockedEndGame).toHaveBeenCalledWith('zombie-2', { finalizeStats: false });
+    // Lobbies are flipped to CLOSED so they drop out of the listing.
+    expect(mockedPrisma.lobby.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['zombie-1', 'zombie-2'] } },
+      data: { status: 'CLOSED' },
+    });
+    expect(mockedBroadcast).toHaveBeenCalledWith('zombie-1');
+    expect(mockedBroadcast).toHaveBeenCalledWith('zombie-2');
+  });
+
+  it('does nothing when there are no abandoned games', async () => {
+    mockedPrisma.lobby.findMany.mockResolvedValue([] as never);
+
+    const closed = await expireZombieGames();
+
+    expect(closed).toEqual([]);
+    expect(mockedEndGame).not.toHaveBeenCalled();
+    expect(mockedPrisma.lobby.updateMany).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,7 @@
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../db/prisma.client.js';
 
-import { expireStaleLobbies } from './lobby.service.js';
+import { expireStaleLobbies, expireZombieGames } from './lobby.service.js';
 
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -44,6 +44,15 @@ async function sweep(): Promise<void> {
   } catch (error) {
     // Sweeper must never crash the process. The next tick will retry.
     logger.error({ err: error }, 'lobby sweeper: sweep failed');
+  }
+
+  try {
+    const zombies = await expireZombieGames();
+    if (zombies.length > 0) {
+      logger.info({ count: zombies.length, ids: zombies }, 'lobby sweeper: closed zombie games');
+    }
+  } catch (error) {
+    logger.error({ err: error }, 'lobby sweeper: zombie game cleanup failed');
   }
 
   try {

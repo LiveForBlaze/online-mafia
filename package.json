@@ -23,7 +23,6 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
     "prettier": "^3.4.2",
-    "ruflo": "^3.7.0-alpha.69",
     "typescript": "^5.7.2"
   },
   "lint-staged": {

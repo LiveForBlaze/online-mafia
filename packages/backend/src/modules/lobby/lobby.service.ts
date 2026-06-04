@@ -30,4 +30,9 @@ export { joinLobby, leaveLobby, LOBBY_LIMITS } from './lobby.membership.js';
 
 export { setReady, closeLobby, claimJudgeSeat, preassignRole, kickMember } from './lobby.room.js';
 
-export { expireStaleLobbies, LOBBY_OPEN_TTL_MS } from './lobby.lifecycle.js';
+export {
+  expireStaleLobbies,
+  expireZombieGames,
+  LOBBY_OPEN_TTL_MS,
+  ZOMBIE_GAME_INACTIVITY_MS,
+} from './lobby.lifecycle.js';
