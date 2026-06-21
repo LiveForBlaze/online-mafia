@@ -6,7 +6,7 @@
 // swallowed (logged via pino at warn level) because logging is never on a
 // player action's critical path.
 
-import { appendFile, mkdir } from 'node:fs/promises';
+import { appendFile, mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { logger } from './logger.js';
@@ -21,9 +21,15 @@ export interface DebugLogEntry {
 
 const DEFAULT_DIR = '/data/debug-logs';
 
+// Per-file hard cap. Once a .jsonl exceeds this, further appends are dropped so
+// a diagnostic flood can't fill the disk. Simple guard, not full rotation.
+const MAX_FILE_BYTES = 16 * 1024 * 1024;
+
 let currentDir: string = process.env.DEBUG_LOG_DIR ?? DEFAULT_DIR;
 let dirReady = false;
 const queues = new Map<string, Promise<void>>();
+// Files we've already warned about hitting the cap — warn once each, not per write.
+const cappedWarned = new Set<string>();
 
 /**
  * Test-only override for the log directory. Passing `null` resets to the
@@ -76,6 +82,23 @@ export async function appendDebugLog(gameId: string | null, entry: DebugLogEntry
     .then(async () => {
       try {
         await ensureDir();
+        // Disk-fill guard: skip the write if the file already exceeds the cap.
+        // Tolerate ENOENT (file not created yet) — that means size 0.
+        try {
+          const { size } = await stat(filePath);
+          if (size >= MAX_FILE_BYTES) {
+            if (!cappedWarned.has(key)) {
+              cappedWarned.add(key);
+              logger.warn(
+                { gameId: key, size },
+                'debug-log: file size cap reached, dropping writes',
+              );
+            }
+            return;
+          }
+        } catch (statErr) {
+          if ((statErr as NodeJS.ErrnoException).code !== 'ENOENT') throw statErr;
+        }
         await appendFile(filePath, line, 'utf8');
       } catch (err) {
         logger.warn({ err, gameId: key }, 'debug-log: write failed');

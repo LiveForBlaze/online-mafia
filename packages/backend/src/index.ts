@@ -11,6 +11,19 @@ import { syncAdminRoster } from './lib/admin-bootstrap.js';
 import { logger } from './lib/logger.js';
 
 async function main() {
+  // Process-level safety net. An unhandled rejection (e.g. a throw inside a
+  // fire-and-forget socket handler) must NOT crash the process — that would
+  // drop every concurrent game. Log and continue. An uncaughtException, by
+  // contrast, may leave state corrupt, so we log and exit gracefully and let
+  // the supervisor (docker/systemd) restart us.
+  process.on('unhandledRejection', (reason) => {
+    logger.error({ err: reason }, 'unhandledRejection');
+  });
+  process.on('uncaughtException', (err) => {
+    logger.error({ err }, 'uncaughtException — exiting');
+    process.exit(1);
+  });
+
   const server = await buildServer();
 
   // Reconcile admin roster from ENV. Fire-and-forget — DB hiccups must not

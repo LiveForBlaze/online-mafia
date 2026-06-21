@@ -12,6 +12,7 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { env } from '../../config/env.js';
 import { appendDebugLog } from '../../lib/debug-log.js';
+import { logger } from '../../lib/logger.js';
 
 import { liveKitRoomNameForGame } from './game.livekit.js';
 import type { GameParticipant, GameState } from './game.state.js';
@@ -69,12 +70,22 @@ export async function syncMediaPermissions(state: GameState): Promise<void> {
           canPublishSources: [],
           agent: false,
         });
-      } catch {
+      } catch (err) {
         // Common case: participant hasn't joined the LiveKit room yet. Their
         // initial permission comes from the access token; the next sync after
-        // a phase change will catch them. Other errors are logged but never
-        // crash the service — privacy still degrades gracefully to the client
-        // filter in media-visibility.ts.
+        // a phase change will catch them. Never crash the service — privacy
+        // still degrades gracefully to the client filter in media-visibility.ts.
+        //
+        // A FAILED REVOCATION (canPublish=false) is privacy-critical: a removed
+        // player keeps publishing A/V until the next successful sync, so log it
+        // at warn so operators can see it. Grants (canPublish=true) failing is
+        // usually just "not joined yet" — log at debug to avoid noise.
+        const log = canPublish ? logger.debug : logger.warn;
+        log.call(
+          logger,
+          { err, gameId: state.id, userId: participant.userId, canPublish, phase: state.phase },
+          canPublish ? 'media-permissions: grant sync failed' : 'media-permissions: REVOKE failed',
+        );
       }
     }),
   );

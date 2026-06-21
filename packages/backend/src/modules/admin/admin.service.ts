@@ -195,12 +195,21 @@ export async function setUserRestrictions(
   // одинаково — упрощает debug-сравнение).
   const dedup = Array.from(new Set(restrictions)).sort();
   const isBanned = dedup.length > 0;
+  const bannedAt = isBanned ? new Date() : null;
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
+  // updateMany (а не update) чтобы навесить защитный where: нельзя
+  // воскрешать/банить удалённый аккаунт (email на @deleted.local) или
+  // мутировать бота. На отсутствие совпадения возвращаем null — тот же
+  // not-found-сигнал что и раньше (update кидал P2025), но без throw.
+  const updated = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      email: { not: { endsWith: '@deleted.local' } },
+      isBot: false,
+    },
     data: {
       banRestrictions: dedup,
-      bannedAt: isBanned ? new Date() : null,
+      bannedAt,
       banReason: isBanned ? (reason ?? null) : null,
       // При смене ограничений бамаем tokenVersion — это:
       //  (1) отрубает старые JWT (включая те, в которых юзер ещё не знал
@@ -209,16 +218,16 @@ export async function setUserRestrictions(
       //      (хотя мы и так сразу зовём disconnectUser — это страховка).
       tokenVersion: { increment: 1 },
     },
-    select: { id: true, banRestrictions: true, bannedAt: true },
   });
+  if (updated.count === 0) return null;
   logger.info(
     { userId, restrictions: dedup, reason, isBanned },
     'admin: user restrictions updated',
   );
   return {
-    userId: updated.id,
-    banRestrictions: updated.banRestrictions,
-    bannedAt: updated.bannedAt ? updated.bannedAt.toISOString() : null,
+    userId,
+    banRestrictions: dedup,
+    bannedAt: bannedAt ? bannedAt.toISOString() : null,
   };
 }
 
@@ -226,7 +235,13 @@ export async function renameUserAsAdmin(userId: string, nickname: string): Promi
   // Без модерации — админ знает, что делает. Часто как раз и нужен чтобы
   // «снять» нецензурный никнейм одним кликом.
   const updated = await prisma.user.updateMany({
-    where: { id: userId },
+    // Защитный where: нельзя переименовать удалённый аккаунт
+    // (email на @deleted.local) или бота.
+    where: {
+      id: userId,
+      email: { not: { endsWith: '@deleted.local' } },
+      isBot: false,
+    },
     data: { nickname },
   });
   return updated.count > 0;

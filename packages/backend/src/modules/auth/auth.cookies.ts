@@ -47,7 +47,17 @@ export function setOAuthTempCookie(reply: FastifyReply, name: string, value: str
     // OAuth round-trip lands the user on accounts.google.com and bounces them
     // back via top-level redirect. SameSite=Strict would drop these cookies on
     // the return hop (browsers don't send Strict cookies on cross-site nav),
-    // and the callback would fail with oauth_missing_parameters.
+    // and the callback would fail with oauth_missing_parameters. So 'lax' is
+    // REQUIRED here — do NOT tighten to 'strict' or OAuth login breaks.
+    //
+    // Accepted tradeoff: SameSite=Lax means a cross-site top-level GET to
+    // /auth/google can carry these temp cookies, which is the classic
+    // login-CSRF surface (an attacker could initiate an OAuth start on the
+    // victim's browser). This is bounded and accepted because: these are
+    // pre-auth, short-lived (10 min) cookies that only hold OAuth state + PKCE
+    // verifier — not a session — and the state/PKCE check on the callback
+    // already binds the round-trip. The session cookie itself stays
+    // SameSite=Strict in production (see baseCookieOptions).
     sameSite: 'lax',
     maxAge: OAUTH_TEMP_COOKIE_TTL_SECONDS,
   });

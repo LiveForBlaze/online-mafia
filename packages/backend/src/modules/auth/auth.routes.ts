@@ -88,12 +88,43 @@ function authErrorToHttpStatus(code: AuthErrorCode): number {
   }
 }
 
+// @fastify/rate-limit runs its keyGenerator in an `onRequest` hook — BEFORE the
+// `authenticate` preHandler that populates request.user, and (because this
+// plugin is registered before @fastify/cookie) before request.cookies is parsed.
+// So we cannot read request.user / request.cookies here. Instead we re-derive
+// the user id straight from the raw session cookie: parse the Cookie header via
+// the server's parseCookie decorator, then verify the JWT with the same
+// app.jwt.verify the /logout handler uses. Any failure (no cookie, bad/expired
+// token) falls back to per-IP keying.
+function rateLimitKeyByUser(request: {
+  headers: { cookie?: string };
+  ip: string;
+  server: {
+    parseCookie: (header: string) => Record<string, string | undefined>;
+    jwt: { verify: <T>(token: string) => T };
+  };
+}): string {
+  const header = request.headers.cookie;
+  if (header) {
+    try {
+      const token = request.server.parseCookie(header)[COOKIE_NAME.SESSION];
+      if (token) {
+        const payload = request.server.jwt.verify<{ sub?: string }>(token);
+        if (payload?.sub) return payload.sub;
+      }
+    } catch {
+      // invalid/expired token — fall through to per-IP keying
+    }
+  }
+  return request.ip;
+}
+
 // Tight per-endpoint rate limits override the global 200/min for routes that
 // either burn CPU (argon2) or affect account integrity. Pre-auth routes
 // (login, register, oauth callback) are keyed by IP via @fastify/rate-limit's
 // default keyGenerator. Authenticated routes (deleteAccount, logoutEverywhere)
-// are keyed by user.sub so that two users behind the same NAT don't share a
-// budget.
+// are keyed by user.sub (decoded from the session cookie at onRequest time)
+// so that two users behind the same NAT don't share a budget.
 const AUTH_RATE_LIMITS = {
   // Login: enough for honest fat-finger retries, way too tight for credential
   // stuffing.
@@ -108,17 +139,18 @@ const AUTH_RATE_LIMITS = {
   deleteAccount: {
     max: 5,
     timeWindow: '1 minute',
-    keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
-      request.user?.sub ?? request.ip,
+    keyGenerator: rateLimitKeyByUser,
   },
   // Logout-everywhere bumps tokenVersion — a write op. Same shape as delete,
   // 5/min/user.
   logoutEverywhere: {
     max: 5,
     timeWindow: '1 minute',
-    keyGenerator: (request: { user?: { sub: string }; ip: string }) =>
-      request.user?.sub ?? request.ip,
+    keyGenerator: rateLimitKeyByUser,
   },
+  // Logout (single device): cheap, but still a state-changing endpoint (clears
+  // the cookie, best-effort LiveKit revoke). Per-IP guard against churn.
+  logout: { max: 30, timeWindow: '1 minute' },
 } as const;
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
@@ -187,22 +219,26 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   // авторизованы — это сознательный UX-выбор: «выйти везде» — отдельный
   // эндпоинт ниже, чтобы случайный logout в одной вкладке не отрубал все
   // активные сессии.
-  app.post('/logout', async (request, reply) => {
-    // Если есть сессия — попробуем выкинуть пользователя из всех его активных
-    // LiveKit-комнат. Без этого старый LK-токен (TTL 30 минут) продолжает
-    // работать с украденным cookie до истечения. Best-effort — ошибки игнорим.
-    const cookie = request.cookies?.[COOKIE_NAME.SESSION];
-    if (cookie) {
-      try {
-        const payload = app.jwt.verify<{ sub: string }>(cookie);
-        if (payload?.sub) void revokeLiveKitForUser(payload.sub);
-      } catch {
-        // invalid token — нечего отзывать
+  app.post(
+    '/logout',
+    { config: { rateLimit: AUTH_RATE_LIMITS.logout } },
+    async (request, reply) => {
+      // Если есть сессия — попробуем выкинуть пользователя из всех его активных
+      // LiveKit-комнат. Без этого старый LK-токен (TTL 30 минут) продолжает
+      // работать с украденным cookie до истечения. Best-effort — ошибки игнорим.
+      const cookie = request.cookies?.[COOKIE_NAME.SESSION];
+      if (cookie) {
+        try {
+          const payload = app.jwt.verify<{ sub: string }>(cookie);
+          if (payload?.sub) void revokeLiveKitForUser(payload.sub);
+        } catch {
+          // invalid token — нечего отзывать
+        }
       }
-    }
-    clearSessionCookie(reply);
-    return reply.code(HTTP_STATUS.NO_CONTENT).send();
-  });
+      clearSessionCookie(reply);
+      return reply.code(HTTP_STATUS.NO_CONTENT).send();
+    },
+  );
 
   // ---- Logout everywhere (invalidate every active session of this user) ----
   // Бампает tokenVersion → все существующие JWT этого юзера становятся

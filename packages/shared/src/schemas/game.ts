@@ -244,10 +244,29 @@ export type LiveKitTokenResponse = z.infer<typeof liveKitTokenResponseSchema>;
 // the wrapper is validated so we never accept a wildly oversized payload.
 // `data` is `unknown` so we never accidentally unpack a credential string —
 // the value is appended verbatim to the JSONL debug log.
-export const clientDiagPayloadSchema = z.object({
-  type: z.string().min(1).max(64),
-  data: z.unknown(),
-});
+//
+// `data` is bounded to 4 KB (serialised) so a client can't flood the
+// per-game .jsonl file and fill the disk. Circular / non-serialisable
+// payloads are rejected too (JSON.stringify throws → fail validation).
+const CLIENT_DIAG_DATA_MAX_BYTES = 4096;
+export const clientDiagPayloadSchema = z
+  .object({
+    type: z.string().min(1).max(64),
+    data: z.unknown(),
+  })
+  .superRefine((val, ctx) => {
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(val.data);
+    } catch {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'data not serializable' });
+      return;
+    }
+    // JSON.stringify(undefined) === undefined — treat as empty, that's fine.
+    if (serialized !== undefined && serialized.length > CLIENT_DIAG_DATA_MAX_BYTES) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'data too large' });
+    }
+  });
 export type ClientDiagPayload = z.infer<typeof clientDiagPayloadSchema>;
 
 // Re-export referenced types for convenience.

@@ -90,6 +90,9 @@ export const socketioPlugin = fp(
   async (app) => {
     const io = new IOServer(app.server, {
       cors: { origin: env.FRONTEND_URL, credentials: true },
+      // Cap inbound packet size. This app only sends small JSON events, so
+      // 256 KB is generous and keeps a single huge frame from being buffered.
+      maxHttpBufferSize: 256 * 1024,
       // Keep the default transports (polling + websocket) — Socket.IO falls back gracefully.
     });
 
@@ -207,7 +210,12 @@ export const socketioPlugin = fp(
       socket.use((packet, dispatch) => {
         const event = packet[0];
         if (typeof event !== 'string') return dispatch();
-        const limit = RATE_LIMITS[event] ?? RATE_LIMITS.__default__ ?? 200;
+        // Own-property lookup only — a client-controlled event name like
+        // "toString"/"constructor" must not resolve to an inherited function.
+        const limit =
+          (Object.hasOwn(RATE_LIMITS, event) ? RATE_LIMITS[event] : undefined) ??
+          RATE_LIMITS.__default__ ??
+          200;
         const ownerKey = socket.data.user?.sub ?? `socket:${socket.id}`;
         const bucketKey = `${ownerKey}:${event}`;
         const allowed = consumeRateLimit(buckets, bucketKey, limit, Date.now(), RATE_WINDOW_MS);

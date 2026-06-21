@@ -69,10 +69,13 @@ export async function judgeUnnominate(
     const judgeCheck = requireJudge(loaded.data.state, ctx.userId);
     if (!judgeCheck.ok) return judgeCheck;
 
-    pushHistorySnapshot(loaded.data.state);
     const engineResult = applyJudgeUnnominate(loaded.data.state, targetSeat);
     if (!engineResult.ok) return fail(engineResult.error);
 
+    // Snapshot pushed only AFTER the fallible apply succeeds — на провале
+    // applyJudgeUnnominate (wrong phase / нет такого выставления) no-op
+    // снимок не должен попадать в revert-стек.
+    pushHistorySnapshot(loaded.data.state);
     let next = engineResult.data;
     next = await persistEvent(next, GAME_EVENT_TYPE.PLAYER_UNNOMINATED, ctx.userId, { targetSeat });
     return ok(await commit(next));

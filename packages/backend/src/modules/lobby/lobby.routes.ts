@@ -171,7 +171,10 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Params: { id: string } }>(
     '/:id/fill-bots',
     {
-      preHandler: [app.authenticate],
+      preHandler: [
+        app.authenticate,
+        app.requireRestrictionNotSet(BAN_RESTRICTION.PARTICIPATE_GAMES),
+      ],
       config: { rateLimit: LOBBY_FILL_BOTS_RATE_LIMIT },
     },
     async (request, reply) => {
@@ -224,7 +227,12 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Claim judge seat (any current member, if judge slot is empty) ----
   app.post<{ Params: { id: string } }>(
     '/:id/claim-judge',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireRestrictionNotSet(BAN_RESTRICTION.PARTICIPATE_GAMES),
+      ],
+    },
     async (request, reply) => {
       const result = await claimJudgeSeat(request.params.id, request.user.sub);
       if (!result.ok) {
@@ -263,7 +271,12 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Start game ----
   app.post<{ Params: { id: string } }>(
     '/:id/start',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireRestrictionNotSet(BAN_RESTRICTION.PARTICIPATE_GAMES),
+      ],
+    },
     async (request, reply) => {
       const result = await createGameFromLobby(request.params.id, request.user.sub);
       if (!result.ok) {
@@ -276,7 +289,12 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Pre-assign role to a member (host-only dev affordance) ----
   app.post<{ Params: { id: string } }>(
     '/:id/preassign-role',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireRestrictionNotSet(BAN_RESTRICTION.PARTICIPATE_GAMES),
+      ],
+    },
     async (request, reply) => {
       const parsed = preassignRoleInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -319,7 +337,12 @@ export const lobbyRoutes: FastifyPluginAsync = async (app) => {
   // ---- Kick member (host only) ----
   app.post<{ Params: { id: string } }>(
     '/:id/kick',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireRestrictionNotSet(BAN_RESTRICTION.PARTICIPATE_GAMES),
+      ],
+    },
     async (request, reply) => {
       const parsed = kickMemberInputSchema.safeParse(request.body);
       if (!parsed.success) {

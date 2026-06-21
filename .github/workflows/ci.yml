@@ -44,6 +44,13 @@ jobs:
       - name: Test
         run: pnpm run test
 
+      # Surface high-severity dependency advisories. Kept NON-blocking for now
+      # (`|| true`): a transient upstream advisory shouldn't wall off the deploy
+      # of unrelated changes, and we have no triage rotation yet. The log is the
+      # signal — flip this to blocking once advisories are actively tracked.
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high || true
+
       - name: Build
         run: pnpm run build
 
@@ -63,6 +70,15 @@ jobs:
             set -e
             cd ${{ secrets.DEPLOY_PATH }}
             git pull origin main
+            # ORDERING CAVEAT: the container is rebuilt+started BEFORE migrations
+            # run, so for a brief window new code runs against the OLD schema.
+            # For backward-incompatible migrations (dropped/renamed columns) this
+            # can cause transient errors until `migrate deploy` completes below.
+            # We can't safely move `migrate deploy` earlier: the Prisma CLI and
+            # migration files live INSIDE the backend image and are invoked via
+            # `exec` on the freshly built container — the old image predates the
+            # new migrations. Mitigation is to keep migrations backward-compatible
+            # (expand/contract), not to reorder these steps.
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
             docker image prune -f

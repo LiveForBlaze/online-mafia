@@ -96,8 +96,14 @@ export async function endActiveGameForLobby(
   // Боты этого матча — одноразовые, чистим из БД.
   await cleanupBotsAfterGame(game.id);
 
-  const state = getGame(game.id);
-  if (state && state.status !== 'finished') {
+  // Serialise the registry/event mutation against concurrent locked player
+  // actions (vote, advance, …). Without the lock this races a parallel write:
+  // lost update on the in-memory state and P2002 on (gameId, seq) when both
+  // append a GameEvent. Re-read inside the lock and bail if already finished.
+  await withLock(game.id, async () => {
+    const state = getGame(game.id);
+    if (!state || state.status === 'finished') return;
+
     let finished: GameState = {
       ...state,
       status: 'finished',
@@ -116,7 +122,7 @@ export async function endActiveGameForLobby(
     broadcastGameState(game.id);
     // This path commits via setGame (not commit()), so schedule cleanup here too.
     scheduleFinishedGameCleanup(game.id);
-  }
+  });
 }
 
 // Triggered when a participant presses the red "Выйти из игры" button.
