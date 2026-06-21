@@ -12,7 +12,7 @@
 //      gamesPlayed +1 и losses +1.
 
 import { Prisma } from '@prisma/client';
-import { ROLE_TO_TEAM, type Role, type Team } from '@mafia/shared';
+import { ROLE, ROLE_TO_TEAM, TEAM, type Role, type Team } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
 import { logger } from '../../lib/logger.js';
@@ -62,7 +62,25 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
     return;
   }
 
+  // winnerTeam — свободный текст в БД. Прежде чем считать по нему wins/losses,
+  // валидируем против канонических значений Team. Дрейфнувшее/руками
+  // правленное значение иначе тихо переврало бы lifetime-статистику.
+  const VALID_TEAMS = new Set<string>(Object.values(TEAM));
+  if (game.winnerTeam !== null && !VALID_TEAMS.has(game.winnerTeam)) {
+    await prisma.game.update({
+      where: { id: gameId },
+      data: { statsApplied: true },
+    });
+    logger.warn(
+      { gameId, winnerTeam: game.winnerTeam },
+      'finalizeGameStats: skipping game with unrecognized winnerTeam',
+    );
+    return;
+  }
   const winner = (game.winnerTeam ?? null) as Team | null;
+
+  // Канонический набор ролей для валидации участников ниже.
+  const VALID_ROLES = new Set<string>(Object.values(ROLE));
 
   // Аккумулируем новые ачивки из транзакции, чтобы после её коммита
   // бродкастнуть unlock-уведомление по сокетам. Внутри tx эмитить нельзя —
@@ -90,6 +108,17 @@ export async function finalizeGameStats(gameId: string): Promise<void> {
         continue;
       }
 
+      // role — тоже свободный текст в БД. Null допустим (роль не назначена —
+      // считаем как поражение, исторический happy-path). Но непустое значение,
+      // которого нет в каноне Role, означает дрейф данных: пропускаем этого
+      // участника целиком, чтобы не приписать ему случайный win/loss.
+      if (p.role !== null && !VALID_ROLES.has(p.role)) {
+        logger.warn(
+          { gameId, userId: p.userId, role: p.role },
+          'finalizeGameStats: skipping participant with unrecognized role',
+        );
+        continue;
+      }
       const role = (p.role as Role | null) ?? null;
       const team = role ? ROLE_TO_TEAM[role] : null;
       const won = winner !== null && team === winner;

@@ -149,7 +149,7 @@ export function GamePage() {
         Mobile uses 100dvh so collapsing browser chrome doesn't crop the
         layout. Desktop falls back to h-screen.
       */}
-      <main className="h-screen [height:100dvh] flex flex-col bg-bg overflow-hidden">
+      <main className="game-theme h-screen [height:100dvh] flex flex-col bg-bg overflow-hidden">
         <div className="flex-none px-3 sm:px-6 pt-2 sm:pt-3 pb-2 space-y-2">
           <PhaseHeader
             state={state}

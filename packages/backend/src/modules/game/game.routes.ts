@@ -95,7 +95,9 @@ export const gameRoutes: FastifyPluginAsync = async (app) => {
   // Issue a LiveKit access token so the client can join the WebRTC room.
   app.post<{ Params: { id: string } }>(
     '/:id/livekit-token',
-    { preHandler: [app.authenticate] },
+    {
+      preHandler: [app.authenticate, app.requireRestrictionNotSet(BAN_RESTRICTION.VIEW_GAMES)],
+    },
     async (request, reply) => {
       const result = await issueLiveKitTokenForGame(request.params.id, request.user.sub);
       if (!result.ok) {

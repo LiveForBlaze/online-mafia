@@ -20,7 +20,7 @@ export function HowItWorksSection() {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+        <p className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.18em] text-accent">
           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
           {t('howItWorks.kicker')}
         </p>
@@ -53,7 +53,7 @@ function StepCard({ step, index }: { step: Step; index: number }) {
       </span>
 
       <div className="relative space-y-2">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+        <p className="text-2xs uppercase tracking-[0.18em] text-muted">
           <span
             aria-hidden="true"
             className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent"
@@ -86,7 +86,7 @@ function LobbyPreview() {
     { id: '1236', name: 'Blitz 7m', count: '6/10', tone: 'success' as const },
   ];
   return (
-    <div className="rounded-md border border-border bg-card-deep/60 p-2 font-mono text-[11px]">
+    <div className="rounded-md border border-border bg-card-deep/60 p-2 font-mono text-2xs">
       {rows.map((r) => (
         <div
           key={r.id}
@@ -114,7 +114,7 @@ function LobbyPreview() {
 // 02 — стенка из 10 карт распределения ролей. 5×2 сетка, символы — первые
 // буквы ролей. На «открытых» картах подсвечивается бордер цветом команды:
 //   красный — Дон (Д) и Мафия (M)
-//   синий-team-black — Шериф (Ш)
+//   нейтральный тёмно-серый (team-black) — Шериф (Ш)
 //   серый — Мирные (М) [нет бордера]
 // Раскладка ролей точно такая же, как в ФИИМ-партии: 1 дон + 1 шериф + 2
 // мафии + 6 мирных.

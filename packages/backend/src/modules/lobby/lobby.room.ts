@@ -11,7 +11,12 @@ import { broadcastLobbyUpdate } from './lobby.broadcast.js';
 import { clearLobbyChat } from './lobby.chat.js';
 import { toLobbyDetails } from './lobby.mappers.js';
 import { getLobbyDetails } from './lobby.queries.js';
-import { ok, fail, type ServiceResult } from './lobby.service.internal.js';
+import {
+  ok,
+  fail,
+  isUniqueConstraintViolation,
+  type ServiceResult,
+} from './lobby.service.internal.js';
 
 // Flip the caller's "Готов" flag. Used by the lobby room toggle button —
 // host can start the game only when every member's flag is true (bots
@@ -111,10 +116,20 @@ export async function claimJudgeSeat(
   const judgeTaken = lobby.members.some((m) => m.isJudge);
   if (judgeTaken) return fail(LOBBY_ERROR.JUDGE_SLOT_TAKEN);
 
-  await prisma.lobbyMember.update({
-    where: { lobbyId_userId: { lobbyId, userId } },
-    data: { seat: null, isJudge: true },
-  });
+  // This read-check-update isn't atomic on its own — two concurrent claims
+  // can both clear the `judgeTaken` gate above. The DB-level partial unique
+  // index (LobbyMember_one_judge_per_lobby, WHERE isJudge=true) is the real
+  // guard: the losing writer trips P2002, which we map back to the same
+  // JUDGE_SLOT_TAKEN domain error rather than letting it surface as a 500.
+  try {
+    await prisma.lobbyMember.update({
+      where: { lobbyId_userId: { lobbyId, userId } },
+      data: { seat: null, isJudge: true },
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error)) return fail(LOBBY_ERROR.JUDGE_SLOT_TAKEN);
+    throw error;
+  }
 
   void broadcastLobbyUpdate(lobbyId);
   return getLobbyDetails(lobbyId, userId);

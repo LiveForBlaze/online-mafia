@@ -21,7 +21,7 @@ interface PlayerTableProps {
   infoTile: ReactNode;
   actionFor?: (
     participant: GameParticipantPublic,
-  ) => { label: string; onClick: () => void; disabled?: boolean } | null;
+  ) => { label: string; onClick: () => void; disabled?: boolean; destructive?: boolean } | null;
   judgeControlsFor?: (participant: GameParticipantPublic) => React.ReactNode | null;
 }
 
@@ -79,6 +79,10 @@ export function PlayerTable({
                   participant={participant}
                   isSelf={participant.userId === viewerUserId}
                   isSpeaker={state.currentSpeakerSeat === seat}
+                  // "Your turn" cue: the viewer is the one holding the floor.
+                  isYourTurn={
+                    participant.userId === viewerUserId && state.currentSpeakerSeat === seat
+                  }
                   isNominated={state.nominationSeats.includes(seat)}
                   isDeadButSpeaking={
                     !participant.isAlive &&

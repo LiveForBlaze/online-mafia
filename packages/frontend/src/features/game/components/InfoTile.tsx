@@ -90,6 +90,9 @@ function Header({ state }: { state: GameStateProjected }) {
           className={cn(
             'mt-2 text-3xl sm:text-4xl font-bold tabular-nums leading-none',
             expired ? 'text-danger' : warning ? 'text-warning' : 'text-fg',
+            // Escalation: pulse once the warning threshold is crossed so the
+            // jump to red/amber isn't a silent colour-only change.
+            warning && 'motion-safe:animate-pulse',
           )}
         >
           {formatCountdown(secondsLeft)}

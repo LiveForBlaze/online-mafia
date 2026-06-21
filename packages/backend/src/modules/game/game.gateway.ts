@@ -217,8 +217,7 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'not_in_game' });
         return;
       }
-      const result = await judgeAdvancePhase({ gameId, userId });
-      respondAndBroadcast(gameId, result, ack);
+      await safeRespond(gameId, judgeAdvancePhase({ gameId, userId }), ack);
     });
     socket.on(CLIENT_EVENT.JUDGE_REVERT, async (_payload, ack) => {
       if (!guardParticipation(ack)) return;
@@ -227,8 +226,7 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'no_game' });
         return;
       }
-      const result = await judgeRevert({ gameId, userId });
-      respondAndBroadcast(gameId, result, ack);
+      await safeRespond(gameId, judgeRevert({ gameId, userId }), ack);
     });
     socket.on(GAME_EVENT_NAME.ADVANCE_SPEAKER, async (_payload, ack) => {
       if (!guardParticipation(ack)) return;
@@ -237,8 +235,7 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'not_in_game' });
         return;
       }
-      const result = await judgeAdvanceSpeaker({ gameId, userId });
-      respondAndBroadcast(gameId, result, ack);
+      await safeRespond(gameId, judgeAdvanceSpeaker({ gameId, userId }), ack);
     });
     socket.on(
       CLIENT_EVENT.JUDGE_ISSUE_FOUL,
@@ -280,8 +277,7 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'not_in_game' });
         return;
       }
-      const result = await sayOutOfTurn({ gameId, userId });
-      respondAndBroadcast(gameId, result, ack);
+      await safeRespond(gameId, sayOutOfTurn({ gameId, userId }), ack);
     });
 
     // The player presses the red "Выйти из игры" button. No payload — they remove
@@ -294,8 +290,7 @@ export function registerGameGateway(app: FastifyInstance): void {
         ack?.({ ok: false, error: 'not_in_game' });
         return;
       }
-      const result = await leaveGameAsParticipant({ gameId, userId });
-      respondAndBroadcast(gameId, result, ack);
+      await safeRespond(gameId, leaveGameAsParticipant({ gameId, userId }), ack);
     });
   });
 }
@@ -338,9 +333,28 @@ function withSchema<T>(
       ack?.({ ok: false, error: 'not_in_game' });
       return;
     }
-    const result = await invoke(parsed.data);
-    respondAndBroadcast(gameId, result, ack);
+    await safeRespond(gameId, invoke(parsed.data), ack);
   };
+}
+
+/**
+ * Await a service call inside a try/catch so a thrown DB/error never becomes an
+ * unhandled rejection (which, on Node ≥22, can crash the whole process and drop
+ * all concurrent games). On error we log and reply with `internal_error` — we
+ * do NOT broadcast, since the state may be inconsistent.
+ */
+async function safeRespond(
+  gameId: string,
+  promise: Promise<ServiceResult<unknown>>,
+  ack: ((response: unknown) => void) | undefined,
+): Promise<void> {
+  try {
+    const result = await promise;
+    respondAndBroadcast(gameId, result, ack);
+  } catch (err) {
+    logger.error({ err, gameId }, 'game socket handler failed');
+    ack?.({ ok: false, error: 'internal_error' });
+  }
 }
 
 function respondAndBroadcast(

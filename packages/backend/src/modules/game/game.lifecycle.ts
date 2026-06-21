@@ -4,7 +4,9 @@
 import { LOBBY, ROLE, type Role } from '@mafia/shared';
 
 import { prisma } from '../../db/prisma.client.js';
+import { withLock } from '../../lib/mutex.js';
 import { broadcastLobbyUpdate } from '../lobby/lobby.broadcast.js';
+import { isUniqueConstraintViolation } from '../lobby/lobby.service.internal.js';
 import { assignRoles } from './game.engine.js';
 import { withFreshDeadline } from './game.engine.js';
 import { GAME_ERROR } from './game.errors.js';
@@ -16,6 +18,16 @@ import { GAME_EVENT_TYPE, ok, fail, type ServiceResult } from './game.service.in
 // ---- Lifecycle: start game from lobby ----
 
 export async function createGameFromLobby(
+  lobbyId: string,
+  requesterUserId: string,
+): Promise<ServiceResult<{ gameId: string }>> {
+  // Serialise concurrent starts on the same lobby — без лока двойное нажатие
+  // «Начать» проходит check-then-create обоими, и проигравший упирается в
+  // P2002 на Game.lobbyId (@unique), который без catch улетает сырым 500.
+  return withLock(lobbyId, () => createGameFromLobbyLocked(lobbyId, requesterUserId));
+}
+
+async function createGameFromLobbyLocked(
   lobbyId: string,
   requesterUserId: string,
 ): Promise<ServiceResult<{ gameId: string }>> {
@@ -74,37 +86,46 @@ export async function createGameFromLobby(
   const withRoles = assignRoles(initialParticipants, preassigned);
 
   // Persist Game + GameParticipants + initial event in one transaction.
-  const created = await prisma.$transaction(async (tx) => {
-    const game = await tx.game.create({
-      data: {
-        lobbyId: lobby.id,
-        rulesetSlug: lobby.rulesetSlug,
-      },
+  let created;
+  try {
+    created = await prisma.$transaction(async (tx) => {
+      const game = await tx.game.create({
+        data: {
+          lobbyId: lobby.id,
+          rulesetSlug: lobby.rulesetSlug,
+        },
+      });
+      await tx.gameParticipant.createMany({
+        data: withRoles.map((p) => ({
+          gameId: game.id,
+          userId: p.userId,
+          seat: p.seat,
+          isJudge: p.isJudge,
+          role: p.role,
+        })),
+      });
+      await tx.lobby.update({
+        where: { id: lobby.id },
+        data: { status: 'IN_GAME' },
+      });
+      await tx.gameEvent.create({
+        data: {
+          gameId: game.id,
+          seq: 0,
+          phase: INITIAL_PHASE,
+          type: GAME_EVENT_TYPE.GAME_CREATED,
+          payload: { lobbyId: lobby.id, rulesetSlug: lobby.rulesetSlug },
+        },
+      });
+      return game;
     });
-    await tx.gameParticipant.createMany({
-      data: withRoles.map((p) => ({
-        gameId: game.id,
-        userId: p.userId,
-        seat: p.seat,
-        isJudge: p.isJudge,
-        role: p.role,
-      })),
-    });
-    await tx.lobby.update({
-      where: { id: lobby.id },
-      data: { status: 'IN_GAME' },
-    });
-    await tx.gameEvent.create({
-      data: {
-        gameId: game.id,
-        seq: 0,
-        phase: INITIAL_PHASE,
-        type: GAME_EVENT_TYPE.GAME_CREATED,
-        payload: { lobbyId: lobby.id, rulesetSlug: lobby.rulesetSlug },
-      },
-    });
-    return game;
-  });
+  } catch (error) {
+    // Game.lobbyId is @unique — a concurrent start that won the race already
+    // created the game. Treat the loser's P2002 as «уже стартовало», same as
+    // the lobby.game guard above, instead of surfacing a raw 500.
+    if (isUniqueConstraintViolation(error)) return fail(GAME_ERROR.LOBBY_ALREADY_STARTED);
+    throw error;
+  }
 
   const baseState: GameState = {
     id: created.id,

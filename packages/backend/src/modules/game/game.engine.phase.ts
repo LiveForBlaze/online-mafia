@@ -288,6 +288,13 @@ export function applyAdvancePhase(state: GameState): GameState {
       participants: next.participants.map((p) => ({ ...p, hasSpokenThisDay: false })),
       currentSpeakerSeat: null,
     };
+    // ФИИМ: дисквал во время речей отменяет дневное голосование — nextPhase
+    // маршрутизирует DAY_SPEECH→NIGHT_MAFIA. Чистим выставления/голоса/тай,
+    // иначе nominationSeats утекли бы в ночь (как делают sibling-переходы
+    // DAY_VOTE_INTRO→NIGHT и дисквал в DAY_VOTE/DAY_REVOTE).
+    if (state.disqualifiedThisDay) {
+      next = { ...next, votes: new Map(), nominationSeats: [], tiedSeats: [] };
+    }
   }
 
   if (state.phase === GAME_PHASE.NIGHT_SHERIFF) {

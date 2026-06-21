@@ -5,13 +5,15 @@
 
 import { useParticipants, VideoTrack } from '@livekit/components-react';
 import { Track, type TrackPublication } from 'livekit-client';
+import { Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { FOUL_MUTE_THRESHOLD, type GameParticipantPublic } from '@mafia/shared';
+import { FOUL_MUTE_THRESHOLD, ROLE_TO_TEAM, TEAM, type GameParticipantPublic } from '@mafia/shared';
 
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { cn } from '@/lib/cn.js';
+import { DeadSkull } from '@/features/game/components/DeadSkull.js';
 import { SelfMediaButtons } from '@/features/game/components/SelfMediaButtons.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
 import { restartCameraSubscription } from '@/features/game/lib/restart-video.js';
@@ -21,12 +23,15 @@ interface SeatVideoTileProps {
   isSelf: boolean;
   isSpeaker: boolean;
   isNominated: boolean;
+  // True when this is the viewer's own seat AND it's their turn to act (they
+  // hold the floor). Drives a non-colour "ВАШ ХОД" cue on the tile.
+  isYourTurn?: boolean;
   // Мертвый, но сейчас на полу (farewell после ночного убийства / last word
   // после дневного отстрела) — отрисовываем как живого: видео, никнейм. Череп
   // появится только когда судья «Далее» сменит спикера.
   isDeadButSpeaking?: boolean;
   voteCountAgainst?: number;
-  action?: { label: string; onClick: () => void; disabled?: boolean } | null;
+  action?: { label: string; onClick: () => void; disabled?: boolean; destructive?: boolean } | null;
   judgeControls?: React.ReactNode;
 }
 
@@ -35,6 +40,7 @@ export function SeatVideoTile({
   isSelf,
   isSpeaker,
   isNominated,
+  isYourTurn = false,
   isDeadButSpeaking = false,
   voteCountAgainst,
   action,
@@ -75,6 +81,10 @@ export function SeatVideoTile({
         isSpeaker && !isDead && 'ring-2 ring-accent border-accent',
         isNominated && !isSpeaker && !isDead && 'border-warning',
         (isDead || (!isSpeaker && !isNominated)) && 'border-border',
+        // Your-turn cue: a bright primary ring + pulse (motion-safe) so the
+        // viewer can't miss that the floor is theirs. Non-colour reinforcement
+        // (the "ВАШ ХОД" badge below) carries the same signal for colourblind.
+        isYourTurn && !isDead && 'ring-2 ring-primary motion-safe:animate-pulse',
       )}
     >
       {isDead ? (
@@ -105,26 +115,75 @@ export function SeatVideoTile({
               не конкурировал с CTA-цветами на экране. Мёртвые: тёмно-серый
               (см. DeadOverlay). */}
           <div className="absolute top-1 left-2 flex items-center gap-2">
-            <span className="text-4xl font-extrabold text-fg leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+            <span className="text-4xl font-extrabold text-fg leading-none drop-shadow-lg">
               {participant.seat}
             </span>
             <div className="flex flex-col gap-1 text-xs">
               {isSelf && (
-                <span className="rounded bg-primary/85 text-primary-fg px-1.5 py-0.5">
+                <span className="rounded bg-primary text-primary-fg px-1.5 py-0.5">
                   {t('game.ui.you')}
                 </span>
               )}
+              {/* Vote count: dark text on solid amber (matches JudgeTile pattern)
+                  — white on light amber failed contrast. */}
               {voteCountAgainst !== undefined && voteCountAgainst > 0 && (
-                <span className="rounded bg-warning/80 text-white px-1.5 py-0.5">
+                <span
+                  className="rounded bg-warning text-bg px-1.5 py-0.5 font-semibold"
+                  title={t('game.ui.voteRoundTally', { count: voteCountAgainst })}
+                >
                   {voteCountAgainst}
                 </span>
               )}
             </div>
           </div>
 
+          {/* "ВАШ ХОД" cue — non-colour reinforcement of the pulsing ring. */}
+          {isYourTurn && (
+            <div className="absolute bottom-9 left-1/2 -translate-x-1/2 z-10">
+              <span className="rounded bg-primary text-primary-fg px-2 py-0.5 text-2xs font-bold uppercase tracking-wider shadow">
+                {t('game.ui.yourTurn')}
+              </span>
+            </div>
+          )}
+
+          {/* Speaker vs nominated — distinguished by glyph/badge, not just the
+              outline colour (mic for the floor-holder, NOM for nominees).
+              Placed below the self media-button row so they never overlap. */}
+          {isSpeaker && (
+            <div
+              className={cn('absolute left-1/2 -translate-x-1/2 z-10', isSelf ? 'top-9' : 'top-1')}
+            >
+              <span
+                className="inline-flex items-center justify-center rounded-full bg-accent/90 text-accent-fg p-1 shadow"
+                aria-label={t('game.ui.speaking')}
+                title={t('game.ui.speaking')}
+              >
+                <Mic size={12} strokeWidth={2.5} aria-hidden="true" />
+              </span>
+            </div>
+          )}
+          {isNominated && !isSpeaker && (
+            <div
+              className={cn('absolute left-1/2 -translate-x-1/2 z-10', isSelf ? 'top-9' : 'top-1')}
+            >
+              <span className="rounded bg-warning text-bg px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wider shadow">
+                {t('game.ui.nominatedShort')}
+              </span>
+            </div>
+          )}
+
           {participant.role && (
             <div className="absolute top-1 right-1">
-              <span className="rounded bg-black/60 text-white px-1.5 py-0.5 text-xs">
+              {/* Role badge respects team semantics (red vs black) instead of a
+                  neutral black chip, so a revealed role reads as its team. */}
+              <span
+                className={cn(
+                  'rounded px-1.5 py-0.5 text-xs font-semibold',
+                  ROLE_TO_TEAM[participant.role] === TEAM.BLACK
+                    ? 'bg-team-black/70 text-fg'
+                    : 'bg-team-red/30 text-danger-text',
+                )}
+              >
                 {t(`game.role.${participant.role}`)}
               </span>
             </div>
@@ -159,7 +218,7 @@ export function SeatVideoTile({
               speak. The badge stacks on top of the role label in the top-right. */}
           {participant.foulsCount >= FOUL_MUTE_THRESHOLD && (
             <div className="absolute top-1 right-1 mt-6">
-              <span className="rounded bg-danger text-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow">
+              <span className="rounded bg-danger text-danger-fg px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wider shadow">
                 {t('game.ui.muted')}
               </span>
             </div>
@@ -185,10 +244,11 @@ export function SeatVideoTile({
                 на профиль, но клик случайно уводил со страницы посреди
                 раунда; для перехода на профиль используйте game-over
                 review или другую вкладку. */}
-            <p className="text-sm font-medium text-white truncate">{participant.nickname}</p>
+            <p className="text-sm font-medium text-fg truncate">{participant.nickname}</p>
             {action && (
               <Button
                 size="sm"
+                variant={action.destructive ? 'danger' : 'primary'}
                 onClick={action.onClick}
                 disabled={action.disabled}
                 className="w-full h-7 text-xs"
@@ -248,7 +308,7 @@ function DeadOverlay({
 }: {
   seat: number | null;
   isSelf: boolean;
-  action?: { label: string; onClick: () => void; disabled?: boolean } | null;
+  action?: { label: string; onClick: () => void; disabled?: boolean; destructive?: boolean } | null;
 }) {
   const { t } = useTranslation();
   return (
@@ -263,13 +323,14 @@ function DeadOverlay({
           </span>
         )}
       </div>
-      <div className="absolute inset-0 flex items-center justify-center text-muted">
-        <SkullIcon />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <DeadSkull className="w-1/2 h-1/2 max-w-[64px] max-h-[64px]" />
       </div>
       {action && (
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
           <Button
             size="sm"
+            variant={action.destructive ? 'danger' : 'primary'}
             onClick={action.onClick}
             disabled={action.disabled}
             className="w-full h-7 text-xs"
@@ -279,24 +340,5 @@ function DeadOverlay({
         </div>
       )}
     </>
-  );
-}
-
-function SkullIcon() {
-  const { t } = useTranslation();
-  // Simple skull silhouette. Sized so it scales with its container; the parent flex
-  // box keeps it centred in the tile.
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="48"
-      height="48"
-      className="w-1/2 h-1/2 max-w-[64px] max-h-[64px]"
-      fill="currentColor"
-      aria-label={t('game.ui.playerLeftIcon')}
-      role="img"
-    >
-      <path d="M12 2C7.03 2 3 5.94 3 10.8c0 2.34 1.02 4.5 2.7 6.1V20a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1.5h1V20a1 1 0 0 0 1 1h.6a1 1 0 0 0 1-1v-1.5h1V20a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3.1c1.68-1.6 2.7-3.76 2.7-6.1C21 5.94 16.97 2 12 2zM8.5 12.5a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4zm7 0a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4zM10 16c0-.55.45-1 1-1h2c.55 0 1 .45 1 1s-.45 1-1 1h-2c-.55 0-1-.45-1-1z" />
-    </svg>
   );
 }

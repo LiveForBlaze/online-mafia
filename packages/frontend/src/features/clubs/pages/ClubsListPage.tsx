@@ -8,6 +8,8 @@ import { Link, useNavigate } from 'react-router';
 import { MAX_CLUBS_PER_USER, type ClubSummary } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
+import { ErrorState } from '@/components/ui/ErrorState.js';
+import { Skeleton } from '@/components/ui/Skeleton.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { useDebouncedValue } from '@/lib/useDebouncedValue.js';
 import { useClubsList } from '@/features/clubs/hooks/useClubs.js';
@@ -55,11 +57,17 @@ export function ClubsListPage() {
       />
 
       {query.isPending ? (
-        <p className="text-sm text-muted">…</p>
+        <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} height={74} className="rounded-xl" />
+          ))}
+        </div>
       ) : query.isError ? (
-        <p role="alert" className="text-sm text-danger">
-          {(query.error as Error).message}
-        </p>
+        <ErrorState
+          message={t('common.loadError')}
+          retryLabel={t('common.retry')}
+          onRetry={() => query.refetch()}
+        />
       ) : query.data.clubs.length === 0 ? (
         <p className="text-center text-muted py-10">{t('clubs.list.empty')}</p>
       ) : (

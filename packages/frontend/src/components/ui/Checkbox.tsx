@@ -22,7 +22,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
         ref={ref}
         id={inputId}
         type="checkbox"
-        className="h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent"
+        className="h-4 w-4 rounded border-border accent-accent focus:ring-2 focus:ring-accent"
         {...rest}
       />
       <label htmlFor={inputId} className="text-sm text-fg select-none">

@@ -28,7 +28,7 @@ export function HomeFeatures() {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+        <p className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.18em] text-accent">
           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
           {t('home.featuresKicker')}
         </p>

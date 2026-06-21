@@ -10,6 +10,7 @@ import type { Role } from '@mafia/shared';
 
 import { ApiError } from '@/lib/api-client.js';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
+import { Spinner } from '@/components/ui/Spinner.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { LobbyRoom } from '@/features/lobby/components/LobbyRoom.js';
 import { useLobby } from '@/features/lobby/hooks/useLobby.js';
@@ -169,9 +170,12 @@ export function LobbyRoomPage() {
 
   if (lobbyQuery.isLoading) {
     return (
-      <main className="min-h-screen p-6 flex items-center justify-center text-muted">
-        {t('common.lobby_loading')}
-      </main>
+      <div className="p-4 sm:p-6">
+        <div className="mx-auto max-w-3xl flex items-center justify-center gap-2 py-16 text-muted">
+          <Spinner size="sm" />
+          <span>{t('common.lobby_loading')}</span>
+        </div>
+      </div>
     );
   }
 

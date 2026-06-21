@@ -1,10 +1,12 @@
 // Wrapper that redirects unauthenticated users to the login page.
 // While the auth store is still hydrating (initial /me request in flight),
-// it renders nothing — preventing a flash of login screen on every refresh.
+// it shows a full-page loader instead of a blank viewport — preventing a
+// flash of empty page (or login screen) on every refresh.
 
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router';
 
+import { FullPageLoader } from '@/components/ui/FullPageLoader.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
 import { ROUTE_PATH } from './paths.js';
 
@@ -17,7 +19,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const isHydrated = useAuthStore((state) => state.isHydrated);
 
   if (!isHydrated) {
-    return null;
+    return <FullPageLoader />;
   }
 
   if (!user) {

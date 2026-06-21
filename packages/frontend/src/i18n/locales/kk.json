@@ -126,7 +126,9 @@
     "close": "Жабу",
     "apply": "Қолдану",
     "showPassword": "Құпиясөзді көрсету",
-    "hidePassword": "Құпиясөзді жасыру"
+    "hidePassword": "Құпиясөзді жасыру",
+    "loadError": "Жүктеу мүмкін болмады. Қайталап көріңіз.",
+    "retry": "Қайталау"
   },
   "languages": {
     "ru": "Русский",
@@ -264,6 +266,15 @@
       "unknown": "Бірдеңе дұрыс болмады",
       "nickname_rejected": "Бұл лақап ат модерациядан өтпеді. Басқасын таңдаңыз.",
       "avatar_locked": "Бұл аватар бұғатталған — қажетті жетістік әлі алынбаған."
+    },
+    "validation": {
+      "emailRequired": "Email енгізіңіз",
+      "emailInvalid": "Жарамды email енгізіңіз",
+      "passwordRequired": "Құпиясөз енгізіңіз",
+      "passwordTooShort": "Кемінде 8 таңба",
+      "nicknameRequired": "Лақап ат енгізіңіз",
+      "nicknameTooShort": "Кемінде 2 таңба",
+      "nicknameTooLong": "Ең көбі 24 таңба"
     }
   },
   "clubs": {
@@ -640,7 +651,10 @@
       },
       "seatLabel": "Орын {{n}}",
       "revertStep": "Қадамды қайтару",
-      "openLog": "Ойын журналы"
+      "openLog": "Ойын журналы",
+      "yourTurn": "СІЗДІҢ КЕЗЕК",
+      "speaking": "Сөйлеп тұр",
+      "nominatedShort": "ҮМІТ"
     },
     "errors": {
       "not_participant": "Сіз бұл ойында емессіз",

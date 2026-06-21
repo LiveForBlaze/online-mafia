@@ -83,7 +83,11 @@ export interface PrefilterResult {
 // Keeps both Cyrillic and Latin letters; the look-alike map covers the
 // common impostors but a stray "z" is fine — it just won't match anything.
 export function normalizeForScan(input: string): string {
-  const lower = input.toLowerCase();
+  // NFKC folds fullwidth / Greek / mathematical homoglyphs onto their plain
+  // equivalents, and stripping combining diacritical marks (U+0300–U+036F)
+  // defeats "о + ̈" style obfuscation — both happen BEFORE lowercase and the
+  // Latin look-alike map so those layers see canonical characters.
+  const lower = input.normalize('NFKC').replace(/[̀-ͯ]/g, '').toLowerCase();
   let out = '';
   for (const ch of lower) {
     const mapped = LATIN_TO_CYRILLIC[ch] ?? ch;

@@ -39,7 +39,7 @@ export function LobbyListTable({ lobbies, onAction, joiningId }: LobbyListTableP
           role="row"
           className={cn(
             showHeader ? 'hidden sm:grid' : 'hidden',
-            'items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted',
+            'items-center gap-3 px-4 py-2 text-2xs uppercase tracking-[0.18em] text-muted',
             'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
             'md:grid-cols-[3rem_minmax(0,1fr)_14rem_8rem_5rem_7rem]',
           )}
@@ -158,7 +158,7 @@ function LobbyRow({
         <div className="flex items-center gap-2">
           <h3 className="truncate text-sm sm:text-base font-semibold text-fg">{lobby.name}</h3>
           {lobby.isPrivate && (
-            <span className="shrink-0 rounded-md bg-card-deep px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted">
+            <span className="shrink-0 rounded-md bg-card-deep px-1.5 py-0.5 text-2xs uppercase tracking-wider text-muted">
               {t('lobby.card.private')}
             </span>
           )}
@@ -255,7 +255,7 @@ function HostInitial({ nickname }: { nickname: string }) {
   return (
     <span
       aria-hidden="true"
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-card-deep text-[10px] font-semibold uppercase text-muted"
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-card-deep text-2xs font-semibold uppercase text-muted"
     >
       {extractInitial(nickname)}
     </span>

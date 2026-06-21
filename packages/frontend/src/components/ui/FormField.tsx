@@ -25,7 +25,7 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(function F
     <div className={cn('w-full', className)}>
       <Label htmlFor={inputId}>{label}</Label>
       <Input id={inputId} ref={ref} aria-invalid={Boolean(error)} {...rest} />
-      {error && <p className="mt-1.5 text-sm text-danger">{error}</p>}
+      {error && <p className="mt-1.5 text-sm text-danger-text">{error}</p>}
     </div>
   );
 });

@@ -16,6 +16,7 @@ import { AchievementBadge } from '@/components/ui/AchievementBadge.js';
 import { Avatar } from '@/components/ui/Avatar.js';
 import { CountryLabel } from '@/components/ui/CountryLabel.js';
 import { Input } from '@/components/ui/Input.js';
+import { Skeleton } from '@/components/ui/Skeleton.js';
 import { cn } from '@/lib/cn.js';
 import { usersApi } from '@/features/users/api/users.api.js';
 import { userProfilePath } from '@/routes/paths.js';
@@ -97,7 +98,7 @@ export function PlayersPage() {
     <div className="p-4 sm:p-6">
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="space-y-1">
-          <h1 className="text-2xl font-semibold text-fg">{t('players.title')}</h1>
+          <h1 className="text-2xl font-bold text-fg">{t('players.title')}</h1>
           <p className="text-sm text-muted">{t('players.subtitle')}</p>
         </header>
 
@@ -118,7 +119,18 @@ export function PlayersPage() {
         </div>
 
         {query.isLoading ? (
-          <p className="text-sm text-muted py-8 text-center">{t('common.loading')}</p>
+          <div
+            className="rounded-md border border-border bg-card divide-y divide-border/40"
+            aria-hidden="true"
+          >
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                <Skeleton width={32} height={32} className="rounded-full" />
+                <Skeleton height={14} className="flex-1 max-w-[200px]" />
+                <Skeleton width={40} height={14} className="ml-auto" />
+              </div>
+            ))}
+          </div>
         ) : sorted.length === 0 ? (
           <p className="text-sm text-muted py-8 text-center">
             {debouncedSearch || countryFilter ? t('players.empty.search') : t('players.empty.none')}
@@ -218,9 +230,7 @@ function LeaderboardTable({
                           <AchievementBadge key={a.id} id={a.id} />
                         ))}
                       </p>
-                      <p className="text-[10px] font-mono text-muted truncate">
-                        #{user.publicCode}
-                      </p>
+                      <p className="text-2xs font-mono text-muted truncate">#{user.publicCode}</p>
                     </div>
                   </Link>
                 </td>
@@ -292,7 +302,7 @@ function SortableTh({
         )}
       >
         {children}
-        <span aria-hidden="true" className="text-[10px] w-3 text-right">
+        <span aria-hidden="true" className="text-2xs w-3 text-right">
           {arrow}
         </span>
       </button>

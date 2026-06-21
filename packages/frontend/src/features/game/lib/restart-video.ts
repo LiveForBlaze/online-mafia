@@ -20,18 +20,29 @@ import {
 
 const RESUBSCRIBE_GAP_MS = 200;
 
-export function restartCameraSubscription(participant: Participant | undefined): void {
+// Returns a cancel handle that clears the pending re-subscribe timer. Callers
+// that live inside a React effect should invoke it on cleanup so the deferred
+// `setSubscribed(true)` can't fire after unmount. Fire-and-forget click handlers
+// can safely ignore the return value (happy path is unchanged: a no-op cancel).
+export function restartCameraSubscription(participant: Participant | undefined): () => void {
   // Re-subscribe имеет смысл только для удалённых участников. На LocalParticipant
   // это не сработает — поток исходит от нас, а не приходит извне.
-  if (!participant || !(participant instanceof RemoteParticipant)) return;
+  if (!participant || !(participant instanceof RemoteParticipant)) return () => {};
   const pubs = participant.videoTrackPublications as Map<string, RemoteTrackPublication>;
   const cameraPub = Array.from(pubs.values()).find((p) => p.source === Track.Source.Camera);
-  if (!cameraPub) return;
+  if (!cameraPub) return () => {};
 
   cameraPub.setSubscribed(false);
   // Маленькая пауза, чтобы у SDK дошёл off-state до повторной подписки.
   // Без неё LiveKit может «съесть» одну из операций как идемпотентную.
-  window.setTimeout(() => {
+  let cancelled = false;
+  const timer = window.setTimeout(() => {
+    if (cancelled) return;
     cameraPub.setSubscribed(true);
   }, RESUBSCRIBE_GAP_MS);
+
+  return () => {
+    cancelled = true;
+    window.clearTimeout(timer);
+  };
 }

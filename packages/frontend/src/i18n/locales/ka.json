@@ -126,7 +126,9 @@
     "close": "დახურვა",
     "apply": "გამოყენება",
     "showPassword": "პაროლის ჩვენება",
-    "hidePassword": "პაროლის დამალვა"
+    "hidePassword": "პაროლის დამალვა",
+    "loadError": "ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.",
+    "retry": "ხელახლა"
   },
   "languages": {
     "ru": "Русский",
@@ -264,6 +266,15 @@
       "unknown": "რაღაც არასწორად წავიდა",
       "nickname_rejected": "მეტსახელი მოდერაციას არ გაივლის. აარჩიე სხვა.",
       "avatar_locked": "ეს ავატარი ჩაკეტილია — საჭირო მიღწევა ჯერ არ მიგიღია."
+    },
+    "validation": {
+      "emailRequired": "შეიყვანეთ ელფოსტა",
+      "emailInvalid": "შეიყვანეთ სწორი ელფოსტა",
+      "passwordRequired": "შეიყვანეთ პაროლი",
+      "passwordTooShort": "მინიმუმ 8 სიმბოლო",
+      "nicknameRequired": "შეიყვანეთ მეტსახელი",
+      "nicknameTooShort": "მინიმუმ 2 სიმბოლო",
+      "nicknameTooLong": "მაქსიმუმ 24 სიმბოლო"
     }
   },
   "clubs": {
@@ -640,7 +651,10 @@
       },
       "seatLabel": "ადგილი {{n}}",
       "revertStep": "ნაბიჯის გაუქმება",
-      "openLog": "თამაშის ჟურნალი"
+      "openLog": "თამაშის ჟურნალი",
+      "yourTurn": "თქვენი რიგი",
+      "speaking": "საუბრობს",
+      "nominatedShort": "ნომ."
     },
     "errors": {
       "not_participant": "შენ ამ თამაშში არ ხარ",

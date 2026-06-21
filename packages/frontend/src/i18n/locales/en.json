@@ -126,7 +126,9 @@
     "close": "Close",
     "apply": "Apply",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "loadError": "We couldn't load this right now. Please try again.",
+    "retry": "Retry"
   },
   "languages": {
     "ru": "Русский",
@@ -264,6 +266,15 @@
       "unknown": "Something went wrong",
       "nickname_rejected": "This nickname didn't pass moderation. Please pick another.",
       "avatar_locked": "This avatar is locked — you haven't earned the required achievement yet."
+    },
+    "validation": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Enter a valid email",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "At least 8 characters",
+      "nicknameRequired": "Nickname is required",
+      "nicknameTooShort": "At least 2 characters",
+      "nicknameTooLong": "At most 24 characters"
     }
   },
   "clubs": {
@@ -640,7 +651,10 @@
       },
       "seatLabel": "Seat {{n}}",
       "revertStep": "Revert step",
-      "openLog": "Game log"
+      "openLog": "Game log",
+      "yourTurn": "YOUR TURN",
+      "speaking": "Speaking",
+      "nominatedShort": "NOM"
     },
     "errors": {
       "not_participant": "You're not in this game",

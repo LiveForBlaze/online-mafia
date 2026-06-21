@@ -110,6 +110,7 @@ export function MobileControlPanel(props: MobileControlPanelProps) {
           className={cn(
             'text-2xl font-bold tabular-nums leading-none',
             expired ? 'text-danger' : warning ? 'text-warning' : 'text-fg',
+            warning && 'motion-safe:animate-pulse',
           )}
         >
           {formatCountdown(secondsLeft)}
@@ -120,7 +121,7 @@ export function MobileControlPanel(props: MobileControlPanelProps) {
         type="button"
         onClick={toggleFollow}
         className={cn(
-          'inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[10px] uppercase tracking-wider transition self-start',
+          'inline-flex items-center gap-2 rounded-full border px-2 py-1 text-2xs uppercase tracking-wider transition self-start',
           isFollowing
             ? 'border-accent/60 bg-accent/15 text-accent'
             : 'border-border bg-card text-muted',

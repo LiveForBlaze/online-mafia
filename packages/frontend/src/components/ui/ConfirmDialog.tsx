@@ -3,6 +3,7 @@
 // Render once at the page level with `open` derived from a piece of state that
 // holds the pending intent. Call `onConfirm` to commit, `onCancel` to dismiss.
 
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button.js';
@@ -34,21 +35,26 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   return (
     <Dialog
       open={open}
       onClose={onCancel}
       title={title}
+      // For destructive dialogs, land focus on Cancel so a stray Enter does
+      // not fire the dangerous action. The footer order (Cancel → Confirm)
+      // keeps the tab sequence safe as well.
+      initialFocusRef={destructive ? cancelRef : undefined}
       footer={
         <>
-          <Button variant="ghost" onClick={onCancel} disabled={pending}>
+          <Button ref={cancelRef} variant="ghost" onClick={onCancel} disabled={pending}>
             {resolvedCancelLabel}
           </Button>
           <Button
-            variant={destructive ? 'primary' : 'primary'}
+            variant={destructive ? 'danger' : 'primary'}
             onClick={onConfirm}
             disabled={pending}
-            className={destructive ? 'bg-danger hover:bg-danger/90' : undefined}
           >
             {confirmLabel}
           </Button>

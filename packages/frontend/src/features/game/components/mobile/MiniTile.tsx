@@ -10,6 +10,7 @@ import type { GameStateProjected } from '@mafia/shared';
 
 import { Avatar } from '@/components/ui/Avatar.js';
 import { cn } from '@/lib/cn.js';
+import { DeadSkull } from '@/features/game/components/DeadSkull.js';
 import { useShouldShowMedia } from '@/features/game/hooks/useShouldShowMedia.js';
 
 interface MiniTileProps {
@@ -81,33 +82,33 @@ export function MiniTile({
           подложку чтобы текст читался на любом видео. */}
       {!isDead && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5">
-          <p className="truncate text-[10px] font-semibold text-white leading-none">
+          <p className="truncate text-2xs font-semibold text-fg leading-none">
             {participant.nickname}
           </p>
         </div>
       )}
       {isDead && (
-        <div className="absolute inset-0 flex items-center justify-center text-2xl text-muted">
-          💀
+        <div className="absolute inset-0 flex items-center justify-center">
+          <DeadSkull className="w-1/2 h-1/2 max-w-[40px] max-h-[40px]" />
         </div>
       )}
-      <span className="absolute top-0.5 left-1 text-sm font-extrabold text-fg leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+      <span className="absolute top-0.5 left-1 text-sm font-extrabold text-fg leading-none drop-shadow-md">
         {participant.seat ?? '—'}
       </span>
       {voteCountAgainst > 0 && (
-        <span className="absolute top-0.5 right-1 rounded bg-warning/85 text-white text-[10px] font-semibold leading-none px-1 py-0.5">
+        <span className="absolute top-0.5 right-1 rounded bg-warning text-bg text-2xs font-bold leading-none px-1 py-0.5">
           {voteCountAgainst}
         </span>
       )}
       {participant.foulsCount > 0 && (
         <span
           className={cn(
-            'absolute bottom-0.5 left-1 rounded-full leading-none text-white text-[10px] font-bold px-1',
+            'absolute bottom-0.5 left-1 rounded-full leading-none text-2xs font-bold px-1',
             participant.foulsCount >= FOUL_REMOVE_THRESHOLD
-              ? 'bg-danger'
+              ? 'bg-danger text-danger-fg'
               : participant.foulsCount >= FOUL_MUTE_THRESHOLD
-                ? 'bg-danger/80'
-                : 'bg-warning/85',
+                ? 'bg-danger/80 text-danger-fg'
+                : 'bg-warning text-bg',
           )}
         >
           {participant.foulsCount}
