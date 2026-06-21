@@ -36,7 +36,7 @@ export function AboutPage() {
         </Section>
 
         <Section title={t('about.practice.title')}>
-          <ul className="list-disc pl-5 space-y-1.5 text-muted">
+          <ul className="list-disc pl-5 space-y-1.5 text-fg">
             {Array.isArray(practiceItems) &&
               practiceItems.map((item, idx) => <li key={idx}>{item}</li>)}
           </ul>
@@ -54,7 +54,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <section className="space-y-3">
       <h2 className="text-lg sm:text-xl font-semibold text-fg">{title}</h2>
-      <div className="space-y-3 text-base text-muted leading-relaxed">{children}</div>
+      <div className="space-y-3 text-base text-fg leading-relaxed">{children}</div>
     </section>
   );
 }

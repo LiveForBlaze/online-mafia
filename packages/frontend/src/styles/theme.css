@@ -8,6 +8,18 @@
  */
 
 @theme {
+  /* Type scale. Tailwind v4 ships xs/sm/base/lg/xl/2xl by default; we add one
+     smaller sanctioned step (2xs = 11px) for dense metadata/badges. Components
+     must use `text-2xs` and never a raw size. */
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-2xs--line-height: 1.4;
+
+  /* Font stack. Deliberate system-font stack — NO web font is loaded on
+     purpose (perf: zero font-download, no FOUT/CLS, instant first paint).
+     Generates the `font-sans` utility and is also set on `body` in globals. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+
   /* Brand — насыщенный вишнёвый (~#ff2e3e). Используется только в
      БРЕНДОВЫХ местах: лого/hero, бейдж команды красных, иконка «ВЫ» в
      своём seat-тайле. НЕ для CTA-кнопок — иначе всё на экране кричит. */
@@ -45,7 +57,20 @@
   /* Status */
   --color-success: oklch(0.7 0.17 145);
   --color-warning: oklch(0.78 0.16 75);
-  --color-danger: oklch(0.6 0.22 28);
+
+  /* Danger — split into two tokens with opposite contrast needs.
+     `--color-danger` is the SURFACE (destructive button bg, error banner bg):
+     darkened from the old 0.6 → 0.5 so near-white `--color-danger-fg` text
+     on it reaches 6.03:1 (≥4.5). The darkening also pulls danger away from the
+     cherry `--color-primary`/`--color-accent` (L≈0.62), fixing the old
+     "primary looks like danger" collision. */
+  --color-danger: oklch(0.5 0.22 28);
+  --color-danger-fg: oklch(0.98 0 0); /* on-danger text → 6.03:1 */
+  /* `--color-danger-text` is the lighter red used for destructive/error TEXT
+     sitting directly on dark surfaces (`bg`/`card`), where a dark surface-red
+     would be invisible. On card → 5.92:1, on bg → 6.44:1. Generates
+     `text-danger-text`. */
+  --color-danger-text: oklch(0.68 0.18 28);
 
   /* Radii */
   --radius-sm: 4px;

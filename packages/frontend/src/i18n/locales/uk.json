@@ -126,7 +126,9 @@
     "close": "Закрити",
     "apply": "Застосувати",
     "showPassword": "Показати пароль",
-    "hidePassword": "Сховати пароль"
+    "hidePassword": "Сховати пароль",
+    "loadError": "Не вдалося завантажити. Спробуйте ще раз.",
+    "retry": "Повторити"
   },
   "languages": {
     "ru": "Русский",
@@ -268,6 +270,15 @@
       "unknown": "Щось пішло не так",
       "nickname_rejected": "Цей нікнейм не пройшов модерацію. Оберіть інший.",
       "avatar_locked": "Цей аватар заблокований — потрібне досягнення ще не отримано."
+    },
+    "validation": {
+      "emailRequired": "Вкажіть email",
+      "emailInvalid": "Введіть коректний email",
+      "passwordRequired": "Вкажіть пароль",
+      "passwordTooShort": "Мінімум 8 символів",
+      "nicknameRequired": "Вкажіть нік",
+      "nicknameTooShort": "Мінімум 2 символи",
+      "nicknameTooLong": "Максимум 24 символи"
     }
   },
   "clubs": {
@@ -651,7 +662,10 @@
       },
       "seatLabel": "Місце {{n}}",
       "revertStep": "Скасувати крок",
-      "openLog": "Журнал партії"
+      "openLog": "Журнал партії",
+      "yourTurn": "ВАШ ХІД",
+      "speaking": "Говорить",
+      "nominatedShort": "ВИСТ"
     },
     "errors": {
       "not_participant": "Вас немає в цій грі",

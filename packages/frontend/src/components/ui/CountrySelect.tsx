@@ -5,6 +5,7 @@
 // не ломают записи в БД — переименуем «Türkiye» → «Турция» в одной
 // константе и все профили обновятся в UI без миграции.
 
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -85,7 +86,7 @@ export function CountrySelect({ value, onChange, disabled, placeholder }: Countr
             <span className="text-muted">{placeholder ?? t('profile.country_placeholder')}</span>
           )}
         </span>
-        <span className="text-muted text-xs">▾</span>
+        <ChevronDown size={16} aria-hidden="true" className="text-muted shrink-0" />
       </button>
 
       {open && (

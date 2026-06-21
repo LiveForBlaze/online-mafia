@@ -274,7 +274,7 @@ function LobbyHeaderCard({ lobby }: { lobby: LobbyDetails }) {
     <header className="rounded-md border border-border bg-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-fg break-words">{lobby.name}</h1>
+          <h1 className="text-2xl font-bold text-fg break-words">{lobby.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <Chip tone={lobby.isPrivate ? 'warning' : 'success'}>
               {lobby.isPrivate ? t('lobby.card.private') : t('lobby.card.public')}

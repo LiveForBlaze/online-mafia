@@ -113,7 +113,7 @@ export function RoleCardPickerDialog({
               className={cn(
                 'flex aspect-[3/4] items-center justify-center rounded-lg border bg-gradient-to-br from-card to-card-deep text-5xl font-bold transition',
                 clickable
-                  ? 'border-accent text-accent cursor-pointer hover:scale-105 hover:shadow-lg'
+                  ? 'border-accent text-accent cursor-pointer motion-safe:hover:scale-105 hover:shadow-lg'
                   : 'border-border text-muted/40 cursor-not-allowed',
               )}
             >

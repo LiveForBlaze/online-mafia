@@ -15,6 +15,10 @@ export interface SeatAction {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  // True for genuinely destructive actions (kill shot). The seat tile renders
+  // these RED even though the in-game primary is green. Routine actions
+  // (nominate, don/sheriff check) stay primary/green.
+  destructive?: boolean;
 }
 
 export interface ActionForSeatArgs {
@@ -83,6 +87,7 @@ export function actionForSeatInCurrentPhase(args: ActionForSeatArgs): SeatAction
       if (state.myMafiaVote !== null) return null;
       return {
         label: t('game.ui.shootButton'),
+        destructive: true,
         onClick: () => emitGameAction(CLIENT_EVENT.MAFIA_TARGET, { targetSeat: participantSeat }),
       };
 

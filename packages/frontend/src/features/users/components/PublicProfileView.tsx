@@ -68,7 +68,7 @@ export function PublicProfileView({ code }: { code: string }) {
           <div className="flex items-center gap-4">
             <Avatar avatarUrl={profile.avatarUrl} nickname={profile.nickname} size={64} />
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-bold text-fg">{profile.nickname}</h1>
+              <h1 className="truncate text-2xl font-bold text-fg">{profile.nickname}</h1>
               <p className="mt-1 inline-flex items-center rounded-md bg-card-deep px-2 py-0.5 font-mono text-xs text-muted">
                 {profile.publicCode}
               </p>
@@ -185,11 +185,14 @@ function Stat({ label, value, small }: { label: string; value: number | string; 
   return (
     <div>
       <p
-        className={cn('font-semibold', small ? 'text-sm text-fg' : 'text-xl text-fg leading-none')}
+        className={cn(
+          'font-semibold tabular-nums',
+          small ? 'text-sm text-fg' : 'text-xl text-fg leading-none',
+        )}
       >
         {value}
       </p>
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <p className="text-2xs uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }

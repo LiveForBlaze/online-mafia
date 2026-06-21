@@ -2,13 +2,12 @@
 //
 // Accessibility:
 //   - role="dialog" + aria-modal + aria-labelledby pointing at the heading
-//   - Focus moves into the dialog on open and returns to the previously focused
-//     element on close
-//   - Rest of the page is marked inert so keyboard tabbing is trapped inside
-//     (React 19 lets us set `inert` on the body; falls back gracefully on
-//     browsers without inert support)
+//   - Focus moves into the dialog on open (or onto `initialFocusRef` if given)
+//     and returns to the previously focused element on close
+//   - Tab / Shift+Tab are trapped: focus wraps between the first and last
+//     focusable element inside the panel, so keyboard users cannot tab out
 
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 
 import { cn } from '@/lib/cn.js';
 
@@ -19,9 +18,22 @@ interface DialogProps {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  // Element to focus when the dialog opens. Defaults to the first focusable.
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-export function Dialog({ open, onClose, title, children, footer, className }: DialogProps) {
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  className,
+  initialFocusRef,
+}: DialogProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -33,26 +45,54 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
     previouslyFocused.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    // Move focus into the dialog. We pick the first focusable element if any;
-    // otherwise focus the panel itself so screen readers announce it.
+    // Move focus into the dialog: the caller-requested element, else the first
+    // focusable, else the panel itself so screen readers announce it.
     const panel = dialogRef.current;
     if (panel) {
-      const focusable = panel.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      (focusable ?? panel).focus();
+      const target =
+        initialFocusRef?.current ?? panel.querySelector<HTMLElement>(FOCUSABLE) ?? panel;
+      target.focus();
     }
 
     function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !panel) return;
+
+      // Focus trap: keep Tab / Shift+Tab inside the panel by wrapping at the ends.
+      const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement,
+      );
+      if (focusables.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+      const active = document.activeElement;
+
+      if (event.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
     }
+
     window.addEventListener('keydown', handleKey);
     return () => {
       window.removeEventListener('keydown', handleKey);
       // Restore focus to where it was before the dialog opened.
       previouslyFocused.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open, onClose, initialFocusRef]);
 
   if (!open) return null;
 

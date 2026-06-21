@@ -2,6 +2,7 @@
 // the input. Behaves like a regular FormField otherwise (same label + error
 // shape) so it can drop in wherever a password field was used.
 
+import { Eye, EyeOff } from 'lucide-react';
 import { forwardRef, useId, useState, type InputHTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -33,9 +34,12 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
             type={visible ? 'text' : 'password'}
             aria-invalid={Boolean(error)}
             disabled={disabled}
-            className="pr-10"
+            className="pr-11"
             {...rest}
           />
+          {/* ≥44px hit area (h-11 w-11) for touch a11y; the small icon keeps
+              the visual footprint tight and the absolute position means the
+              enlarged target never shifts surrounding layout. */}
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
@@ -44,49 +48,21 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
             aria-label={toggleLabel}
             title={toggleLabel}
             className={cn(
-              'absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-7 w-7',
-              'items-center justify-center rounded-md text-muted hover:text-fg hover:bg-bg transition',
+              'absolute right-0 top-1/2 -translate-y-1/2 inline-flex h-11 w-11',
+              'items-center justify-center rounded-md text-muted hover:text-fg transition-colors',
               'focus:outline-none focus:ring-2 focus:ring-accent',
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {visible ? <EyeOffIcon /> : <EyeIcon />}
+            {visible ? (
+              <EyeOff size={16} aria-hidden="true" />
+            ) : (
+              <Eye size={16} aria-hidden="true" />
+            )}
           </button>
         </div>
-        {error && <p className="mt-1.5 text-sm text-danger">{error}</p>}
+        {error && <p className="mt-1.5 text-sm text-danger-text">{error}</p>}
       </div>
     );
   },
 );
-
-const svgProps = {
-  width: 16,
-  height: 16,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  'aria-hidden': true as const,
-};
-
-function EyeIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M17.94 17.94A10.5 10.5 0 0 1 12 19c-6.5 0-10-7-10-7a18.6 18.6 0 0 1 4.16-4.96" />
-      <path d="M9.9 4.24A9.3 9.3 0 0 1 12 4c6.5 0 10 7 10 7a18.7 18.7 0 0 1-2.16 3.19" />
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <line x1="2" y1="2" x2="22" y2="22" />
-    </svg>
-  );
-}

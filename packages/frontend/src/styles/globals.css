@@ -17,6 +17,52 @@ body,
   height: 100%;
 }
 
+/* Base typography. The system font stack (theme.css `--font-sans`) is applied
+ * globally here; 16px base + 1.6 line-height for comfortable reading. */
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* In-game theme. Inside the game room the colour SEMANTICS flip: green = safe /
+ * primary action, red = danger. We locally override `--color-primary` (cherry
+ * red globally) to green here. GamePage applies `className="game-theme"` on its
+ * root so all `bg-primary` / `text-primary-fg` CTAs inside the room turn green.
+ * primary-fg (near-white) on this green → 5.16:1 (≥4.5). */
+.game-theme {
+  --color-primary: oklch(0.5 0.16 150);
+  --color-primary-fg: oklch(0.98 0 0);
+}
+
+/* a11y: global :focus-visible fallback ring for bare interactive elements that
+ * don't ship their own focus style. Mirrors Button's intent
+ * (ring-2 ring-accent ring-offset-2 ring-offset-bg). Components that style
+ * their own focus (e.g. Button) paint over this with higher specificity, so
+ * there's no double-ring. Keyboard-only (:focus-visible), never on mouse. */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px var(--color-accent);
+}
+
+/* a11y: respect reduced-motion. Near-zero all animations/transitions and
+ * disable smooth scroll for users who opt out of motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Глобальное правило: кликабельные элементы (кнопки и ссылки) показывают
  * pointer-курсор. Tailwind v4 / preflight оставляет button/a без явного
  * cursor:pointer на всех браузерах кроме того, что обрабатывает <a href>;

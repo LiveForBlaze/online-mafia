@@ -5,7 +5,7 @@
 // without a manual refetch.
 
 import { useCallback } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import type {
@@ -19,6 +19,7 @@ import type {
 import { ApiError } from '@/lib/api-client.js';
 import { authApi } from '@/features/auth/api/auth.api.js';
 import { useAuthStore } from '@/features/auth/store/auth.store.js';
+import { disconnectGameSocket } from '@/features/game/socket/game.socket.js';
 
 const AUTH_ERROR_KEYS = new Set([
   'invalid_credentials',
@@ -73,10 +74,18 @@ export function useUpdateProfile() {
 
 export function useLogout() {
   const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => authApi.logout(),
-    onSettled: () => setUser(null),
+    // Tear down the previous session's identity-bound resources: clear the user,
+    // drop the old socket, and wipe the query cache so the next user on this same
+    // tab can't read the previous user's cached private data.
+    onSettled: () => {
+      setUser(null);
+      disconnectGameSocket();
+      queryClient.clear();
+    },
   });
 }
 
@@ -85,10 +94,15 @@ export function useLogout() {
 // handle the navigation away from authenticated pages on success.
 export function useDeleteAccount() {
   const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (input: DeleteAccountInput) => authApi.deleteAccount(input),
-    onSuccess: () => setUser(null),
+    onSuccess: () => {
+      setUser(null);
+      disconnectGameSocket();
+      queryClient.clear();
+    },
   });
 }
 

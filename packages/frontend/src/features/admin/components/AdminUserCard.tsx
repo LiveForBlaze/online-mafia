@@ -137,21 +137,21 @@ export function UserCard({ user, onChanged }: { user: AdminUserSummary; onChange
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-fg truncate">{user.nickname}</span>
             {user.isAdmin && (
-              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
+              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-2xs font-bold uppercase text-accent">
                 admin
               </span>
             )}
             {user.isBot && (
-              <span className="rounded bg-muted/20 px-1.5 py-0.5 text-[10px] uppercase text-muted">
+              <span className="rounded bg-muted/20 px-1.5 py-0.5 text-2xs uppercase text-muted">
                 bot
               </span>
             )}
             {hasSiteBan ? (
-              <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-danger">
+              <span className="rounded bg-danger/20 px-1.5 py-0.5 text-2xs font-bold uppercase text-danger">
                 {t('admin.users.statusBlocked')}
               </span>
             ) : hasBan ? (
-              <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-warning">
+              <span className="rounded bg-warning/20 px-1.5 py-0.5 text-2xs font-bold uppercase text-warning">
                 {t('admin.users.statusRestricted', { count: user.banRestrictions.length })}
               </span>
             ) : null}

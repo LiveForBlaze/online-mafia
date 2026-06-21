@@ -220,13 +220,13 @@ export function OwnProfileEditor() {
               </span>
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 flex h-5 items-center justify-center bg-black/65 text-[10px] uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100"
+                className="pointer-events-none absolute inset-x-0 bottom-0 flex h-5 items-center justify-center bg-black/65 text-2xs uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100"
               >
                 {t('avatar.changeShort')}
               </span>
             </button>
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold text-fg">{user.nickname}</h1>
+              <h1 className="truncate text-2xl font-bold text-fg">{user.nickname}</h1>
               {user.realName && (
                 <p className="mt-0.5 truncate text-sm text-muted">{user.realName}</p>
               )}

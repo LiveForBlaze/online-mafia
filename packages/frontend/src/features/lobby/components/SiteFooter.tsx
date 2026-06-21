@@ -110,7 +110,7 @@ interface FooterItem {
 function FooterColumn({ title, items }: { title: string; items: FooterItem[] }) {
   return (
     <div className="space-y-3">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-muted">{title}</p>
+      <p className="text-2xs uppercase tracking-[0.18em] text-muted">{title}</p>
       <ul className="space-y-2">
         {items.map((item) => (
           <li key={item.label}>

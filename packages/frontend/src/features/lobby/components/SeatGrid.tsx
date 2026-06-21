@@ -187,7 +187,7 @@ function SeatCard({
           title={t('lobby.room.preassignTitle')}
           className={cn(
             'mt-1 w-full rounded-sm border border-border bg-card-deep px-1 py-0.5',
-            'text-[10px] text-muted focus:outline-none focus:ring-1 focus:ring-accent',
+            'text-2xs text-muted focus:outline-none focus:ring-1 focus:ring-accent',
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >

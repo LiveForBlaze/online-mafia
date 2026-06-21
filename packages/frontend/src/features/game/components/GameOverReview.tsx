@@ -5,11 +5,13 @@
 // projection at that point, so we can finally show the full table and the
 // Лучший Ход submissions with correctness shading.
 
+import { Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { ROLE, ROLE_TO_TEAM, TEAM, type GameStateProjected } from '@mafia/shared';
 
 import { cn } from '@/lib/cn.js';
+import { teamBadgeTone } from '@/features/game/lib/teamColors.js';
 
 export function GameOverReview({ state }: { state: GameStateProjected }) {
   const { t } = useTranslation();
@@ -52,8 +54,8 @@ export function GameOverReview({ state }: { state: GameStateProjected }) {
                 <span className="text-fg truncate flex-1">{p.nickname}</span>
                 <span
                   className={cn(
-                    'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-                    isBlack ? 'bg-team-black/40 text-fg' : 'bg-team-red/20 text-team-red',
+                    'shrink-0 rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
+                    teamBadgeTone(!!isBlack),
                   )}
                 >
                   {p.role ? t(`game.role.${p.role}`) : '—'}
@@ -88,19 +90,30 @@ export function GameOverReview({ state }: { state: GameStateProjected }) {
                   )}
                   <span className="text-fg shrink-0">{guesser?.nickname ?? '—'}:</span>
                   <span className="inline-flex gap-1">
-                    {guess.guessedSeats.map((seat) => (
-                      <span
-                        key={seat}
-                        className={cn(
-                          'inline-flex items-center justify-center w-6 h-6 rounded text-xs font-semibold',
-                          blackSeats.has(seat)
-                            ? 'bg-success/30 text-success'
-                            : 'bg-danger/30 text-danger',
-                        )}
-                      >
-                        {seat}
-                      </span>
-                    ))}
+                    {guess.guessedSeats.map((seat) => {
+                      const hit = blackSeats.has(seat);
+                      return (
+                        <span
+                          key={seat}
+                          className={cn(
+                            // Redundant glyph (✓ hit / ✗ miss) so the result is
+                            // readable without relying on green-vs-red alone.
+                            'relative inline-flex items-center justify-center w-6 h-6 rounded text-xs font-semibold',
+                            hit ? 'bg-success/30 text-success' : 'bg-danger/30 text-danger-text',
+                          )}
+                          aria-label={`№${seat}`}
+                        >
+                          {seat}
+                          <span className="absolute -top-1 -right-1 rounded-full bg-bg p-px">
+                            {hit ? (
+                              <Check size={10} strokeWidth={3} aria-hidden="true" />
+                            ) : (
+                              <X size={10} strokeWidth={3} aria-hidden="true" />
+                            )}
+                          </span>
+                        </span>
+                      );
+                    })}
                   </span>
                   <span
                     className={cn(

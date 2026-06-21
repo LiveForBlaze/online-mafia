@@ -53,23 +53,27 @@ export function useGameConnection(gameId: string | undefined): void {
       setState(payload);
       const viewerId = useAuthStore.getState().user?.id;
       const viewer = viewerId ? payload.participants.find((p) => p.userId === viewerId) : undefined;
-      console.info('[diag][ws.game.delta]', {
-        gameId: payload.id,
-        phase: payload.phase,
-        dayNumber: payload.dayNumber,
-        status: payload.status,
-        currentSpeakerSeat: payload.currentSpeakerSeat,
-        farewellSeat: payload.farewellSeat,
-        lastWordSeat: payload.lastWordSeat,
-        viewer: viewer
-          ? {
-              seat: viewer.seat,
-              isJudge: viewer.isJudge,
-              isAlive: viewer.isAlive,
-              role: viewer.role,
-            }
-          : null,
-      });
+      // Gated behind DEV: the `viewer.role` field is the viewer's secret role and
+      // must never reach a production console.
+      if (import.meta.env.DEV) {
+        console.info('[diag][ws.game.delta]', {
+          gameId: payload.id,
+          phase: payload.phase,
+          dayNumber: payload.dayNumber,
+          status: payload.status,
+          currentSpeakerSeat: payload.currentSpeakerSeat,
+          farewellSeat: payload.farewellSeat,
+          lastWordSeat: payload.lastWordSeat,
+          viewer: viewer
+            ? {
+                seat: viewer.seat,
+                isJudge: viewer.isJudge,
+                isAlive: viewer.isAlive,
+                role: viewer.role,
+              }
+            : null,
+        });
+      }
       pushDiag('game.delta', {
         gameId: payload.id,
         phase: payload.phase,

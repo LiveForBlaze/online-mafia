@@ -27,7 +27,7 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
 
   return (
     <div className="rounded-md border border-border bg-card-deep px-3 py-2 flex items-center gap-3">
-      <span className="text-[10px] uppercase tracking-wider text-muted shrink-0" aria-hidden="true">
+      <span className="text-2xs uppercase tracking-wider text-muted shrink-0" aria-hidden="true">
         {t('lobby.room.judgeUpper')}
       </span>
       {judge ? (
@@ -51,7 +51,7 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
           {judge.isReady && (
             <span
               className={cn(
-                'shrink-0 rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-success',
+                'shrink-0 rounded-full bg-success/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider text-success',
               )}
               aria-label={t('lobby.room.readyLabel')}
             >

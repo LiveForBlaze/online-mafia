@@ -69,11 +69,11 @@ function BigParticipantView({
           <Avatar avatarUrl={participant.avatarUrl} nickname={participant.nickname} size={128} />
         </div>
       )}
-      <span className="absolute top-2 left-3 text-3xl font-extrabold text-fg leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+      <span className="absolute top-2 left-3 text-3xl font-extrabold text-fg leading-none drop-shadow-lg">
         {participant.seat}
       </span>
       {isPinned && (
-        <span className="absolute top-2 right-2 rounded-full bg-warning/85 text-fg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+        <span className="absolute top-2 right-2 rounded-full bg-warning text-bg px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider">
           {t('game.ui.mobile.pinned')}
         </span>
       )}

@@ -70,7 +70,7 @@ export function BestMoveForm({ state, viewerSeat, size = 'desktop' }: BestMoveFo
       : 'mt-3 space-y-2 rounded-md border border-warning/40 bg-warning/5 p-2';
   const titleClass =
     size === 'mobile'
-      ? 'text-[10px] uppercase tracking-wider text-warning font-semibold'
+      ? 'text-2xs uppercase tracking-wider text-warning font-semibold'
       : 'text-xs uppercase tracking-wider text-warning font-semibold';
 
   return (

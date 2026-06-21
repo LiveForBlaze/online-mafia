@@ -106,7 +106,7 @@ export function LobbiesTab() {
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-card-deep text-[10px] uppercase tracking-[0.18em] text-muted">
+          <thead className="bg-card-deep text-2xs uppercase tracking-[0.18em] text-muted">
             <tr>
               <th className="px-3 py-2 text-left">{t('admin.lobbies.col.name')}</th>
               <th className="px-3 py-2 text-left">{t('admin.lobbies.col.host')}</th>

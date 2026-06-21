@@ -7,6 +7,8 @@ import { Check, ChevronLeft, Trash2, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar.js';
 import { Button } from '@/components/ui/Button.js';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.js';
+import { ErrorState } from '@/components/ui/ErrorState.js';
+import { Skeleton } from '@/components/ui/Skeleton.js';
 import { toast } from '@/components/ui/Toaster.js';
 import { ApiError } from '@/lib/api-client.js';
 import {
@@ -46,15 +48,27 @@ export function ClubDetailPage() {
   const transfer = useTransferLeadership(code ?? '');
 
   if (!code) return <Navigate to={ROUTE_PATH.CLUBS} replace />;
-  if (query.isPending) return null;
+  if (query.isPending) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 space-y-6" aria-hidden="true">
+        <Skeleton height={32} width={120} className="rounded-md" />
+        <Skeleton height={120} className="rounded-xl" />
+        <Skeleton height={180} className="rounded-xl" />
+      </div>
+    );
+  }
   if (query.isError) {
     if (query.error instanceof ApiError && query.error.status === 404) {
       return <Navigate to={ROUTE_PATH.CLUBS} replace />;
     }
     return (
-      <p role="alert" className="p-6 text-danger">
-        {(query.error as Error).message}
-      </p>
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+        <ErrorState
+          message={t('common.loadError')}
+          retryLabel={t('common.retry')}
+          onRetry={() => query.refetch()}
+        />
+      </div>
     );
   }
 
@@ -243,7 +257,7 @@ export function ClubDetailPage() {
                 {m.nickname}
               </a>
               {m.isHead && (
-                <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase text-accent">
+                <span className="rounded bg-accent/20 px-2 py-0.5 text-2xs font-bold uppercase text-accent">
                   {t('clubs.detail.headBadge')}
                 </span>
               )}
@@ -303,14 +317,14 @@ export function ClubDetailPage() {
       {/* Viewer action zone */}
       <section className="space-y-2">
         {club.viewerStatus === 'none' && (
-          <Button onClick={handleSubmitJoin} disabled={join.isPending}>
+          <Button onClick={handleSubmitJoin} loading={join.isPending}>
             {join.isPending ? t('clubs.actions.joining') : t('clubs.actions.submitRequest')}
           </Button>
         )}
         {club.viewerStatus === 'pending' && (
           <div className="space-y-1">
             <p className="text-sm text-muted">{t('clubs.actions.requestPending')}</p>
-            <Button variant="secondary" onClick={handleCancelRequest} disabled={cancel.isPending}>
+            <Button variant="secondary" onClick={handleCancelRequest} loading={cancel.isPending}>
               {cancel.isPending ? t('clubs.actions.cancelling') : t('clubs.actions.cancelRequest')}
             </Button>
           </div>

@@ -38,7 +38,7 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
             фиксирует ширину цифр (MIT / LiveKit имеют буквы и могут плыть
             от прокси/моно вкраплений — `tnum` гасит дрейф). */}
         <div
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-muted tabular-nums"
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs uppercase tracking-[0.18em] text-muted tabular-nums"
           style={{ fontFeatureSettings: '"tnum", "ss01"' }}
         >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 font-semibold text-warning">
@@ -122,7 +122,7 @@ function Stat({ value, label }: { value: number | undefined; label: string }) {
       >
         {displayValue}
       </dd>
-      <span className="text-[11px] sm:text-xs uppercase tracking-wider text-muted font-mono">
+      <span className="text-2xs sm:text-xs uppercase tracking-wider text-muted font-mono">
         {label}
       </span>
     </div>

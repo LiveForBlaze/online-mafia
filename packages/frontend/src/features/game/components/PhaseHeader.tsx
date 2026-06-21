@@ -102,7 +102,9 @@ function Badge({
     <span
       className={cn(
         'inline-flex items-center rounded px-2 py-1 text-xs font-medium',
-        tone === 'red' && 'bg-team-red/20 text-team-red',
+        // Red team: lighter red TEXT token (≈5.9:1) instead of the dimmer
+        // `text-team-red` (4.47:1) so it clears WCAG AA while staying red.
+        tone === 'red' && 'bg-team-red/20 text-danger-text',
         tone === 'black' && 'bg-team-black/30 text-fg',
         tone === 'neutral' && 'bg-muted/20 text-fg',
       )}
@@ -127,7 +129,7 @@ function JudgeListenToggle() {
       onClick={() => setOverhear(!overhear)}
       title={t(overhear ? 'game.ui.judgeListenAllHint' : 'game.ui.judgeListenProcessHint')}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] uppercase tracking-wider transition cursor-pointer',
+        'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-2xs uppercase tracking-wider transition cursor-pointer',
         overhear
           ? 'border-warning/60 bg-warning/15 text-warning hover:bg-warning/25'
           : 'border-border bg-card text-muted hover:text-fg hover:bg-bg',

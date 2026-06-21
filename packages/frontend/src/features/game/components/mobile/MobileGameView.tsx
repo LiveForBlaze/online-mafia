@@ -32,7 +32,7 @@ export function MobileGameView(props: MobileGameViewProps) {
     <>
       <div
         className={[
-          'flex-1 min-h-0 grid gap-1 p-1',
+          'game-theme flex-1 min-h-0 grid gap-1 p-1',
           // Portrait: rows = BIG (40%) | grid (40%) | panel (20%)
           'portrait:grid-rows-[2fr_2fr_1fr] portrait:grid-cols-1',
           // Landscape: columns = BIG (50%) | grid (30%) | panel (20%)

@@ -111,9 +111,10 @@ export function MiniTileActions({
     ) {
       actions.push({
         key: 'shoot',
+        // Killing is destructive → red, even though the room's primary is green.
         label: t('game.ui.shootButton'),
         disabled: state.myMafiaVote !== null,
-        variant: 'primary',
+        variant: 'danger',
         onClick: () => emitGameAction(CLIENT_EVENT.MAFIA_TARGET, { targetSeat: seat }),
       });
     }

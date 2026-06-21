@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { clubsApi } from '@/features/clubs/api/clubs.api.js';
+import { authApi } from '@/features/auth/api/auth.api.js';
+import { useAuthStore } from '@/features/auth/store/auth.store.js';
 
 export const CLUB_QUERY_KEY = {
   list: (search: string) => ['clubs', 'list', search] as const,
@@ -24,14 +26,22 @@ export function useClubDetail(code: string) {
 }
 
 // Generic invalidator for any club mutation — invalidates both list and the
-// affected detail. The user's /auth/me also changes (memberships / pending),
-// so refresh that too.
+// affected detail. The authenticated user's club memberships / primaryClub also
+// change, but the user lives in the zustand auth store (NOT react-query), so we
+// re-fetch /auth/me and write it back into the store instead of a no-op query
+// invalidation.
 function useClubInvalidator() {
   const qc = useQueryClient();
+  const setUser = useAuthStore((state) => state.setUser);
   return (code?: string) => {
     void qc.invalidateQueries({ queryKey: ['clubs'] });
     if (code) void qc.invalidateQueries({ queryKey: CLUB_QUERY_KEY.detail(code) });
-    void qc.invalidateQueries({ queryKey: ['auth', 'me'] });
+    void authApi
+      .getCurrentUser()
+      .then((res) => setUser(res.user))
+      .catch(() => {
+        // Best-effort re-hydrate; a failure here just leaves the store as-is.
+      });
   };
 }
 

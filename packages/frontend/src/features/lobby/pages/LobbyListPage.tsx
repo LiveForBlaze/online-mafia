@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button.js';
 import { gameApi } from '@/features/game/api/game.api.js';
 import { useActiveGame } from '@/features/game/hooks/useActiveGame.js';
 import { Input } from '@/components/ui/Input.js';
+import { Skeleton } from '@/components/ui/Skeleton.js';
 import { cn } from '@/lib/cn.js';
 import { CreateLobbyDialog } from '@/features/lobby/components/CreateLobbyDialog.js';
 import { EmptyLobbyState } from '@/features/lobby/components/EmptyLobbyState.js';
@@ -115,6 +116,9 @@ export function LobbyListPage() {
     return true;
   });
   const hasAnyLobbies = allLobbies.length > 0;
+  // Don't flash the empty-state before the board has loaded. Only treat a
+  // zero-length list as "truly empty" once both lobby queries have resolved.
+  const isLobbiesLoading = lobbiesQuery.isLoading || liveLobbiesQuery.isLoading;
 
   return (
     <div className="p-4 sm:p-6">
@@ -182,7 +186,13 @@ export function LobbyListPage() {
           </div>
         )}
 
-        {lobbies.length === 0 ? (
+        {isLobbiesLoading && !hasAnyLobbies ? (
+          <div className="space-y-2" aria-hidden="true">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} height={56} className="rounded-md" />
+            ))}
+          </div>
+        ) : lobbies.length === 0 ? (
           hasAnyLobbies ? (
             <p className="text-center text-sm text-muted py-8">{t('lobby.list.noMatches')}</p>
           ) : (

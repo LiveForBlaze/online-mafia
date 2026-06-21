@@ -82,7 +82,7 @@ export function SelfMediaButtons() {
           onClick={() => fireGameAction(CLIENT_EVENT.SAY_OUT_OF_TURN)}
           aria-label={t('game.ui.sayOutOfTurn')}
           title={t('game.ui.sayOutOfTurnHint')}
-          className="inline-flex items-center justify-center h-7 px-2 rounded-full bg-warning/85 hover:bg-warning text-[10px] font-semibold uppercase tracking-wider text-fg shadow"
+          className="inline-flex items-center justify-center h-7 px-2 rounded-full bg-warning hover:bg-warning/90 text-2xs font-semibold uppercase tracking-wider text-bg shadow"
         >
           {t('game.ui.foulShort')}
         </button>

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { type AdminUserSummary } from '@mafia/shared';
 
 import { Button } from '@/components/ui/Button.js';
+import { ErrorState } from '@/components/ui/ErrorState.js';
 import { toast } from '@/components/ui/Toaster.js';
 import { useDebouncedValue } from '@/lib/useDebouncedValue.js';
 import { adminApi } from '@/features/admin/api/admin.api.js';
@@ -23,11 +24,13 @@ export function UsersTab() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(false);
     adminApi
       .listUsers({
         search: debouncedSearch || undefined,
@@ -42,7 +45,12 @@ export function UsersTab() {
         }
       })
       .catch((err) => {
-        if (!cancelled) toast.error(err instanceof Error ? err.message : 'error');
+        if (!cancelled) {
+          // Keep a persistent error panel (below) and surface a toast too, so
+          // the list never silently falls through to the "no users" empty copy.
+          setLoadError(true);
+          toast.error(err instanceof Error ? err.message : 'error');
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -97,18 +105,26 @@ export function UsersTab() {
         {loading && <span className="ml-2">…</span>}
       </div>
 
-      <div className="space-y-3">
-        {users.map((u) => (
-          <UserCard key={u.id} user={u} onChanged={refresh} />
-        ))}
-        {!loading && users.length === 0 && (
-          <p className="text-center text-muted py-6">{t('admin.users.empty')}</p>
-        )}
-      </div>
+      {loadError && users.length === 0 ? (
+        <ErrorState
+          message={t('common.loadError')}
+          retryLabel={t('common.retry')}
+          onRetry={refresh}
+        />
+      ) : (
+        <div className="space-y-3">
+          {users.map((u) => (
+            <UserCard key={u.id} user={u} onChanged={refresh} />
+          ))}
+          {!loading && !loadError && users.length === 0 && (
+            <p className="text-center text-muted py-6">{t('admin.users.empty')}</p>
+          )}
+        </div>
+      )}
 
       {users.length < total && (
         <div className="flex justify-center">
-          <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
+          <Button variant="secondary" onClick={loadMore} loading={loadingMore}>
             {loadingMore ? t('admin.loadingMore') : t('admin.loadMore')}
           </Button>
         </div>

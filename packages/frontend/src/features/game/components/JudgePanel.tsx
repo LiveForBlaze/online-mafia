@@ -80,16 +80,24 @@ export function JudgeSeatControls({
     targetSeat !== null &&
     (phase === GAME_PHASE.DAY_SPEECH || phase === GAME_PHASE.DAY_VOTE_INTRO);
   return (
-    <>
+    // Grouped, evenly-spaced control row. Each button carries an explicit
+    // title/aria-label and a comfortable tap target (min-h-8 + min-w-8) so the
+    // dense judge controls are discoverable and reachable.
+    <div
+      className="flex flex-wrap items-center gap-1.5"
+      role="group"
+      aria-label={t('game.ui.judgePanel')}
+    >
       <Button
         size="sm"
         variant="ghost"
         className={cn(
-          'h-6 text-xs px-2',
+          'min-h-8 min-w-8 text-xs px-2',
           foulLocked && 'bg-danger/20 text-danger hover:bg-danger/20 cursor-not-allowed',
         )}
         disabled={foulLocked}
-        title={foulLocked ? t('game.ui.foulLocked') : undefined}
+        aria-label={t('game.ui.issueFoul')}
+        title={foulLocked ? t('game.ui.foulLocked') : t('game.ui.issueFoul')}
         onClick={() => fireGameAction(CLIENT_EVENT.JUDGE_ISSUE_FOUL, { targetUserId })}
       >
         {t('game.ui.issueFoul')}
@@ -97,8 +105,10 @@ export function JudgeSeatControls({
       <Button
         size="sm"
         variant="ghost"
-        className="h-6 text-xs px-2"
+        className="min-h-8 min-w-8 text-xs px-2"
         disabled={foulsCount <= 0}
+        aria-label={t('game.ui.removeFoul')}
+        title={t('game.ui.removeFoul')}
         onClick={() => fireGameAction(CLIENT_EVENT.JUDGE_REVOKE_FOUL, { targetUserId })}
       >
         {t('game.ui.removeFoul')}
@@ -107,7 +117,9 @@ export function JudgeSeatControls({
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 text-xs px-2 bg-warning/20 text-warning hover:bg-warning/30"
+          className="min-h-8 min-w-8 text-xs px-2 bg-warning/20 text-warning hover:bg-warning/30"
+          aria-label={t('game.ui.unnominate')}
+          title={t('game.ui.unnominate')}
           onClick={() => fireGameAction(CLIENT_EVENT.UNNOMINATE_PLAYER, { targetSeat })}
         >
           {t('game.ui.unnominate')}
@@ -115,12 +127,14 @@ export function JudgeSeatControls({
       )}
       <Button
         size="sm"
-        variant="ghost"
-        className="h-6 text-xs px-2"
+        variant="danger"
+        className="min-h-8 min-w-8 text-xs px-2"
+        aria-label={t('game.ui.removePlayer')}
+        title={t('game.ui.removePlayer')}
         onClick={() => fireGameAction(CLIENT_EVENT.JUDGE_REMOVE_PLAYER, { targetUserId })}
       >
         {t('game.ui.removePlayer')}
       </Button>
-    </>
+    </div>
   );
 }

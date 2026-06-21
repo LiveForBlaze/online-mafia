@@ -21,13 +21,22 @@ export function AudioRecovery(): null {
   useEffect(() => {
     if (!room) return;
 
+    // Track every pending re-subscribe timer so we can cancel them on unmount —
+    // otherwise a timer can fire after the component is gone and poke a stale
+    // publication.
+    const pendingTimers = new Set<number>();
+
     function restartAllRemoteAudio() {
       room.remoteParticipants.forEach((participant) => {
         const pubs = participant.audioTrackPublications as Map<string, RemoteTrackPublication>;
         pubs.forEach((pub) => {
           if (pub.source !== Track.Source.Microphone) return;
           pub.setSubscribed(false);
-          window.setTimeout(() => pub.setSubscribed(true), RESUBSCRIBE_GAP_MS);
+          const timer = window.setTimeout(() => {
+            pendingTimers.delete(timer);
+            pub.setSubscribed(true);
+          }, RESUBSCRIBE_GAP_MS);
+          pendingTimers.add(timer);
         });
       });
     }
@@ -35,6 +44,8 @@ export function AudioRecovery(): null {
     room.on(RoomEvent.Reconnected, restartAllRemoteAudio);
     return () => {
       room.off(RoomEvent.Reconnected, restartAllRemoteAudio);
+      pendingTimers.forEach((timer) => window.clearTimeout(timer));
+      pendingTimers.clear();
     };
   }, [room]);
 

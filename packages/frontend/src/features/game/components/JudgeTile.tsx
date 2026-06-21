@@ -95,7 +95,7 @@ export function JudgeTile({ state, viewerUserId }: JudgeTileProps) {
       {/* Bottom strip with nickname — простой текст, без перехода на профиль:
           случайный клик во время игры не должен уводить со страницы. */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-        <p className="text-sm font-medium text-white truncate">{judge.nickname}</p>
+        <p className="text-sm font-medium text-fg truncate">{judge.nickname}</p>
       </div>
     </div>
   );

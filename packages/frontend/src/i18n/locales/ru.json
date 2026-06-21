@@ -126,7 +126,9 @@
     "close": "Закрыть",
     "apply": "Применить",
     "showPassword": "Показать пароль",
-    "hidePassword": "Скрыть пароль"
+    "hidePassword": "Скрыть пароль",
+    "loadError": "Не удалось загрузить. Попробуйте ещё раз.",
+    "retry": "Повторить"
   },
   "languages": {
     "ru": "Русский",
@@ -268,6 +270,15 @@
       "unknown": "Что-то пошло не так",
       "nickname_rejected": "Этот никнейм не пропускает модерация. Выберите другой.",
       "avatar_locked": "Этот аватар заблокирован — нужное достижение ещё не получено."
+    },
+    "validation": {
+      "emailRequired": "Укажите email",
+      "emailInvalid": "Введите корректный email",
+      "passwordRequired": "Укажите пароль",
+      "passwordTooShort": "Минимум 8 символов",
+      "nicknameRequired": "Укажите ник",
+      "nicknameTooShort": "Минимум 2 символа",
+      "nicknameTooLong": "Максимум 24 символа"
     }
   },
   "clubs": {
@@ -651,7 +662,10 @@
       },
       "seatLabel": "Сидень {{n}}",
       "revertStep": "Отменить шаг",
-      "openLog": "Журнал партии"
+      "openLog": "Журнал партии",
+      "yourTurn": "ВАШ ХОД",
+      "speaking": "Говорит",
+      "nominatedShort": "ВЫСТ"
     },
     "errors": {
       "not_participant": "Вас нет в этой игре",
