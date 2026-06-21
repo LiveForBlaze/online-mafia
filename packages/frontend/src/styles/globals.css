@@ -74,3 +74,51 @@ a,
   cursor: pointer;
 }
 
+/* .hover-lift — raise an interactive surface (card/tile/row) on hover. Subtle
+ * 2px lift + standard elevation shadow + border brightened toward the accent.
+ * The transform is gated behind prefers-reduced-motion (motion-safe); the
+ * shadow/border change is harmless without motion so it always applies. Uses
+ * design tokens only (no raw values). color-mix is supported in all current
+ * evergreen browsers. */
+.hover-lift {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+.hover-lift:hover {
+  box-shadow: var(--shadow-elev);
+  border-color: color-mix(in oklch, var(--color-accent) 50%, var(--color-border));
+}
+
+/* .hero-glow — decorative radial cherry glow for the hero background. The hero
+ * adds an aria-hidden <div class="hero-glow"> behind its content. Low alpha so
+ * it tints the backdrop without affecting text contrast. Sized to fill its
+ * positioned parent; pointer-events disabled so it never intercepts clicks. */
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 60% at 50% 35%,
+    color-mix(in oklch, var(--color-accent) 22%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* .page-depth — faint top-down depth gradient for full-page backgrounds. From
+ * a hair-lighter shade near the top fading to the base bg. Kept very subtle so
+ * it doesn't shift contrast; apply to a page wrapper that owns the bg. */
+.page-depth {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--color-bg) 92%, var(--color-fg) 8%) 0%,
+    var(--color-bg) 220px
+  );
+}
+

@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { MessageSquare } from 'lucide-react';
 
 import { BAN_RESTRICTION, LOBBY_CHAT_MAX_LENGTH, type LobbyChatMessage } from '@mafia/shared';
 
@@ -80,14 +81,17 @@ export function LobbyChat({ lobbyId, viewerUserId, className }: LobbyChatProps) 
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg border border-border bg-card', className)}>
-      <header className="px-3 py-2 border-b border-border text-xs uppercase tracking-wider text-muted">
+    <div
+      className={cn('flex flex-col rounded-xl border border-border bg-card shadow-elev', className)}
+    >
+      <header className="flex items-center gap-2 px-3 py-2 border-b border-border text-xs uppercase tracking-wider text-muted">
+        <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
         {t('lobby.chat.title')}
       </header>
       <div
         ref={listRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2"
+        className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5"
       >
         {messages.length === 0 ? (
           <p className="text-sm text-muted">{t('lobby.chat.empty')}</p>
@@ -128,7 +132,7 @@ function ChatMessageRow({ message, isOwn }: { message: LobbyChatMessage; isOwn: 
   const hh = String(time.getHours()).padStart(2, '0');
   const mm = String(time.getMinutes()).padStart(2, '0');
   return (
-    <div className="text-sm leading-snug">
+    <div className="rounded-md px-1.5 py-0.5 text-sm leading-snug transition-colors hover:bg-card-hover">
       <span className="text-xs font-mono text-muted mr-2">
         {hh}:{mm}
       </span>

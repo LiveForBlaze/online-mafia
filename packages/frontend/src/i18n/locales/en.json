@@ -471,6 +471,8 @@
       "markReady": "Ready",
       "markNotReady": "Not ready",
       "readyLabel": "Ready",
+      "botBadge": "Bot",
+      "notReadyLabel": "Not ready",
       "waitingReady": "Waiting for ready: {{n}}",
       "seatCount": "{{n}} seats",
       "allSeated": "All seats filled",

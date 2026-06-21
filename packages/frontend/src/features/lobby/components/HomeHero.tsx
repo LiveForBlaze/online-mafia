@@ -32,7 +32,11 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
   );
   return (
     <section className="relative grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-6 md:gap-10 items-center pt-4 sm:pt-8">
-      <div className="space-y-6">
+      {/* Decorative soft cherry radial glow behind the wordmark/splash. Purely
+          ornamental — aria-hidden, pointer-events disabled (see .hero-glow). */}
+      <div aria-hidden="true" className="hero-glow" />
+
+      <div className="relative space-y-7">
         {/* Meta row: альфа-чип + OSS-метки. Капс с тонким tracking — звучит
             как titlecard, а не как извинение за бета-статус. `tabular-nums`
             фиксирует ширину цифр (MIT / LiveKit имеют буквы и могут плыть
@@ -69,6 +73,7 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
             size="lg"
             disabled={cannotCreate}
             title={cannotCreate ? t('lobby.list.cannotCreateBanned') : undefined}
+            className="motion-safe:transition-shadow enabled:hover:shadow-glow-accent"
           >
             + {t('common.create_lobby')}
           </Button>
@@ -80,7 +85,7 @@ export function HomeHero({ onCreateLobby, stats }: HomeHeroProps) {
         <StatsRow stats={stats} />
       </div>
 
-      <div className="hidden md:flex justify-end">
+      <div className="relative hidden md:flex justify-end">
         <SplashImage />
       </div>
     </section>
@@ -97,24 +102,43 @@ function StatsRow({ stats }: { stats: HomeStats | undefined }) {
   // по локали (русский: 1 → активная игра, 2-4 → активные игры,
   // 5+ → активных игр). Без count'а в строке: число рендерим отдельно
   // крупным шрифтом, label'у достаётся только существительное.
+  const activeGames = stats?.activeGames ?? 0;
   return (
-    <dl className="flex flex-wrap items-center gap-x-8 gap-y-3">
+    // Raised "stat band": elevated surface that lifts the live numbers off the
+    // page. Dividers (divide-x) separate the individual stats.
+    <dl className="inline-flex flex-wrap items-stretch divide-x divide-border rounded-xl border border-border bg-card-hover shadow-elev">
       <Stat
         value={stats?.openLobbies}
         label={t('hero.statsOpenLobbies', { count: stats?.openLobbies ?? 0 })}
       />
       <Stat
         value={stats?.activeGames}
-        label={t('hero.statsActiveGames', { count: stats?.activeGames ?? 0 })}
+        label={t('hero.statsActiveGames', { count: activeGames })}
+        // Live pulse only when there's actually a game running.
+        live={activeGames > 0}
       />
     </dl>
   );
 }
 
-function Stat({ value, label }: { value: number | undefined; label: string }) {
+function Stat({
+  value,
+  label,
+  live = false,
+}: {
+  value: number | undefined;
+  label: string;
+  live?: boolean;
+}) {
   const displayValue = value === undefined ? '—' : value.toLocaleString('ru-RU');
   return (
-    <div className="inline-flex items-baseline gap-2 whitespace-nowrap">
+    <div className="inline-flex items-baseline gap-2 whitespace-nowrap px-4 py-3 sm:px-5">
+      {live && (
+        <span
+          aria-hidden="true"
+          className="self-center h-1.5 w-1.5 shrink-0 rounded-full bg-success motion-safe:animate-pulse"
+        />
+      )}
       <dt className="sr-only">{label}</dt>
       <dd
         className="font-extrabold text-2xl sm:text-3xl text-fg tabular-nums"

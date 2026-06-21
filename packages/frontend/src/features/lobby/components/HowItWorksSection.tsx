@@ -9,11 +9,20 @@
 // экране после fold'а.
 
 import { useTranslation } from 'react-i18next';
+import { ListChecks, ScrollText, Video, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/lib/cn.js';
 
 const STEPS = ['lobby', 'roles', 'table'] as const;
 type Step = (typeof STEPS)[number];
+
+// Lucide icon per step, mirroring the mini-illustration each card carries:
+// lobby list → ListChecks, role wall → ScrollText, video table → Video.
+const STEP_ICON: Record<Step, LucideIcon> = {
+  lobby: ListChecks,
+  roles: ScrollText,
+  table: Video,
+};
 
 export function HowItWorksSection() {
   const { t } = useTranslation();
@@ -42,8 +51,9 @@ export function HowItWorksSection() {
 function StepCard({ step, index }: { step: Step; index: number }) {
   const { t } = useTranslation();
   const num = String(index).padStart(2, '0');
+  const Icon = STEP_ICON[step];
   return (
-    <article className="relative overflow-hidden rounded-xl border border-border bg-card p-5 flex flex-col gap-4 min-h-[280px]">
+    <article className="hover-lift relative overflow-hidden rounded-xl border border-border bg-card p-5 flex flex-col gap-4 min-h-[280px] shadow-elev">
       {/* Backdrop digit — большая цифра подложкой, не отвлекает от текста. */}
       <span
         aria-hidden="true"
@@ -52,12 +62,15 @@ function StepCard({ step, index }: { step: Step; index: number }) {
         {num}
       </span>
 
-      <div className="relative space-y-2">
-        <p className="text-2xs uppercase tracking-[0.18em] text-muted">
-          <span
-            aria-hidden="true"
-            className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent"
-          />
+      <div className="relative space-y-3">
+        {/* Accent-tinted icon coin — visual anchor + cherry accent. */}
+        <span
+          aria-hidden="true"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent"
+        >
+          <Icon size={22} strokeWidth={1.75} />
+        </span>
+        <p className="text-2xs uppercase tracking-[0.18em] text-accent">
           {num} · {t(`howItWorks.steps.${step}.kicker`)}
         </p>
         <h3 className="text-lg font-bold uppercase tracking-tight text-fg">

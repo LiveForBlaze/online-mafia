@@ -170,7 +170,7 @@ export function LobbyRoomPage() {
 
   if (lobbyQuery.isLoading) {
     return (
-      <div className="p-4 sm:p-6">
+      <div className="page-depth min-h-full p-4 sm:p-6">
         <div className="mx-auto max-w-3xl flex items-center justify-center gap-2 py-16 text-muted">
           <Spinner size="sm" />
           <span>{t('common.lobby_loading')}</span>
@@ -182,7 +182,7 @@ export function LobbyRoomPage() {
   if (lobbyQuery.isError) {
     const code = lobbyQuery.error instanceof ApiError ? lobbyQuery.error.body.error : undefined;
     return (
-      <div className="p-6">
+      <div className="page-depth min-h-full p-6">
         <div className="mx-auto max-w-md text-center space-y-4">
           <p className="text-danger">{lobbyErrorMessage(code)}</p>
           <button

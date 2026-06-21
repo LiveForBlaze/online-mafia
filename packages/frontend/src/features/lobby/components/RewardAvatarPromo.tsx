@@ -29,8 +29,10 @@ export function RewardAvatarPromo() {
   }
 
   return (
-    <section className="relative overflow-hidden rounded-xl border border-warning/30 bg-card p-5 sm:p-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+    <section className="relative overflow-hidden rounded-xl border border-warning/30 bg-card p-5 sm:p-6 shadow-elev">
+      {/* Subtle cherry glow behind the promo to lift it off the page. */}
+      <div className="hero-glow" aria-hidden="true" />
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
         <div className="flex shrink-0 gap-3">
           <RewardSlot id="avatar-alpha-m" locked={!owned} />
           <RewardSlot id="avatar-alpha-f" locked={!owned} />
@@ -47,7 +49,11 @@ export function RewardAvatarPromo() {
 
         {owned && (
           <div className="shrink-0">
-            <Button variant="secondary" onClick={handleOwnedCta}>
+            <Button
+              variant="secondary"
+              onClick={handleOwnedCta}
+              className="transition-shadow motion-safe:hover:shadow-glow-accent"
+            >
               <Heart size={14} strokeWidth={2} className="mr-1.5" aria-hidden="true" />
               {t('rewardPromo.ctaOwned')}
             </Button>

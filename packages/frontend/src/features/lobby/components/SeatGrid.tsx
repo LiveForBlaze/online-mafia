@@ -1,15 +1,17 @@
-// Grid of 10 player seats. Each tile is portrait-oriented: a dominant avatar,
-// the seat number in the top-left corner, and the nickname below.
+// Grid of 10 player seats. Each tile is an elevated portrait-oriented seat
+// CARD: a dominant avatar, the seat number in the top-left corner, the
+// nickname below, and small host/bot badges.
 //
-// The whole tile reads its state through the border colour so a filled-vs-empty
-// (and ready-vs-not) read is instant at any glance:
-//   - dashed muted outline  -> empty
-//   - solid green border    -> seated AND ready
-//   - solid red border      -> seated, NOT ready
+// Readiness is shown with BOTH a glyph and colour so it stays glanceable for
+// colourblind users (never colour alone):
+//   - dashed muted outline + "+" placeholder -> empty
+//   - CheckCircle glyph + success accent      -> seated AND ready
+//   - Circle (hollow) glyph + danger accent   -> seated, NOT ready
 // The ready button itself is rendered outside this grid in LobbyRoom.
 
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { Bot, CheckCircle2, Circle, Crown } from 'lucide-react';
 
 import { GAME, ROLE, type LobbyMemberPublic, type Role } from '@mafia/shared';
 
@@ -94,12 +96,15 @@ function SeatCard({
 
   if (!occupant) {
     return (
-      <div className="group relative flex aspect-[3/4] flex-col rounded-lg border border-dashed border-border bg-card-deep/30 p-2">
+      <div
+        className="group relative flex aspect-[3/4] flex-col rounded-xl border border-dashed border-border bg-card-deep/40 p-2 transition-colors hover:border-border/80"
+        aria-label={t('lobby.room.seatEmpty')}
+      >
         <span className="text-base font-semibold text-muted tabular-nums">{seat}</span>
         <div className="flex flex-1 items-center justify-center">
           <span
             aria-hidden="true"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-lg leading-none text-muted/70"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-border/70 text-lg leading-none text-muted/70"
           >
             +
           </span>
@@ -109,7 +114,7 @@ function SeatCard({
   }
 
   const ready = occupant.isReady;
-  const borderColor = ready ? 'border-success/70' : 'border-danger/70';
+  const borderColor = ready ? 'border-success/70' : 'border-danger/60';
   const numberColor = ready ? 'text-success' : 'text-danger';
   const showRolePicker = Boolean(onPreassignRole);
 
@@ -124,14 +129,34 @@ function SeatCard({
   return (
     <div
       className={cn(
-        'group relative flex aspect-[3/4] flex-col rounded-lg border-2 bg-card p-2',
+        'hover-lift group relative flex aspect-[3/4] flex-col rounded-xl border-2 bg-card p-2 shadow-elev',
         borderColor,
       )}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-1">
         <span className={cn('text-base font-bold tabular-nums leading-none', numberColor)}>
           {seat}
         </span>
+        <div className="flex items-center gap-1">
+          {occupant.isHost && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-warning"
+              title={t('lobby.room.hostBadge')}
+            >
+              <Crown className="h-2.5 w-2.5" aria-hidden="true" />
+              <span className="sr-only">{t('lobby.room.hostBadge')}</span>
+            </span>
+          )}
+          {occupant.isBot && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full bg-card-deep px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-muted"
+              title={t('lobby.room.botBadge')}
+            >
+              <Bot className="h-2.5 w-2.5" aria-hidden="true" />
+              <span className="sr-only">{t('lobby.room.botBadge')}</span>
+            </span>
+          )}
+        </div>
         {canKick && (
           <button
             type="button"
@@ -174,6 +199,22 @@ function SeatCard({
             {occupant.nickname}
           </span>
         )}
+      </div>
+
+      {/* Readiness cue — glyph + colour together (never colour alone) so the
+          ready state is legible for colourblind users. */}
+      <div
+        className={cn(
+          'mt-1 flex items-center justify-center gap-1 text-2xs font-semibold uppercase tracking-wide',
+          ready ? 'text-success' : 'text-muted',
+        )}
+      >
+        {ready ? (
+          <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+        ) : (
+          <Circle className="h-3 w-3" aria-hidden="true" />
+        )}
+        <span>{ready ? t('lobby.room.readyLabel') : t('lobby.room.notReadyLabel')}</span>
       </div>
 
       {showRolePicker && onPreassignRole && (
