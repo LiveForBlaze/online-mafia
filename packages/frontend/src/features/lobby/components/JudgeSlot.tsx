@@ -4,10 +4,10 @@
 
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { CheckCircle2, Gavel } from 'lucide-react';
 
 import type { LobbyMemberPublic } from '@mafia/shared';
 
-import { cn } from '@/lib/cn.js';
 import { extractInitial } from '@/features/lobby/lib/extractInitial.js';
 import { userProfilePath } from '@/routes/paths.js';
 
@@ -26,8 +26,17 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
   const isViewer = judge?.userId === currentUserId;
 
   return (
-    <div className="rounded-md border border-border bg-card-deep px-3 py-2 flex items-center gap-3">
-      <span className="text-2xs uppercase tracking-wider text-muted shrink-0" aria-hidden="true">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5 shadow-elev">
+      <span
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent"
+        aria-hidden="true"
+      >
+        <Gavel className="h-4 w-4" />
+      </span>
+      <span
+        className="text-2xs uppercase tracking-wider text-muted shrink-0 hidden sm:inline"
+        aria-hidden="true"
+      >
         {t('lobby.room.judgeUpper')}
       </span>
       {judge ? (
@@ -50,12 +59,11 @@ export function JudgeSlot({ judge, currentUserId }: JudgeSlotProps) {
           </p>
           {judge.isReady && (
             <span
-              className={cn(
-                'shrink-0 rounded-full bg-success/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider text-success',
-              )}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider text-success"
               aria-label={t('lobby.room.readyLabel')}
             >
-              ✓ {t('lobby.room.readyLabel')}
+              <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+              {t('lobby.room.readyLabel')}
             </span>
           )}
         </div>

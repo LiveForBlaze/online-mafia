@@ -57,7 +57,7 @@ export function LobbyCard({ lobby, onJoin, isJoining }: LobbyCardProps) {
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
       aria-label={t('lobby.card.ariaLabel', { name: lobby.name, host: lobby.hostNickname })}
-      className="group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-accent/40 hover:bg-card-deep focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
+      className="hover-lift group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card shadow-elev hover:bg-card-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
     >
       <div className="flex items-center gap-3 p-4">
         <Avatar nickname={lobby.hostNickname} />

@@ -54,12 +54,10 @@ function FeatureCard({ feature }: { feature: Feature }) {
   const { t } = useTranslation();
   const { Icon } = feature;
   return (
-    <article className="rounded-xl border border-border bg-card p-5 space-y-4">
-      {/* Иконка крупнее: контейнер 48×48 (было 36), сам символ 24px
-          (было 18). На 36px-кружке выглядела как «слабая декорация» —
-          теперь читается как полноценный визуальный анкор. Цвет/фон
-          скромный (text-muted, bg-card-deep), без яркого акцента. */}
-      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-card-deep text-muted">
+    <article className="hover-lift rounded-xl border border-border bg-card p-5 space-y-4 shadow-elev">
+      {/* Accent-tinted icon coin — matches the «Три шага» step coins so the
+          two grids read as one elevation/accent system. */}
+      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent">
         <Icon size={24} strokeWidth={1.75} aria-hidden="true" />
       </div>
       <h3 className="text-sm font-bold uppercase tracking-tight text-fg">

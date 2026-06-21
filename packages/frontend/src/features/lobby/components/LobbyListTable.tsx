@@ -32,42 +32,44 @@ export function LobbyListTable({ lobbies, onAction, joiningId }: LobbyListTableP
   // пропорционален содержимому.
   const showHeader = lobbies.length > 1;
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div role="table" aria-label={t('lobbyTable.aria')} className="text-sm">
-        {/* Header */}
-        <div
-          role="row"
-          className={cn(
-            showHeader ? 'hidden sm:grid' : 'hidden',
-            'items-center gap-3 px-4 py-2 text-2xs uppercase tracking-[0.18em] text-muted',
-            'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
-            'md:grid-cols-[3rem_minmax(0,1fr)_14rem_8rem_5rem_7rem]',
-          )}
-        >
-          <span role="columnheader" className="hidden md:block">
-            #
-          </span>
-          <span role="columnheader">{t('lobbyTable.col.lobby')}</span>
-          <span role="columnheader" className="hidden md:block">
-            {t('lobbyTable.col.host')}
-          </span>
-          <span role="columnheader">{t('lobbyTable.col.players')}</span>
-          <span role="columnheader">{t('lobbyTable.col.status')}</span>
-          <span role="columnheader" className="text-right">
-            <span className="sr-only">{t('lobbyTable.col.action')}</span>
-          </span>
-        </div>
+    <div role="table" aria-label={t('lobbyTable.aria')} className="text-sm">
+      {/* Header — column labels align to the row grid. Indented to match the
+          per-row card padding so headers sit above their columns. */}
+      <div
+        role="row"
+        className={cn(
+          showHeader ? 'hidden sm:grid' : 'hidden',
+          'items-center gap-3 px-4 pb-2 text-2xs uppercase tracking-[0.18em] text-muted',
+          'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
+          'md:grid-cols-[3rem_minmax(0,1fr)_14rem_8rem_5rem_7rem]',
+        )}
+      >
+        <span role="columnheader" className="hidden md:block">
+          #
+        </span>
+        <span role="columnheader">{t('lobbyTable.col.lobby')}</span>
+        <span role="columnheader" className="hidden md:block">
+          {t('lobbyTable.col.host')}
+        </span>
+        <span role="columnheader">{t('lobbyTable.col.players')}</span>
+        <span role="columnheader">{t('lobbyTable.col.status')}</span>
+        <span role="columnheader" className="text-right">
+          <span className="sr-only">{t('lobbyTable.col.action')}</span>
+        </span>
+      </div>
 
-        <div className="divide-y divide-border/60">
-          {lobbies.map((lobby) => (
-            <LobbyRow
-              key={lobby.id}
-              lobby={lobby}
-              isJoining={joiningId === lobby.id}
-              onAction={() => onAction(lobby)}
-            />
-          ))}
-        </div>
+      {/* Each row is now its own raised card (see LobbyRow), so the list is a
+          vertical stack with breathing room rather than a hairline-divided
+          table body. */}
+      <div className="space-y-2">
+        {lobbies.map((lobby) => (
+          <LobbyRow
+            key={lobby.id}
+            lobby={lobby}
+            isJoining={joiningId === lobby.id}
+            onAction={() => onAction(lobby)}
+          />
+        ))}
       </div>
     </div>
   );
@@ -141,7 +143,11 @@ function LobbyRow({
       onKeyDown={handleRowKey}
       aria-label={t('lobby.card.ariaLabel', { name: lobby.name, host: lobby.hostNickname })}
       className={cn(
-        'group cursor-pointer px-4 py-3 transition-colors hover:bg-bg/60 focus:outline-none focus:bg-bg/60',
+        // Raised row-card: subtle border + card surface so each row reads as a
+        // discrete card. `hover-lift` adds the motion-safe lift + elevation +
+        // accent-ish border on hover. Focus mirrors the hover surface.
+        'hover-lift group cursor-pointer rounded-xl border border-border bg-card px-4 py-3',
+        'hover:bg-card-hover focus:outline-none focus:bg-card-hover focus:border-accent/50 focus:shadow-elev',
         'sm:grid sm:items-center sm:gap-3',
         'sm:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_9rem]',
         'md:grid-cols-[3rem_minmax(0,1fr)_14rem_8rem_5rem_7rem]',
@@ -193,12 +199,15 @@ function LobbyRow({
             current: lobby.memberCount,
             max: lobby.maxMembers,
           })}
-          className="h-1 flex-1 overflow-hidden rounded-full bg-card-deep"
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-card-deep"
         >
           <div
             className={cn(
-              'h-full transition-[width] duration-300',
+              'h-full rounded-full transition-[width] duration-300',
               isFull ? 'bg-warning' : 'bg-accent',
+              // Soft cherry glow on an in-progress game's fill so live tables
+              // read as energised.
+              isInGame && 'shadow-glow-accent',
             )}
             style={{ width: `${percent}%` }}
           />
@@ -213,7 +222,11 @@ function LobbyRow({
           aria-hidden="true"
           className={cn(
             'h-1.5 w-1.5 rounded-full',
-            isInGame ? 'bg-accent' : isFull ? 'bg-warning' : 'bg-success',
+            isInGame
+              ? 'bg-accent shadow-glow-accent motion-safe:animate-pulse'
+              : isFull
+                ? 'bg-warning'
+                : 'bg-success',
           )}
         />
         <span

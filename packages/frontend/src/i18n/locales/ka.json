@@ -471,6 +471,8 @@
       "markReady": "მზად ვარ",
       "markNotReady": "მზად არ ვარ",
       "readyLabel": "მზად",
+      "botBadge": "ბოტი",
+      "notReadyLabel": "არ არის მზად",
       "waitingReady": "ველოდებით მზადყოფნას: {{n}}",
       "seatCount": "{{n}} ადგილი",
       "allSeated": "ყველა ადგილი დაკავებულია",

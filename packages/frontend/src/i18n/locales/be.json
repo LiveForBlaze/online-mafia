@@ -482,6 +482,8 @@
       "markReady": "Гатовы",
       "markNotReady": "Не гатовы",
       "readyLabel": "Гатовы",
+      "botBadge": "Бот",
+      "notReadyLabel": "Не гатовы",
       "waitingReady": "Чакаем гатоўнасці: {{n}}",
       "seatCount": "{{n}} месцаў",
       "allSeated": "Усе месцы занятыя",

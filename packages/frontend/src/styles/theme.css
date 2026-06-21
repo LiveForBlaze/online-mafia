@@ -49,6 +49,9 @@
   --color-fg: oklch(0.95 0 0);
   --color-muted: oklch(0.65 0 0);
   --color-card: oklch(0.19 0 0);
+  /* One step lighter than card — for raised/hover surfaces (e.g. .hover-lift
+     targets, elevated list rows). Generates `bg-card-hover` / `border-card-hover`. */
+  --color-card-hover: oklch(0.23 0 0);
   /* "Deep" card for elevated/recessed panels (judge, info). Darker than bg
      so the central control zone reads as visually distinct. */
   --color-card-deep: oklch(0.09 0 0);
@@ -76,4 +79,16 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 16px;
+
+  /* Elevation shadows. Tailwind v4 emits `--shadow-*` @theme tokens verbatim
+     as the `shadow-*` utility value, so oklch-with-alpha passes straight
+     through to modern browsers (no compilation of the color is attempted).
+     `--shadow-elev` is the single standard card-elevation shadow — use the
+     `shadow-elev` utility instead of ad-hoc shadow values for a consistent
+     scale. */
+  --shadow-elev: 0 4px 16px -4px oklch(0 0 0 / 0.45);
+  /* Soft low-alpha CHERRY glow for CTAs / live accents. Generates
+     `shadow-glow-accent`. The cherry hue matches --color-accent
+     (oklch 0.62 0.25 24). */
+  --shadow-glow-accent: 0 0 24px -2px oklch(0.62 0.25 24 / 0.45);
 }

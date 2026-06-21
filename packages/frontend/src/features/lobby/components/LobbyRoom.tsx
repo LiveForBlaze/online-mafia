@@ -103,7 +103,7 @@ export function LobbyRoom({
   );
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="page-depth min-h-full p-4 sm:p-6">
       <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
         <LobbyHeaderCard lobby={lobby} />
 
@@ -139,7 +139,7 @@ export function LobbyRoom({
             seat tiles, so the player's attention isn't competing with seat UI.
             Layout: progress on the left, action stacked on the right with the
             caption and the button vertically aligned to each other. */}
-        <section className="rounded-md border border-border bg-card p-4">
+        <section className="rounded-xl border border-border bg-card p-4 shadow-elev">
           <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex items-baseline justify-between gap-3">
@@ -213,6 +213,7 @@ export function LobbyRoom({
                   onClick={onStart}
                   disabled={!startEnabled || isStartPending}
                   title={!startEnabled ? statusMessage : undefined}
+                  className="motion-safe:transition-shadow enabled:hover:shadow-glow-accent"
                 >
                   {t('lobby.room.startGame')}
                 </Button>
@@ -271,7 +272,7 @@ function LobbyHeaderCard({ lobby }: { lobby: LobbyDetails }) {
   }
 
   return (
-    <header className="rounded-md border border-border bg-card p-4 sm:p-5">
+    <header className="rounded-xl border border-border bg-card p-4 shadow-elev sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-fg break-words">{lobby.name}</h1>

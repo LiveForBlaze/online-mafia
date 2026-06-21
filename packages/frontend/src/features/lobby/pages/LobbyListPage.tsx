@@ -121,7 +121,7 @@ export function LobbyListPage() {
   const isLobbiesLoading = lobbiesQuery.isLoading || liveLobbiesQuery.isLoading;
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="page-depth p-4 sm:p-6">
       <div className="mx-auto max-w-6xl space-y-10">
         <HomeHero onCreateLobby={() => setIsCreateOpen(true)} stats={statsQuery.data} />
 
@@ -158,7 +158,7 @@ export function LobbyListPage() {
         {/* Search + privacy filter. Only rendered when at least one lobby
             exists — an empty board doesn't need filtering. */}
         {hasAnyLobbies && (
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center rounded-xl border border-border bg-card-hover p-3 shadow-elev">
             <Input
               type="search"
               placeholder={t('lobby.list.searchPlaceholder')}

@@ -471,6 +471,8 @@
       "markReady": "Дайын",
       "markNotReady": "Дайын емес",
       "readyLabel": "Дайын",
+      "botBadge": "Бот",
+      "notReadyLabel": "Дайын емес",
       "waitingReady": "Дайындықты күтудеміз: {{n}}",
       "seatCount": "{{n}} орын",
       "allSeated": "Барлық орындар толды",
